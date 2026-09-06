@@ -85,6 +85,31 @@ tool ran — jest stack frames through `node_modules`, gradle's `UP-TO-DATE`,
 docker layer chatter, fastlane's compiler warnings. Repeated lines collapse
 with a count. An unknown command still gets the collapse.
 
+## The filter that writes itself
+
+Hand-written rules do not scale — every new tool needs another one. So the
+same command is measured across runs instead:
+
+```
+IDF(line) = log(N / df(line))
+```
+
+A line present in most runs of a command carries no information and goes. A
+line seen for the first time has maximum IDF and is never cut. The safety
+property falls out of the math rather than a special case:
+
+```
+run 1   1061 tok cut, 64%   (rule jest)
+run 3   1648 tok cut, 100%  (rule jest + 104 lines with no information)
+        ... code broken ...
+run 4    103 tok cut, 22%   (rule jest + 5 lines with no information)
+```
+
+When nothing changes it cuts everything. The moment something breaks, the cut
+collapses on its own and the failure comes through whole.
+
+Identical output is not repeated at all — just its size.
+
 ## Where the session went
 
 ```

@@ -11,6 +11,7 @@ import { ruleset, readLevel, writeLevel, LEVELS } from "../lib/style.js";
 import { run as sandboxRun, open as openIndex, search as searchIndex } from "../lib/sandbox.js";
 import { filter, rules as filterRules } from "../lib/filters.js";
 import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
+import { open as openLearn, observe, denoise } from "../lib/learn.js";
 import {
   weighAlwaysOn,
   weighMemory,
@@ -248,12 +249,27 @@ function filterCmd(argv) {
   } catch (e) {
     raw = String(e.stdout || "") + String(e.stderr || e.message || "");
   }
-  const r = filter(command, raw);
+  const db = openLearn();
+  const seen = observe(db, command, raw);
+  if (seen.unchanged) {
+    db.close();
+    console.error(
+      `${DIM}bilro: identico a execucao anterior (${seen.runs}a vez), ${Math.round(raw.length / 4)} tok nao repetidos${OFF}`,
+    );
+    return;
+  }
+  const learned = denoise(db, command, raw);
+  db.close();
+
+  const r = filter(command, learned.text);
   process.stdout.write(r.text + "\n");
-  const saved = r.before - r.after;
-  const pct = r.before ? Math.round((saved / r.before) * 100) : 0;
+  const saved = raw.length - r.after;
+  const pct = raw.length ? Math.round((saved / raw.length) * 100) : 0;
+  const how = [r.rule && `regra ${r.rule}`, learned.learned && `${learned.dropped} linhas sem informacao`]
+    .filter(Boolean)
+    .join(" + ");
   console.error(
-    `${DIM}bilro filter${r.rule ? ` (${r.rule})` : ""}: ${Math.round(saved / 4)} tok cortados, ${pct}%${OFF}`,
+    `${DIM}bilro: ${Math.round(saved / 4)} tok cortados, ${pct}%${how ? ` (${how})` : ""}${OFF}`,
   );
 }
 
