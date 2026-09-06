@@ -72,6 +72,31 @@ The output is chunked into SQLite FTS5 and ranked by BM25 — both built into
 Node, no dependency — so the bytes stay on disk and only what you asked for
 comes back. `bilro find <term>` retrieves the rest whenever you need it.
 
+## Cut the noise a command makes
+
+```
+$ bilro filter "npx jest src/features"
+  ...
+  bilro filter (jest): 1061 tok cortados, 64%
+```
+
+Per-tool rules keep the lines you act on and drop the ones that only prove the
+tool ran — jest stack frames through `node_modules`, gradle's `UP-TO-DATE`,
+docker layer chatter, fastlane's compiler warnings. Repeated lines collapse
+with a count. An unknown command still gets the collapse.
+
+## Where the session went
+
+```
+$ bilro sessions
+
+  09-06 21:30    4 agentes    85k de custo fixo   2 repetidos
+```
+
+Every subagent dispatch is priced and remembered, so a session can be read
+back afterwards: how many agents, what they cost before doing anything, and
+how many asked a question the session had already asked.
+
 ## Style
 
 ```

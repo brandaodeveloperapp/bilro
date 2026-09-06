@@ -9,6 +9,8 @@ import { execFileSync } from "node:child_process";
 import { loadMemories, audit } from "../lib/memory.js";
 import { ruleset, readLevel, writeLevel, LEVELS } from "../lib/style.js";
 import { run as sandboxRun, open as openIndex, search as searchIndex } from "../lib/sandbox.js";
+import { filter, rules as filterRules } from "../lib/filters.js";
+import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
 import {
   weighAlwaysOn,
   weighMemory,
@@ -217,6 +219,44 @@ function runCmd(argv) {
   console.log(`\n  ${DIM}bilro find "<termo>" recupera o resto${OFF}\n`);
 }
 
+function sessionReport() {
+  const all = sessions();
+  if (!all.length) return console.log("\n  nenhuma sessao registrada ainda.\n");
+  console.log(`\n  ${BOLD}ultimas sessoes${OFF}\n`);
+  for (const s of all.slice(0, 8)) {
+    const t = summarize(s.id);
+    if (!t.dispatches && !t.saved) continue;
+    const when = new Date(s.mtime).toISOString().slice(5, 16).replace("T", " ");
+    const repeat = t.repeats ? ` ${WARN}${t.repeats} repetidos${OFF}` : "";
+    console.log(
+      `  ${DIM}${when}${OFF}  ${String(t.dispatches).padStart(3)} agentes  ` +
+        `${BOLD}${String(Math.round(t.dispatchCost / 1000)).padStart(4)}k${OFF} de custo fixo${repeat}`,
+    );
+  }
+  const total = all.reduce((n, s) => n + summarize(s.id).dispatchCost, 0);
+  const rep = all.reduce((n, s) => n + summarize(s.id).repeats, 0);
+  console.log(`  ${"─".repeat(56)}`);
+  console.log(`  ${BOLD}${Math.round(total / 1000)}k${OFF} em custo fixo de agente, ${rep} despachos repetidos\n`);
+}
+
+function filterCmd(argv) {
+  const command = argv.join(" ");
+  if (!command) return console.log(`\n  uso: bilro filter <comando>\n  regras: ${filterRules.join(", ")}\n`);
+  let raw = "";
+  try {
+    raw = execFileSync("/bin/sh", ["-c", command], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  } catch (e) {
+    raw = String(e.stdout || "") + String(e.stderr || e.message || "");
+  }
+  const r = filter(command, raw);
+  process.stdout.write(r.text + "\n");
+  const saved = r.before - r.after;
+  const pct = r.before ? Math.round((saved / r.before) * 100) : 0;
+  console.error(
+    `${DIM}bilro filter${r.rule ? ` (${r.rule})` : ""}: ${Math.round(saved / 4)} tok cortados, ${pct}%${OFF}`,
+  );
+}
+
 function findCmd(argv) {
   const q = argv.join(" ");
   if (!q) return console.log("\n  uso: bilro find <termo>\n");
@@ -244,6 +284,9 @@ else if (cmd === "verify") verify(process.cwd());
 else if (cmd === "hook") hook(process.argv[3]);
 else if (cmd === "run") runCmd(process.argv.slice(3));
 else if (cmd === "find") findCmd(process.argv.slice(3));
+else if (cmd === "filter") filterCmd(process.argv.slice(3));
+else if (cmd === "sessions") sessionReport();
+else if (cmd === "prune") console.log(`\n  ${prunePast()} sessoes antigas removidas\n`);
 else if (cmd === "style") {
   const arg = process.argv[3];
   if (!arg) console.log(`\n  nivel atual: ${readLevel()}   ${DIM}(${LEVELS.join(" | ")})${OFF}\n`);
@@ -267,5 +310,8 @@ else {
     bilro style     nivel de concisao da resposta (off | lean | terse)
     bilro run <cmd> roda no sandbox, indexa a saida, devolve so o tamanho
     bilro find <q>  recupera trecho do que ja foi indexado
+    bilro filter <c> roda e corta o ruido conhecido da saida
+    bilro sessions  custo de agente por sessao, e quantos repetiram assunto
+    bilro prune     descarta registro de sessao com mais de 14 dias
 `);
 }

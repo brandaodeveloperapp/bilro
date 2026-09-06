@@ -5,30 +5,13 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { weighAgents, tokensOf } from "../lib/weigh.js";
+import { read as readLedger, write as writeLedger } from "../lib/ledger.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STATE_DIR = join(homedir(), ".claude", "bilro", "sessions");
 
 const FLOOR_TOKENS = 18000;
 
-function stateFile(sessionId) {
-  return join(STATE_DIR, `${sessionId || "unknown"}.json`);
-}
-
-function readState(sessionId) {
-  try {
-    return JSON.parse(readFileSync(stateFile(sessionId), "utf8"));
-  } catch {
-    return { dispatches: [] };
-  }
-}
-
-function writeState(sessionId, state) {
-  try {
-    mkdirSync(STATE_DIR, { recursive: true });
-    writeFileSync(stateFile(sessionId), JSON.stringify(state));
-  } catch {}
-}
 
 function words(text) {
   return new Set(
@@ -79,7 +62,7 @@ process.stdin.on("end", () => {
   const prompt = input.prompt || "";
   const cwd = data.cwd || process.cwd();
 
-  const state = readState(data.session_id);
+  const state = readLedger(data.session_id);
   const cost = agentCost(type, cwd);
   const promptTokens = tokensOf(prompt);
 
@@ -104,8 +87,14 @@ process.stdin.on("end", () => {
     lines.push(`  ${state.dispatches.length} agentes ja despachados nesta sessao.`);
   }
 
-  state.dispatches.push({ type, words: [...subject].slice(0, 40), at: Date.now() });
-  writeState(data.session_id, state);
+  state.dispatches.push({
+    type,
+    words: [...subject].slice(0, 40),
+    cost: cost.floor + promptTokens,
+    repeat: near.length > 0,
+    at: Date.now(),
+  });
+  writeLedger(data.session_id, state);
 
   console.log(lines.join("\n"));
   process.exit(0);
