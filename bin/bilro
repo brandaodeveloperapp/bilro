@@ -239,7 +239,7 @@ function sessionOpen(cwd) {
 
 function hook(kind) {
   if (kind === "session") return sessionOpen(process.cwd());
-  const child = join(HERE, "..", "hooks", "preflight.js");
+  const child = join(HERE, "..", "hooks", kind === "shadow" ? "shadow.js" : "preflight.js");
   const raw = readFileSync(0, "utf8");
   execFileSync(process.execPath, [child], { input: raw, stdio: ["pipe", "inherit", "ignore"] });
 }
@@ -430,7 +430,7 @@ else {
     bilro bill      o que você paga por request, ranqueado
     bilro doctor    agentes mal configurados
     bilro verify    memoria que afirma fato e nao sabe se conferir
-    bilro hook <k>  ponto de entrada dos hooks (session | task)
+    bilro hook <k>  ponto de entrada dos hooks (session | task | shadow)
     bilro style     nivel de concisao da resposta (off | lean | terse)
     bilro run <cmd> roda no sandbox, indexa a saida, devolve so o tamanho
     bilro find <q>  recupera trecho do que ja foi indexado
