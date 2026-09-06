@@ -12,6 +12,8 @@ import { run as sandboxRun, open as openIndex, search as searchIndex } from "../
 import { filter, rules as filterRules } from "../lib/filters.js";
 import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
 import { open as openLearn, observe, denoise, similarity, novelty, rankByInformation } from "../lib/learn.js";
+import { proposals, draft } from "../lib/propose.js";
+import { writeFileSync, existsSync } from "node:fs";
 import {
   weighAlwaysOn,
   weighMemory,
@@ -220,6 +222,31 @@ function runCmd(argv) {
   console.log(`\n  ${DIM}bilro find "<termo>" recupera o resto${OFF}\n`);
 }
 
+function proposeCmd(cwd, write = false) {
+  const db = openLearn();
+  const found = proposals(db);
+  db.close();
+  if (!found.length) {
+    console.log("\n  nada recorrente ainda. rode mais comandos.\n");
+    return;
+  }
+  const dir = memoryDir(cwd);
+  console.log(`\n  ${BOLD}o que se repetiu e merece virar memoria${OFF}\n`);
+  for (const p of found) {
+    const d = draft(p);
+    const existe = existsSync(join(dir, `${d.slug}.md`));
+    const tag = p.kind === "armadilha" ? WARN + "armadilha" + OFF : DIM + "receita" + OFF;
+    console.log(`  ${tag}  ${p.subject.slice(0, 62)}`);
+    console.log(`     ${DIM}${p.why}${OFF}`);
+    if (write && !existe) {
+      writeFileSync(join(dir, `${d.slug}.md`), d.content);
+      console.log(`     ${DIM}rascunho gravado em ${d.slug}.md${OFF}`);
+    }
+  }
+  if (!write) console.log(`\n  ${DIM}bilro propose --write grava os rascunhos${OFF}\n`);
+  else console.log();
+}
+
 function sessionReport() {
   const all = sessions();
   if (!all.length) return console.log("\n  nenhuma sessao registrada ainda.\n");
@@ -314,6 +341,7 @@ else if (cmd === "run") runCmd(process.argv.slice(3));
 else if (cmd === "find") findCmd(process.argv.slice(3));
 else if (cmd === "filter") filterCmd(process.argv.slice(3));
 else if (cmd === "sessions") sessionReport();
+else if (cmd === "propose") proposeCmd(process.cwd(), process.argv.includes("--write"));
 else if (cmd === "prune") console.log(`\n  ${prunePast()} sessoes antigas removidas\n`);
 else if (cmd === "style") {
   const arg = process.argv[3];
@@ -339,6 +367,7 @@ else {
     bilro run <cmd> roda no sandbox, indexa a saida, devolve so o tamanho
     bilro find <q>  recupera trecho do que ja foi indexado
     bilro filter <c> roda e corta o ruido conhecido da saida
+    bilro propose   o que se repetiu e merece virar memoria (--write grava)
     bilro sessions  custo de agente por sessao, e quantos repetiram assunto
     bilro prune     descarta registro de sessao com mais de 14 dias
 `);

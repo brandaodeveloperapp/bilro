@@ -95,7 +95,13 @@ IDF(line) = log(N / df(line))
 ```
 
 A line present in most runs of a command carries no information and goes. A
-line seen for the first time has maximum IDF and is never cut. The safety
+line seen for the first time has maximum IDF and is never cut.
+
+Two identities are kept per line. Shape — digits and hashes collapsed — decides
+what is noise, so a duration does not make every run look new. Exact identity
+decides what is an event, so `modulo 7 falhou` is not swallowed by the shape of
+`modulo 3 falhou`. A shape whose value differs on nearly every run is volatile
+and treated as noise regardless. The safety
 property falls out of the math rather than a special case:
 
 ```
@@ -120,6 +126,22 @@ Exact set intersection is used rather than MinHash: a command's output is
 thousands of lines, where the intersection is instant and exact. MinHash pays
 for itself on corpora far larger than this, and only by accepting estimation
 error.
+
+## Memory that writes its own first draft
+
+```
+$ bilro propose
+
+  receita    npx jest src/features/references
+     rodado 10 vezes — vale virar receita com `verify:`
+  armadilha  Command failed: npx jest src/naoexiste
+     apareceu em 2 execucoes
+```
+
+A command shape run many times is a recipe someone keeps rediscovering. A
+failure line seen across runs is a trap that will be stepped on again.
+`--write` leaves a draft with frontmatter in the project's memory folder, so
+the note only has to be edited, never started from nothing.
 
 ## Where the session went
 

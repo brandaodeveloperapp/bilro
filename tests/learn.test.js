@@ -4,7 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { signature, open, observe, denoise, novelty, similarity, rankByInformation } from "../lib/learn.js";
+import { signature, open, observe, denoise, novelty, similarity, rankByInformation, lineHash, exactHash } from "../lib/learn.js";
 
 const db = () => open(join(mkdtempSync(join(tmpdir(), "bilro-l-")), "l.db"));
 
@@ -92,4 +92,26 @@ test("ordem original e preservada no corte", () => {
     idx,
     r.text.split("\n").map((l) => l.trim()),
   );
+});
+
+test("forma colapsa numero, identidade exata nao", () => {
+  assert.equal(lineHash("modulo 3 falhou"), lineHash("modulo 7 falhou"));
+  assert.notEqual(exactHash("modulo 3 falhou"), exactHash("modulo 7 falhou"));
+  assert.equal(lineHash("rodou 150ms"), lineHash("rodou 900ms"));
+});
+
+test("falha em modulo NOVO sobrevive mesmo com a forma ja conhecida", () => {
+  const d = db();
+  const rotina = "compilando\nmodulo 3 falhou\nfim";
+  for (let i = 0; i < 5; i++) observe(d, "cmd", rotina);
+  const r = denoise(d, "cmd", "compilando\nmodulo 3 falhou\nmodulo 7 falhou\nfim");
+  assert.match(r.text, /modulo 7 falhou/);
+});
+
+test("linha repetida de sempre continua sendo cortada", () => {
+  const d = db();
+  const rotina = "compilando\nmodulo 3 falhou\nfim";
+  for (let i = 0; i < 5; i++) observe(d, "cmd", rotina);
+  const r = denoise(d, "cmd", rotina);
+  assert.equal(r.text, "");
 });
