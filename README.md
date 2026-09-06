@@ -33,7 +33,32 @@ for before the work starts, and which of it is waste.
 bilro bill      what every request costs, ranked by weight
 bilro doctor    agents that inherit the whole catalogue, or cannot reach
                 your sandbox tools
+bilro verify    memories that assert a fact and cannot check themselves
 ```
+
+## Memory that checks itself
+
+A memory file can declare how to prove it is still true:
+
+```yaml
+---
+name: ios-ship
+verify: grep -oE '"version": "[0-9.]+"' app.json | head -1
+expect: 1.1.8
+---
+```
+
+```
+$ bilro verify
+  ✗ ios-ship
+      esperava "1.1.4", veio "version": "1.1.8"
+
+  1 memoria afirma fato que envelhece e nao sabe se verificar
+    landing-reformulacao    23d  valor R$250
+```
+
+Memories that state a version, an amount or a count and have gone untouched
+are flagged even without a `verify:` — those are the ones that quietly lie.
 
 ## What it is not
 
