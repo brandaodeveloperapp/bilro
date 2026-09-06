@@ -15,6 +15,7 @@ import { open as openLearn, observe, denoise, similarity, novelty, rankByInforma
 import { proposals, draft } from "../lib/propose.js";
 import { lint as lintGraph } from "../lib/graph.js";
 import { runDeclared, isSafe } from "../lib/exec.js";
+import { evaluate, verdicts, recordAudit, GATE } from "../lib/ready.js";
 import { writeFileSync, existsSync } from "node:fs";
 import {
   weighAlwaysOn,
@@ -28,6 +29,39 @@ const BOLD = "\x1b[1m";
 const DIM = "\x1b[2m";
 const WARN = "\x1b[33m";
 const OFF = "\x1b[0m";
+
+function readyCmd() {
+  const m = evaluate();
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  const days = m.lastAudit ? Math.round((Date.now() - m.lastAudit) / 86400000) : null;
+  const mark = (ok) => (ok ? "\x1b[32mok\x1b[0m" : `${WARN}falta${OFF}`);
+
+  console.log(`\n  pode remover rtk, caveman e context-mode?\n`);
+  console.log(
+    `  historico   ${m.total} comandos aprendidos${DIM} (precisa ${GATE.minCommands})${OFF}  ${mark(m.total >= GATE.minCommands)}`,
+  );
+  console.log(
+    `  cobertura   ${m.learned} com 3+ execucoes = ${pct(m.coverage)}${DIM} (precisa ${pct(GATE.coverage)})${OFF}  ${mark(m.coverage >= GATE.coverage)}`,
+  );
+  console.log(
+    `  economia    ${pct(m.savings)} do output cortado${DIM} (precisa ${pct(GATE.savings)})${OFF}  ${mark(m.savings >= GATE.savings)}`,
+  );
+  console.log(
+    `  sinal       ${m.lost.length} linhas de falha perdidas${DIM} (precisa 0)${OFF}  ${mark(m.lost.length === 0)}`,
+  );
+  console.log(
+    `  auditoria   ${m.audits} red-team${days === null ? "" : `, ultimo ha ${days}d`}, ${m.criticals} criticos em aberto${DIM} (precisa ${GATE.minAudits} e 0)${OFF}  ${mark(m.audits >= GATE.minAudits && m.criticals <= GATE.maxCriticals)}`,
+  );
+
+  for (const l of m.lost.slice(0, 5)) console.log(`    ${WARN}perdida${OFF} ${DIM}${l.sig.slice(0, 30)}${OFF}  ${l.line}`);
+
+  console.log("");
+  for (const v of verdicts(m)) {
+    if (!v.missing.length) console.log(`  \x1b[32mPODE REMOVER\x1b[0m  ${v.tool}`);
+    else console.log(`  ${DIM}ainda nao${OFF}     ${v.tool}${DIM}  — falta ${v.missing.join(", ")}; se errar: ${v.risk}${OFF}`);
+  }
+  console.log("");
+}
 
 function bar(value, max, width = 24) {
   const filled = max > 0 ? Math.round((value / max) * width) : 0;
@@ -374,6 +408,7 @@ else if (cmd === "find") findCmd(process.argv.slice(3));
 else if (cmd === "filter") filterCmd(process.argv.slice(3));
 else if (cmd === "sessions") sessionReport();
 else if (cmd === "lint") lintCmd(process.cwd());
+else if (cmd === "ready") readyCmd();
 else if (cmd === "propose") proposeCmd(process.cwd(), process.argv.includes("--write"));
 else if (cmd === "prune") console.log(`\n  ${prunePast()} sessoes antigas removidas\n`);
 else if (cmd === "style") {
@@ -401,6 +436,7 @@ else {
     bilro find <q>  recupera trecho do que ja foi indexado
     bilro filter <c> roda e corta o ruido conhecido da saida
     bilro lint      link quebrado, memoria orfa, memoria mais citada
+    bilro ready     ja da pra remover rtk, caveman e context-mode?
     bilro propose   o que se repetiu e merece virar memoria (--write grava)
     bilro sessions  custo de agente por sessao, e quantos repetiram assunto
     bilro prune     descarta registro de sessao com mais de 14 dias
