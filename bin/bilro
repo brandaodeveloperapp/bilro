@@ -13,6 +13,7 @@ import { filter, rules as filterRules } from "../lib/filters.js";
 import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
 import { open as openLearn, observe, denoise, similarity, novelty, rankByInformation } from "../lib/learn.js";
 import { proposals, draft } from "../lib/propose.js";
+import { lint as lintGraph } from "../lib/graph.js";
 import { writeFileSync, existsSync } from "node:fs";
 import {
   weighAlwaysOn,
@@ -222,6 +223,26 @@ function runCmd(argv) {
   console.log(`\n  ${DIM}bilro find "<termo>" recupera o resto${OFF}\n`);
 }
 
+function lintCmd(cwd) {
+  const r = lintGraph(memoryDir(cwd));
+  if (!r.total) return console.log("\n  este projeto nao tem memoria.\n");
+  console.log(`\n  ${r.total} memorias\n`);
+  if (r.broken.length) {
+    console.log(`  ${WARN}${r.broken.length} links apontam para memoria que nao existe${OFF}`);
+    for (const b of r.broken.slice(0, 8)) console.log(`    ${b.from} ${DIM}->${OFF} ${b.to}`);
+  }
+  if (r.orphans.length) {
+    console.log(`\n  ${r.orphans.length} memorias sem nenhum link, nem entrando nem saindo`);
+    for (const o of r.orphans.slice(0, 8)) console.log(`    ${DIM}${o}${OFF}`);
+  }
+  if (r.hubs.length) {
+    console.log(`\n  mais referenciadas:`);
+    for (const h of r.hubs) console.log(`    ${String(h.incoming).padStart(2)}x  ${h.name}`);
+  }
+  if (!r.broken.length && !r.orphans.length) console.log("  nenhum link quebrado, nenhuma orfa.");
+  console.log();
+}
+
 function proposeCmd(cwd, write = false) {
   const db = openLearn();
   const found = proposals(db);
@@ -341,6 +362,7 @@ else if (cmd === "run") runCmd(process.argv.slice(3));
 else if (cmd === "find") findCmd(process.argv.slice(3));
 else if (cmd === "filter") filterCmd(process.argv.slice(3));
 else if (cmd === "sessions") sessionReport();
+else if (cmd === "lint") lintCmd(process.cwd());
 else if (cmd === "propose") proposeCmd(process.cwd(), process.argv.includes("--write"));
 else if (cmd === "prune") console.log(`\n  ${prunePast()} sessoes antigas removidas\n`);
 else if (cmd === "style") {
@@ -367,6 +389,7 @@ else {
     bilro run <cmd> roda no sandbox, indexa a saida, devolve so o tamanho
     bilro find <q>  recupera trecho do que ja foi indexado
     bilro filter <c> roda e corta o ruido conhecido da saida
+    bilro lint      link quebrado, memoria orfa, memoria mais citada
     bilro propose   o que se repetiu e merece virar memoria (--write grava)
     bilro sessions  custo de agente por sessao, e quantos repetiram assunto
     bilro prune     descarta registro de sessao com mais de 14 dias
