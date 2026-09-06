@@ -4,7 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { signature, open, observe, denoise, novelty } from "../lib/learn.js";
+import { signature, open, observe, denoise, novelty, similarity, rankByInformation } from "../lib/learn.js";
 
 const db = () => open(join(mkdtempSync(join(tmpdir(), "bilro-l-")), "l.db"));
 
@@ -59,4 +59,37 @@ test("numero variavel nao conta como linha nova", () => {
   for (let i = 0; i < 4; i++) observe(d, "cmd", `rodou em ${i * 10}ms`);
   const r = denoise(d, "cmd", "rodou em 999ms");
   assert.equal(r.text, "");
+});
+
+test("similaridade vai de 1 a 0 conforme a saida muda", () => {
+  const base = ["compilando modulo", "rodando testes", "verificando tipos", "gerando bundle"].join("\n");
+  assert.equal(similarity(base, base), 1);
+  assert.ok(similarity(base, base + "\nERRO no bundle") > 0.7);
+  assert.equal(similarity(base, "deploy iniciado\npods prontos"), 0);
+});
+
+test("corte por informacao guarda a linha rara, nao a primeira", () => {
+  const d = db();
+  const rotina = Array.from({ length: 200 }, (_, i) => `passo ${String.fromCharCode(97 + (i % 26))}`).join("\n");
+  for (let i = 0; i < 4; i++) observe(d, "cmd", rotina);
+  const r = rankByInformation(d, "cmd", `${rotina}\nFALHA rarissima aqui`, 10);
+  assert.equal(r.ranked, true);
+  assert.match(r.text, /FALHA rarissima aqui/);
+});
+
+test("saida curta nao e cortada por informacao", () => {
+  const d = db();
+  const r = rankByInformation(d, "cmd", "a\nb\nc", 80);
+  assert.equal(r.ranked, false);
+  assert.equal(r.text, "a\nb\nc");
+});
+
+test("ordem original e preservada no corte", () => {
+  const d = db();
+  const r = rankByInformation(d, "novo", "zebra\nabelha\ncachorro\ndragao", 3);
+  const idx = ["zebra", "abelha", "cachorro", "dragao"].filter((w) => r.text.includes(w));
+  assert.deepEqual(
+    idx,
+    r.text.split("\n").map((l) => l.trim()),
+  );
 });

@@ -108,7 +108,18 @@ run 4    103 tok cut, 22%   (rule jest + 5 lines with no information)
 When nothing changes it cuts everything. The moment something breaks, the cut
 collapses on its own and the failure comes through whole.
 
-Identical output is not repeated at all — just its size.
+Identical output is not repeated at all — just its size. Output that is
+merely *close* to the last run — Jaccard overlap on normalised lines above
+0.9 — comes back as the difference alone.
+
+When a run is long enough to overrun its budget, the lines kept are the ones
+carrying the most information, not the first eighty. Order is preserved, so
+the excerpt still reads in sequence.
+
+Exact set intersection is used rather than MinHash: a command's output is
+thousands of lines, where the intersection is instant and exact. MinHash pays
+for itself on corpora far larger than this, and only by accepting estimation
+error.
 
 ## Where the session went
 

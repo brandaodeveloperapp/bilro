@@ -11,7 +11,7 @@ import { ruleset, readLevel, writeLevel, LEVELS } from "../lib/style.js";
 import { run as sandboxRun, open as openIndex, search as searchIndex } from "../lib/sandbox.js";
 import { filter, rules as filterRules } from "../lib/filters.js";
 import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
-import { open as openLearn, observe, denoise } from "../lib/learn.js";
+import { open as openLearn, observe, denoise, similarity, novelty, rankByInformation } from "../lib/learn.js";
 import {
   weighAlwaysOn,
   weighMemory,
@@ -258,14 +258,26 @@ function filterCmd(argv) {
     );
     return;
   }
-  const learned = denoise(db, command, raw);
+  const near = seen.previous ? similarity(seen.previous, raw) : 0;
+  let learned;
+  let mode = null;
+  if (near >= 0.9 && seen.previous) {
+    const novas = novelty(seen.previous, raw);
+    learned = { text: novas.join("\n"), learned: true, dropped: raw.split("\n").length - novas.length };
+    mode = `${Math.round(near * 100)}% igual a anterior, so a diferenca`;
+  } else {
+    learned = denoise(db, command, raw);
+  }
+  const ranked = rankByInformation(db, command, learned.text);
+  if (ranked.ranked) mode = `${ranked.kept} linhas mais informativas de ${ranked.from}`;
+  learned = { ...learned, text: ranked.text };
   db.close();
 
   const r = filter(command, learned.text);
   process.stdout.write(r.text + "\n");
   const saved = raw.length - r.after;
   const pct = raw.length ? Math.round((saved / raw.length) * 100) : 0;
-  const how = [r.rule && `regra ${r.rule}`, learned.learned && `${learned.dropped} linhas sem informacao`]
+  const how = [r.rule && `regra ${r.rule}`, mode || (learned.learned && `${learned.dropped} linhas sem informacao`)]
     .filter(Boolean)
     .join(" + ");
   console.error(
