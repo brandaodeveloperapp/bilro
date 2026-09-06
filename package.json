@@ -1,0 +1,9 @@
+{
+  "name": "bilro",
+  "version": "0.1.0",
+  "description": "Weigh what your AI context costs before you ask it anything.",
+  "type": "module",
+  "bin": { "bilro": "./bin/bilro" },
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}

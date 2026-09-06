@@ -1,0 +1,107 @@
+#!/usr/bin/env node
+import { join } from "node:path";
+import { homedir } from "node:os";
+import {
+  weighAlwaysOn,
+  weighMemory,
+  weighAgents,
+  weighMcp,
+  weighPlugins,
+} from "../lib/weigh.js";
+
+const BOLD = "\x1b[1m";
+const DIM = "\x1b[2m";
+const WARN = "\x1b[33m";
+const OFF = "\x1b[0m";
+
+function bar(value, max, width = 24) {
+  const filled = max > 0 ? Math.round((value / max) * width) : 0;
+  return "█".repeat(filled) + "░".repeat(Math.max(0, width - filled));
+}
+
+function agentDirs(cwd) {
+  return [join(homedir(), ".claude", "agents"), join(cwd, ".claude", "agents")];
+}
+
+function bill(cwd) {
+  const always = weighAlwaysOn();
+  const slug = "-" + cwd.replace(/^\//, "").replace(/\//g, "-");
+  const all = weighMemory();
+  const memory = all.filter((m) => m.project === slug);
+  const foreign = all.filter((m) => m.project !== slug);
+  const agents = weighAgents(agentDirs(cwd));
+  const mcp = weighMcp();
+  const plugins = weighPlugins();
+
+  const catalogue = agents.reduce((n, a) => n + a.catalogueTokens, 0);
+  const alwaysTotal = always.reduce((n, f) => n + f.tokens, 0);
+  const memoryTotal = memory.reduce((n, m) => n + m.tokens, 0);
+  const total = catalogue + alwaysTotal + memoryTotal;
+
+  const rows = [
+    ...always.map((f) => [f.name, f.tokens]),
+    ...memory.map((m) => [`MEMORY.md ${DIM}(${m.entries} entradas)${OFF}`, m.tokens]),
+    [`catálogo de ${agents.length} agentes`, catalogue],
+  ].sort((a, b) => b[1] - a[1]);
+
+  const max = rows.length ? rows[0][1] : 1;
+
+  console.log(`\n  ${BOLD}o que você paga antes de pedir qualquer coisa${OFF}\n`);
+  for (const [label, tokens] of rows) {
+    console.log(`  ${String(tokens).padStart(6)} ${DIM}tok${OFF}  ${bar(tokens, max)}  ${label}`);
+  }
+  console.log(`  ${"─".repeat(58)}`);
+  console.log(`  ${BOLD}${String(total).padStart(6)} tok${OFF}  por request, use ou não\n`);
+
+  const inherits = agents.filter((a) => a.inheritsEverything);
+  const noCtx = agents.filter((a) => !a.hasContextMode);
+
+  if (inherits.length) {
+    console.log(`  ${WARN}⚠${OFF}  ${inherits.length} agentes sem \`tools:\` herdam o catálogo inteiro`);
+    console.log(`     ${DIM}${inherits.slice(0, 6).map((a) => a.name).join(", ")}${OFF}`);
+  }
+  if (noCtx.length) {
+    console.log(`  ${WARN}⚠${OFF}  ${noCtx.length} agentes sem ctx_* — não conseguem usar context-mode`);
+  }
+  if (mcp.length) {
+    console.log(`  ${DIM}   ${mcp.length} servidores MCP: ${mcp.map((m) => m.name).join(", ")}${OFF}`);
+  }
+  if (plugins.length) {
+    console.log(`  ${DIM}   ${plugins.length} plugins instalados${OFF}`);
+  }
+  if (foreign.length) {
+    const heaviest = foreign.sort((a, b) => b.tokens - a.tokens)[0];
+    console.log(
+      `  ${DIM}   ${foreign.length} outros projetos têm memória; o maior pesa ${heaviest.tokens} tok${OFF}`,
+    );
+  }
+  console.log();
+}
+
+function doctor() {
+  const agents = weighAgents(agentDirs(process.cwd()));
+  const problems = [];
+  for (const a of agents) {
+    if (a.inheritsEverything) problems.push([a.name, "sem tools: — herda tudo"]);
+    else if (!a.hasContextMode) problems.push([a.name, "sem ctx_* — context-mode não alcança"]);
+  }
+  if (!problems.length) {
+    console.log("\n  tudo no lugar.\n");
+    return;
+  }
+  console.log(`\n  ${problems.length} agentes com problema:\n`);
+  for (const [name, why] of problems) console.log(`  ${name.padEnd(28)} ${DIM}${why}${OFF}`);
+  console.log();
+}
+
+const [, , cmd = "bill"] = process.argv;
+if (cmd === "bill") bill(process.cwd());
+else if (cmd === "doctor") doctor();
+else {
+  console.log(`
+  bilro — o peso vazio do seu contexto
+
+    bilro bill      o que você paga por request, ranqueado
+    bilro doctor    agentes mal configurados
+`);
+}
