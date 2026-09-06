@@ -110,8 +110,29 @@ test("falha em modulo NOVO sobrevive mesmo com a forma ja conhecida", () => {
 
 test("linha repetida de sempre continua sendo cortada", () => {
   const d = db();
-  const rotina = "compilando\nmodulo 3 falhou\nfim";
+  const rotina = "compilando\nmodulo 3 pronto\nfim";
   for (let i = 0; i < 5; i++) observe(d, "cmd", rotina);
   const r = denoise(d, "cmd", rotina);
   assert.equal(r.text, "");
+});
+
+test("linha de falha nunca e cortada, por mais que se repita", () => {
+  const d = db();
+  const out = "Running suite\nFAIL src/auth.test.ts  token expiry\nDone";
+  for (let i = 0; i < 50; i++) observe(d, "npm test", out);
+  assert.ok(denoise(d, "npm test", out).text.includes("FAIL src/auth.test.ts"));
+});
+
+test("erro com pid variavel sobrevive mesmo com forma volatil", () => {
+  const d = db();
+  const mk = (n) => `ERROR: connection refused at 10.0.0.${n}:5432 pid=${9000 + n}`;
+  for (let i = 0; i < 10; i++) observe(d, "connect.sh", mk(i));
+  assert.ok(denoise(d, "connect.sh", mk(999)).text.includes("connection refused"));
+});
+
+test("ruido benigno continua sendo cortado", () => {
+  const d = db();
+  const noise = (n) => `> build\nwebpack compiled in ${n}ms\nasset main.js 2.1 MiB`;
+  for (let i = 0; i < 10; i++) observe(d, "npm run build", noise(100 + i));
+  assert.ok(denoise(d, "npm run build", noise(999)).dropped > 0);
 });

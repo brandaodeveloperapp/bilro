@@ -14,6 +14,7 @@ import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
 import { open as openLearn, observe, denoise, similarity, novelty, rankByInformation } from "../lib/learn.js";
 import { proposals, draft } from "../lib/propose.js";
 import { lint as lintGraph } from "../lib/graph.js";
+import { runDeclared, isSafe } from "../lib/exec.js";
 import { writeFileSync, existsSync } from "node:fs";
 import {
   weighAlwaysOn,
@@ -142,27 +143,37 @@ function verify(cwd) {
   const suspect = rows.filter((r) => r.status === "suspeita");
   const asserts = rows.filter((r) => r.status === "afirma");
 
+  const armed = process.argv.includes("--run");
+  const refused = [];
   for (const row of rows.filter((r) => r.status === "verificavel")) {
-    let output = "";
-    let ok = false;
-    try {
-      output = execFileSync("/bin/sh", ["-c", row.memory.verify], {
-        encoding: "utf8",
-        timeout: 30000,
-      });
-      ok = row.memory.expect ? output.includes(row.memory.expect) : true;
-    } catch (e) {
-      output = String(e.message || e).slice(0, 120);
+    if (!isSafe(row.memory.verify)) {
+      refused.push({ name: row.memory.name, why: "usa sintaxe de shell" });
+      continue;
     }
-    checked.push({ row, ok, output: output.trim().split("\n").slice(-1)[0] });
+    if (!armed) {
+      checked.push({ row, dry: true, output: row.memory.verify });
+      continue;
+    }
+    const r = runDeclared(row.memory.verify, { cwd });
+    const ok = r.ok && (row.memory.expect ? r.output.includes(row.memory.expect) : true);
+    checked.push({ row, ok, output: r.output.trim().split("\n").slice(-1)[0] });
   }
 
   console.log();
   for (const c of checked) {
+    if (c.dry) {
+      console.log(`  ${DIM}?${OFF} ${c.row.memory.name}  ${DIM}${c.output}${OFF}`);
+      continue;
+    }
     const mark = c.ok ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m";
     console.log(`  ${mark} ${c.row.memory.name}`);
     if (!c.ok) console.log(`      esperava ${JSON.stringify(c.row.memory.expect)}, veio ${DIM}${c.output}${OFF}`);
   }
+  if (refused.length) {
+    console.log(`\n  ${WARN}${refused.length} recusadas: verify com sintaxe de shell nao e executado${OFF}`);
+    for (const r of refused) console.log(`    ${r.name}  ${DIM}${r.why}${OFF}`);
+  }
+  if (!armed && checked.length) console.log(`\n  ${DIM}nada foi executado. bilro verify --run executa${OFF}`);
   if (suspect.length) {
     console.log(`\n  ${WARN}${suspect.length} memorias afirmam fato que envelhece e nao sabem se verificar${OFF}`);
     for (const s of suspect.slice(0, 8)) {
