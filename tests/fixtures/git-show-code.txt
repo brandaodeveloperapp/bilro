@@ -1,0 +1,217 @@
+commit de4c78411a917b80f4ec5e60015c4f350ac0be9f
+Author: Igor Brandao <brandaodeveloperapp@gmail.com>
+Date:   Sun Sep 6 18:54:57 2026 -0300
+
+    security: kill RCE from data file, stop denoise eating real errors
+    
+    Red-team found three defects that a token saver must never have.
+    
+    CRITICAL: `verify:` frontmatter was piped to `/bin/sh -c`, so any markdown
+    file under the memory dir was executable code. A planted memory ran its
+    payload and reported a green check. Declared commands now run through
+    execFile with a parsed argv, shell metacharacters are refused outright, and
+    nothing executes at all without an explicit --run.
+    
+    Two algorithm defects made bilro hide the very output it exists to surface.
+    A deterministic failure present in every run crossed the df ceiling and was
+    dropped forever; and a failure whose text carries a pid, ip or uuid took the
+    volatile branch, which skipped the never-seen-before guard, so even a brand
+    new error vanished. Both are fixed by a severity floor: a line reporting a
+    failure is never noise, however often it repeats, and it outranks everything
+    when output is trimmed to a budget.
+    
+    One test asserted the second bug rather than catching it, using a failure
+    line as its example of a droppable one. Fixture corrected.
+    
+    Also: observe() writes in one transaction and caps input lines, sqlite opens
+    with busy_timeout and WAL, subprocesses carry a timeout, and the ledger
+    writes atomically via rename.
+    
+    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01WYr99D31EZn3cW2792yZAM
+
+diff --git a/bin/bilro b/bin/bilro
+index b859765..5bc2370 100755
+--- a/bin/bilro
++++ b/bin/bilro
+@@ -14,6 +14,7 @@ import { sessions, summarize, prune as prunePast } from "../lib/ledger.js";
+ import { open as openLearn, observe, denoise, similarity, novelty, rankByInformation } from "../lib/learn.js";
+ import { proposals, draft } from "../lib/propose.js";
+ import { lint as lintGraph } from "../lib/graph.js";
++import { runDeclared, isSafe } from "../lib/exec.js";
+ import { writeFileSync, existsSync } from "node:fs";
+ import {
+   weighAlwaysOn,
+@@ -142,27 +143,37 @@ function verify(cwd) {
+   const suspect = rows.filter((r) => r.status === "suspeita");
+   const asserts = rows.filter((r) => r.status === "afirma");
+ 
++  const armed = process.argv.includes("--run");
++  const refused = [];
+   for (const row of rows.filter((r) => r.status === "verificavel")) {
+-    let output = "";
+-    let ok = false;
+-    try {
+-      output = execFileSync("/bin/sh", ["-c", row.memory.verify], {
+-        encoding: "utf8",
+-        timeout: 30000,
+-      });
+-      ok = row.memory.expect ? output.includes(row.memory.expect) : true;
+-    } catch (e) {
+-      output = String(e.message || e).slice(0, 120);
++    if (!isSafe(row.memory.verify)) {
++      refused.push({ name: row.memory.name, why: "usa sintaxe de shell" });
++      continue;
++    }
++    if (!armed) {
++      checked.push({ row, dry: true, output: row.memory.verify });
++      continue;
+     }
+-    checked.push({ row, ok, output: output.trim().split("\n").slice(-1)[0] });
++    const r = runDeclared(row.memory.verify, { cwd });
++    const ok = r.ok && (row.memory.expect ? r.output.includes(row.memory.expect) : true);
++    checked.push({ row, ok, output: r.output.trim().split("\n").slice(-1)[0] });
+   }
+ 
+   console.log();
+   for (const c of checked) {
++    if (c.dry) {
++      console.log(`  ${DIM}?${OFF} ${c.row.memory.name}  ${DIM}${c.output}${OFF}`);
++      continue;
++    }
+     const mark = c.ok ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m";
+     console.log(`  ${mark} ${c.row.memory.name}`);
+     if (!c.ok) console.log(`      esperava ${JSON.stringify(c.row.memory.expect)}, veio ${DIM}${c.output}${OFF}`);
+   }
++  if (refused.length) {
++    console.log(`\n  ${WARN}${refused.length} recusadas: verify com sintaxe de shell nao e executado${OFF}`);
++    for (const r of refused) console.log(`    ${r.name}  ${DIM}${r.why}${OFF}`);
++  }
++  if (!armed && checked.length) console.log(`\n  ${DIM}nada foi executado. bilro verify --run executa${OFF}`);
+   if (suspect.length) {
+     console.log(`\n  ${WARN}${suspect.length} memorias afirmam fato que envelhece e nao sabem se verificar${OFF}`);
+     for (const s of suspect.slice(0, 8)) {
+diff --git a/lib/exec.js b/lib/exec.js
+new file mode 100644
+index 0000000..c730365
+--- /dev/null
++++ b/lib/exec.js
+@@ -0,0 +1,37 @@
++import { execFileSync } from "node:child_process";
++
++const SHELL_META = /[;&|`$><\n\r\\]|\$\(|\|\||&&/;
++
++/** Splits a command line into argv, honouring quotes. No shell involved. */
++export function toArgv(line) {
++  const out = [];
++  const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
++  let m;
++  while ((m = re.exec(line))) out.push(m[1] ?? m[2] ?? m[3]);
++  return out;
++}
++
++export function isSafe(line) {
++  return !SHELL_META.test(line);
++}
++
++/**
++ * Runs a declared command with no shell, so a value read from a data file
++ * cannot chain, redirect or substitute its way into something else.
++ */
++export function runDeclared(line, { timeout = 30000, cwd } = {}) {
++  if (!isSafe(line)) return { ok: false, refused: true, output: "usa sintaxe de shell" };
++  const argv = toArgv(line);
++  if (!argv.length) return { ok: false, refused: true, output: "vazio" };
++  try {
++    const output = execFileSync(argv[0], argv.slice(1), {
++      encoding: "utf8",
++      timeout,
++      cwd,
++      maxBuffer: 8 * 1024 * 1024,
++    });
++    return { ok: true, refused: false, output };
++  } catch (e) {
++    return { ok: false, refused: false, output: String(e.stdout || e.message || e).slice(0, 200) };
++  }
++}
+diff --git a/lib/learn.js b/lib/learn.js
+index 36bc50c..554d95b 100644
+--- a/lib/learn.js
++++ b/lib/learn.js
+@@ -6,6 +6,19 @@ import { homedir } from "node:os";
+ 
+ const HOME = join(homedir(), ".claude", "bilro");
+ 
++const MAX_LINES = 20000;
++
++/**
++ * A line that reports a failure is never noise, however often it repeats. A
++ * build that breaks the same way every day is still the answer to "what
++ * happened", and the whole point of the tool is lost if it hides it.
++ */
++const SEVERE = /\b(error|erro|failed|failing|failure|falhou|fatal|panic|exception|traceback|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined is not|segmentation fault|✕|✗|FAIL)\b/i;
++
++export function isSevere(line) {
++  return SEVERE.test(line);
++}
++
+ /** Commands differ by their arguments; what repeats is the program and shape. */
+ export function signature(command) {
+   return command
+@@ -41,6 +54,7 @@ export function exactHash(line) {
+ export function open(file = join(HOME, "learn.db")) {
+   mkdirSync(HOME, { recursive: true });
+   const db = new DatabaseSync(file);
++  db.exec("PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
+   db.exec(`
+     CREATE TABLE IF NOT EXISTS runs (sig TEXT PRIMARY KEY, n INTEGER NOT NULL, last_hash TEXT);
+     CREATE TABLE IF NOT EXISTS lines (sig TEXT, h TEXT, df INTEGER NOT NULL, PRIMARY KEY (sig, h));
+@@ -64,9 +78,13 @@ export function runCount(db, sig) {
+ export function observe(db, command, output) {
+   const sig = signature(command);
+   const hash = createHash("sha1").update(output).digest("hex");
+-  const uniq = new Set(output.split("\n").filter((l) => l.trim()).map(lineHash));
++  const all = output.split("\n");
++  const lines = all.length > MAX_LINES ? all.slice(0, MAX_LINES) : all;
++  const uniq = new Set(lines.filter((l) => l.trim()).map(lineHash));
+ 
+   const prior = runCount(db, sig);
++  db.exec("BEGIN IMMEDIATE");
++  try {
+   db.prepare("INSERT INTO runs(sig, n, last_hash) VALUES (?, 1, ?) ON CONFLICT(sig) DO UPDATE SET n = n + 1, last_hash = ?").run(
+     sig,
+     hash,
+@@ -77,10 +95,14 @@ export function observe(db, command, output) {
+   );
+   for (const h of uniq) bump.run(sig, h);
+   const seenExact = db.prepare("INSERT OR IGNORE INTO exact(sig, shape, h) VALUES (?, ?, ?)");
+-  for (const line of output.split("\n"))
+-    if (line.trim()) seenExact.run(sig, lineHash(line), exactHash(line));
++  for (const line of lines) if (line.trim()) seenExact.run(sig, lineHash(line), exactHash(line));
+ 
+   db.prepare("INSERT INTO last(sig, body) VALUES (?, ?) ON CONFLICT(sig) DO UPDATE SET body = ?").run(sig, output, output);
++    db.exec("COMMIT");
++  } catch (e) {
++    try { db.exec("ROLLBACK"); } catch {}
++    throw e;
++  }
+   return {
+     sig,
+     hash,
+@@ -110,6 +132,7 @@ export function denoise(db, command, output, { minRuns = 3, ceiling = 0.8 } = {}
+ 
+   const kept = output.split("\n").filter((line) => {
+     if (!line.trim()) return true;
++    if (SEVERE.test(line)) return true;
+     const shape = lineHash(line);
+     const seen = df.get(shape) || 0;
+     const distinct = spread.get(shape) || 0;
+@@ -153,7 +176,7 @@ export function rankByInformation(db, command, output, keep = 80) {
+ 
+   const scored = lines.map((line, i) => {
+     const seen = df.get(lineHash(line)) || 0;
+-    const idf = Math.log((n + 1) / (seen + 1));
++    const idf = Math.log((n + 1) / (seen + 1)) + (SEVERE.test(line) ? 10 : 0);
+     return { i, line, idf };
+   });
+   const chosen = new Set(

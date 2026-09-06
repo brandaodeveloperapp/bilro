@@ -1,0 +1,48 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /Users/igorbrandao/Desktop/threadline/threadline-web
+
+ ❯ lib/bilro_tmp.test.ts (3 tests | 2 failed) 3ms
+   × bilro tmp fixture > fails on purpose 2ms
+     → expected 2 to be 3 // Object.is equality
+   × bilro tmp fixture > throws on purpose 0ms
+     → boom from bilro fixture
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  lib/bilro_tmp.test.ts > bilro tmp fixture > fails on purpose
+AssertionError: expected 2 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 2
+
+ ❯ lib/bilro_tmp.test.ts:8:19
+      6|   });
+      7|   it("fails on purpose", () => {
+      8|     expect(1 + 1).toBe(3);
+       |                   ^
+      9|   });
+     10|   it("throws on purpose", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  lib/bilro_tmp.test.ts > bilro tmp fixture > throws on purpose
+Error: boom from bilro fixture
+ ❯ lib/bilro_tmp.test.ts:11:11
+      9|   });
+     10|   it("throws on purpose", () => {
+     11|     throw new Error("boom from bilro fixture");
+       |           ^
+     12|   });
+     13| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  19:10:33
+   Duration  630ms (transform 136ms, setup 175ms, collect 5ms, tests 3ms, environment 277ms, prepare 44ms)
+

@@ -1,0 +1,7 @@
+app/api/v1/payments.py:10:5: F401 [*] `app.api.deps.get_current_user` imported but unused
+app/schemas/training.py:5:22: F401 [*] `datetime.datetime` imported but unused
+app/workers/handlers/accounts.py:69:1: E402 Module level import not at top of file
+app/workers/handlers/accounts.py:70:1: E402 Module level import not at top of file
+app/workers/handlers/accounts.py:71:1: E402 Module level import not at top of file
+Found 5 errors.
+[*] 2 fixable with the `--fix` option.
