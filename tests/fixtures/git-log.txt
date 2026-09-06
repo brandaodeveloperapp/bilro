@@ -1,0 +1,13 @@
+b42f8fe feat: shadow observer, so the gate can actually close
+47b3ec5 feat: bilro ready — the gate for retiring the three tools it replaces
+de4c784 security: kill RCE from data file, stop denoise eating real errors
+2436083 Read the memory graph as a linter, not a picture
+57e46b0 Tell a duration apart from an event, and let memory draft itself
+353c3e3 Report the difference when a run is nearly the same, and keep what informs
+a622d4c Let the filter learn what noise is, instead of being told
+4653245 Cut command noise, and keep a ledger of what each session spent
+3110fee Hold command output on disk instead of in the window
+ab11aef Follow the two habits that make rtk and caveman stick
+182bd3a verify: catch the memory that quietly went out of date
+34aed36 watch: price the subagent before it is dispatched
+918d3f2 bilro: weigh the fixed cost of an AI context

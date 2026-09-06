@@ -1,0 +1,20 @@
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+IMAGE                                          ID             DISK USAGE   CONTENT SIZE   EXTRA
+easyfile-api:latest                            f00efecf8717        424MB          107MB   U    
+easyfile-portal:latest                         4d3657c036fb        655MB          172MB   U    
+easyfile-rotina:latest                         1d13a5633eb2        393MB         98.5MB   U    
+grafana/grafana:11.3.0                         a0f881232a6f        631MB          125MB   U    
+grafana/loki:3.2.1                             09a53b4a4ff8        162MB         34.5MB   U    
+grafana/tempo:2.6.1                            ef4384fce6e8        165MB           50MB   U    
+mcr.microsoft.com/mssql/server:2022-latest     ba4c8329f48f       2.34GB          625MB   U    
+minio/minio:latest                             14cea493d9a3        228MB         57.5MB   U    
+moby/buildkit:buildx-stable-1                  28a898719c18        347MB          105MB   U    
+node:20-alpine                                 fb4cd12c85ee        194MB         49.4MB   U    
+otel/opentelemetry-collector-contrib:0.112.0   2203eea06554        320MB         65.2MB   U    
+postgres:16-alpine                             cf78e76683b9        411MB          115MB   U    
+prom/prometheus:v2.55.1                        2659f4c2ebb7        396MB          108MB   U    
+rabbitmq:3.13-management                       e582c0bc7766        408MB          114MB   U    
+rabbitmq:3.13-management-alpine                606d8c0d6b3c        277MB         85.9MB   U    
+rainha-api:latest                              0ef76d625f45        591MB          133MB   U    
+rainha-worker:latest                           c177f4c36241        591MB          133MB   U    
+redis:7-alpine                                 ff02b58f971e       58.7MB         17.3MB   U    

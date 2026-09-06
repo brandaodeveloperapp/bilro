@@ -16,6 +16,8 @@ import { proposals, draft } from "../lib/propose.js";
 import { lint as lintGraph } from "../lib/graph.js";
 import { runDeclared, isSafe } from "../lib/exec.js";
 import { evaluate, verdicts, recordAudit, GATE } from "../lib/ready.js";
+import { read as readFile } from "../lib/read.js";
+import { compress as grepCompress } from "../lib/grep.js";
 import { writeFileSync, existsSync } from "node:fs";
 import {
   weighAlwaysOn,
@@ -29,6 +31,33 @@ const BOLD = "\x1b[1m";
 const DIM = "\x1b[2m";
 const WARN = "\x1b[33m";
 const OFF = "\x1b[0m";
+
+function readCmd(argv) {
+  const outlineMode = argv.includes("--outline");
+  const file = argv.find((a) => !a.startsWith("--"));
+  if (!file) return console.log("\n  uso: bilro read <arquivo> [--outline]\n");
+  const r = readFile(file, { mode: outlineMode ? "outline" : "safe" });
+  console.log(r.text);
+  if (r.lossy)
+    console.log(
+      `\n${WARN}  esboco: corpo de funcao elidido, faixa de linha marcada. Nao use para editar.${OFF}` +
+        `${DIM}  ${Math.round(r.saved * 100)}% menor${OFF}`,
+    );
+}
+
+function grepCmd(argv) {
+  if (!argv.length) return console.log("\n  uso: bilro grep <padrao> [caminho...]\n");
+  let raw = "";
+  try {
+    raw = execFileSync("grep", ["-rn", ...argv], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  } catch (e) {
+    raw = String(e.stdout || "");
+    if (!raw.trim()) return console.log(`${DIM}  sem resultado${OFF}`);
+  }
+  const r = grepCompress(raw);
+  console.log(r.text);
+  console.log(`\n${DIM}  ${r.hits} ocorrencias em ${r.files} arquivos${OFF}`);
+}
 
 function readyCmd() {
   const m = evaluate();
@@ -409,6 +438,8 @@ else if (cmd === "filter") filterCmd(process.argv.slice(3));
 else if (cmd === "sessions") sessionReport();
 else if (cmd === "lint") lintCmd(process.cwd());
 else if (cmd === "ready") readyCmd();
+else if (cmd === "read") readCmd(process.argv.slice(3));
+else if (cmd === "grep") grepCmd(process.argv.slice(3));
 else if (cmd === "propose") proposeCmd(process.cwd(), process.argv.includes("--write"));
 else if (cmd === "prune") console.log(`\n  ${prunePast()} sessoes antigas removidas\n`);
 else if (cmd === "style") {
@@ -437,6 +468,8 @@ else {
     bilro filter <c> roda e corta o ruido conhecido da saida
     bilro lint      link quebrado, memoria orfa, memoria mais citada
     bilro ready     ja da pra remover rtk, caveman e context-mode?
+    bilro read <f>  le arquivo comprimido (--outline para so a estrutura)
+    bilro grep <p>  busca agrupada por arquivo, sem repeticao
     bilro propose   o que se repetiu e merece virar memoria (--write grava)
     bilro sessions  custo de agente por sessao, e quantos repetiram assunto
     bilro prune     descarta registro de sessao com mais de 14 dias

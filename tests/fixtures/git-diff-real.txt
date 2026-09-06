@@ -1,0 +1,413 @@
+diff --git a/.claude-flow/daemon-state.json b/.claude-flow/daemon-state.json
+index 7f08c93..88f6cb9 100644
+--- a/.claude-flow/daemon-state.json
++++ b/.claude-flow/daemon-state.json
+@@ -1,75 +1,75 @@
+ {
+   "running": true,
+-  "startedAt": "2026-08-18T01:45:12.935Z",
++  "startedAt": "2026-08-26T17:29:39.136Z",
+   "workers": {
+     "map": {
+-      "runCount": 103,
+-      "successCount": 103,
++      "runCount": 201,
++      "successCount": 201,
+       "failureCount": 0,
+-      "averageDurationMs": 19.116504854368927,
+-      "lastRun": "2026-08-16T19:41:11.319Z",
+-      "lastStartedAt": "2026-08-16T19:41:11.318Z",
+-      "nextRun": "2026-08-18T01:45:12.935Z",
++      "averageDurationMs": 38.79104477611939,
++      "lastRun": "2026-08-27T04:05:12.584Z",
++      "lastStartedAt": "2026-08-27T04:05:12.583Z",
++      "nextRun": "2026-08-27T04:29:39.538Z",
+       "isRunning": false
+     },
+     "audit": {
+-      "runCount": 140,
+-      "successCount": 140,
+-      "failureCount": 8,
+-      "averageDurationMs": 97414.69285714286,
+-      "lastRun": "2026-08-17T20:28:51.065Z",
+-      "lastStartedAt": "2026-08-17T20:23:50.319Z",
+-      "nextRun": "2026-08-18T01:47:12.935Z",
+-      "isRunning": false
++      "runCount": 272,
++      "successCount": 272,
++      "failureCount": 10,
++      "averageDurationMs": 117028.57720588232,
++      "lastRun": "2026-08-27T04:07:26.936Z",
++      "lastStartedAt": "2026-08-27T04:25:24.094Z",
++      "nextRun": "2026-08-27T04:32:04.864Z",
++      "isRunning": true
+     },
+     "optimize": {
+-      "runCount": 92,
+-      "successCount": 92,
+-      "failureCount": 8,
+-      "averageDurationMs": 208923.95652173905,
+-      "lastRun": "2026-08-17T18:41:21.780Z",
+-      "lastStartedAt": "2026-08-17T18:36:50.425Z",
+-      "nextRun": "2026-08-18T01:49:12.935Z",
+-      "isRunning": false
++      "runCount": 180,
++      "successCount": 180,
++      "failureCount": 10,
++      "averageDurationMs": 245505.45555555556,
++      "lastRun": "2026-08-27T04:10:23.981Z",
++      "lastStartedAt": "2026-08-27T04:25:24.085Z",
++      "nextRun": "2026-08-27T04:38:01.585Z",
++      "isRunning": true
+     },
+     "consolidate": {
+-      "runCount": 53,
+-      "successCount": 53,
++      "runCount": 98,
++      "successCount": 98,
+       "failureCount": 0,
+-      "averageDurationMs": 17.566037735849058,
+-      "lastRun": "2026-08-17T20:23:50.319Z",
+-      "lastStartedAt": "2026-08-17T20:23:50.319Z",
+-      "nextRun": "2026-08-18T01:51:12.935Z",
++      "averageDurationMs": 23.05102040816327,
++      "lastRun": "2026-08-27T04:05:12.584Z",
++      "lastStartedAt": "2026-08-27T04:05:12.584Z",
++      "nextRun": "2026-08-27T04:35:39.414Z",
+       "isRunning": false
+     },
+     "testgaps": {
+-      "runCount": 68,
+-      "successCount": 68,
+-      "failureCount": 8,
+-      "averageDurationMs": 228881.41176470587,
+-      "lastRun": "2026-08-16T19:39:29.910Z",
+-      "lastStartedAt": "2026-08-16T19:41:11.319Z",
+-      "nextRun": "2026-08-18T01:53:12.935Z",
++      "runCount": 133,
++      "successCount": 133,
++      "failureCount": 13,
++      "averageDurationMs": 241855.68421052632,
++      "lastRun": "2026-08-27T04:03:35.778Z",
++      "lastStartedAt": "2026-08-27T03:56:18.114Z",
++      "nextRun": "2026-08-27T04:39:17.334Z",
+       "isRunning": false
+     },
+     "backup": {
+-      "runCount": 5,
+-      "successCount": 5,
++      "runCount": 8,
++      "successCount": 8,
+       "failureCount": 0,
+-      "averageDurationMs": 14.8,
+-      "lastRun": "2026-08-16T19:28:21.719Z",
+-      "lastStartedAt": "2026-08-16T19:28:21.714Z",
+-      "nextRun": "2026-08-18T01:55:12.935Z",
++      "averageDurationMs": 9.625,
++      "lastRun": "2026-08-27T01:27:54.617Z",
++      "lastStartedAt": "2026-08-27T01:27:54.615Z",
++      "nextRun": "2026-08-27T17:39:39.207Z",
+       "isRunning": false
+     },
+     "harness": {
+-      "runCount": 8,
+-      "successCount": 8,
++      "runCount": 15,
++      "successCount": 15,
+       "failureCount": 0,
+-      "averageDurationMs": 119.5,
+-      "lastRun": "2026-08-16T19:28:21.720Z",
+-      "lastStartedAt": "2026-08-16T19:28:21.715Z",
+-      "nextRun": "2026-08-18T01:57:12.935Z",
++      "averageDurationMs": 70.26666666666667,
++      "lastRun": "2026-08-27T03:07:33.311Z",
++      "lastStartedAt": "2026-08-27T03:07:33.308Z",
++      "nextRun": "2026-08-27T05:41:39.213Z",
+       "isRunning": false
+     },
+     "predict": {
+@@ -174,5 +174,5 @@
+       }
+     ]
+   },
+-  "savedAt": "2026-08-18T01:45:12.935Z"
++  "savedAt": "2026-08-27T04:25:24.094Z"
+ }
+\ No newline at end of file
+diff --git a/.claude-flow/daemon.pid b/.claude-flow/daemon.pid
+deleted file mode 100644
+index d76a54d..0000000
+--- a/.claude-flow/daemon.pid
++++ /dev/null
+@@ -1 +0,0 @@
+-77678
+\ No newline at end of file
+diff --git a/.claude-flow/metrics/backup.json b/.claude-flow/metrics/backup.json
+index 38deacb..813c964 100644
+--- a/.claude-flow/metrics/backup.json
++++ b/.claude-flow/metrics/backup.json
+@@ -1,5 +1,5 @@
+ {
+-  "timestamp": "2026-08-16T19:28:21.715Z",
++  "timestamp": "2026-08-27T01:27:54.617Z",
+   "backedUp": false,
+   "sizeBytes": 0,
+   "rotatedAway": 0,
+diff --git a/.claude-flow/metrics/codebase-map.json b/.claude-flow/metrics/codebase-map.json
+index aab6390..e1ce206 100644
+--- a/.claude-flow/metrics/codebase-map.json
++++ b/.claude-flow/metrics/codebase-map.json
+@@ -1,5 +1,5 @@
+ {
+-  "timestamp": "2026-08-16T19:41:11.319Z",
++  "timestamp": "2026-08-27T04:05:12.584Z",
+   "projectRoot": "/Users/igorbrandao/Desktop/threadline/threadline-backend",
+   "structure": {
+     "hasPackageJson": false,
+@@ -7,5 +7,5 @@
+     "hasClaudeConfig": true,
+     "hasClaudeFlow": true
+   },
+-  "scannedAt": 1786909271319
++  "scannedAt": 1787803512584
+ }
+\ No newline at end of file
+diff --git a/.claude-flow/metrics/consolidation.json b/.claude-flow/metrics/consolidation.json
+index d9e2baf..25ba985 100644
+--- a/.claude-flow/metrics/consolidation.json
++++ b/.claude-flow/metrics/consolidation.json
+@@ -1,5 +1,5 @@
+ {
+-  "timestamp": "2026-08-17T20:23:50.319Z",
++  "timestamp": "2026-08-27T04:05:12.584Z",
+   "distillationEnabled": true,
+   "patternsConsolidated": 0,
+   "memoryCleaned": 0,
+diff --git a/.claude-flow/metrics/harness-loop.json b/.claude-flow/metrics/harness-loop.json
+index 2bc1ce2..13e06ea 100644
+--- a/.claude-flow/metrics/harness-loop.json
++++ b/.claude-flow/metrics/harness-loop.json
+@@ -1,5 +1,5 @@
+ {
+-  "timestamp": "2026-08-16T19:28:21.720Z",
++  "timestamp": "2026-08-27T03:07:33.309Z",
+   "flywheel": {
+     "ran": false,
+     "reason": "opt-in required (RUFLO_HARNESS_LOOP=1)",
+@@ -78,6 +78,14 @@
+         "typePenaltyFactor": 1
+       },
+       "hash": null
++    },
++    "sequential": {
++      "nextTestIndex": 1,
++      "alphaAllocatedNext": 0.03039635509270134,
++      "thresholdNext": 32.89868133696452,
++      "minInformativePairsNext": 9,
++      "remainingAlphaBudget": 0.05,
++      "alphaTotal": 0.05
+     }
+   }
+ }
+\ No newline at end of file
+diff --git a/.claude-flow/metrics/performance.json b/.claude-flow/metrics/performance.json
+index 209468b..c1eb2c9 100644
+--- a/.claude-flow/metrics/performance.json
++++ b/.claude-flow/metrics/performance.json
+@@ -1,35 +1,55 @@
+ {
+-  "timestamp": "2026-08-17T18:41:21.777Z",
++  "timestamp": "2026-08-27T04:10:23.980Z",
+   "mode": "headless",
+   "workerType": "optimize",
+   "model": "sonnet",
+-  "durationMs": 271335,
+-  "executionId": "optimize_1786991810442_08t1wa",
++  "durationMs": 311395,
++  "executionId": "optimize_1787803512585_tq1331",
+   "success": true,
+   "findings": {
+     "sections": [
+       {
+-        "title": "Findings, worst first",
+-        "content": "\n**1. Memory leak — unbounded in-process cache**\n`app/services/address_lookup.py:18,42,69` — `_cache: dict` grows forever, no TTL/eviction. Every CEP lookup stays forever. Multi-pod k8s = each replica duplicates it. Fix: move to Redis (already used elsewhere) with TTL:\n```python\nasync def lookup_cep(cep: str) -> dict:\n    redis = get_redis()\n    cached = await redis.get(f\"cep:{cep}\")\n    if cached:\n        return json.loads(cached)\n    ...\n    await redis.set(f\"cep:{cep}\", json.dumps(result), ex=60 * 60 * 24 * 90)\n    return result\n```\n\n**2. N+1 row locks on DISPATCH hot path**\n`app/services/order_service/stock.py` — 3 spots (`_consume_supplies_for_order:120-124`, `_restore_order_stock:236-237`, `lock_supplies:67-68`) loop `session.get(..., with_for_update=True)` per row — 5-15 round trips per order dispatch instead of 1. Fix, batch lock (keep deterministic order for deadlock avoidance):\n```python\nrows = (await session.execute(\n    select(Supply).where(Supply.id.in_(supply_ids))\n    .order_by(Supply.id).with_for_update()\n)).scalars().all()\nsupplies_by_id = {s.id: s for s in rows}\n```\n\n**3. Duplicate queries in worker handlers**\n`app/workers/handlers/orders.py` — `handle_status_changed` (141,150), `handle_workshop_reassigned` (189,198), `handle_delivered_to_workshop` (295,304,315-322,340,349) call `_push_users_for_workshop`/`_push_users_for_manufacturers` twice each for same tenant/workshop. `handle_out_for_delivery` already does it right (hoist once, reuse var) — copy that pattern. Worst case: 5 queries collapse to 2.\n\n**4. Dashboard runs same aggregate twice**\n`app/api/v1/reports/dashboard.py` — `_attention()`(375)→`_payment_attention()`(292) and `_money()`(376) both call `pending_payment_totals(session, tid, [])` independently. Compute once, pass into both.\n\n**5. Overview recomputes prev-period order count**\n`app/api/v1/reports/overview.py:260,271` — `orders_prev` computed, then `_defect_rate` internally redoes same `_orders_count` query with same args. Pass `orders_prev` in instead of recomputing.\n\n**6. No caching on per-request access-grant lookup**\n`app/api/deps.py:480` `require_area` → `load_grants` (`app/services/access_service.py:73`) hits DB on every gated request (most of `/reports/*` + tenant endpoints). Table nearly always empty per-user — cache in Redis, short TTL, bust on write.\n\n**7. Sequential notify() loop (minor)**\n`app/workers/handlers/orders.py:326-336` — WhatsApp/Redis calls per admin done sequentially in loop. Low priority (small N), but `asyncio.gather` safe since no shared session state.\n\n",
++        "title": "Top findings, most severe first",
++        "content": "\n**1. Every write request fetches `Tenant` twice — `app/api/deps.py:338` and `:394`**\n\n`enforce_subscription` (global middleware on every POST/PUT/PATCH/DELETE) and `get_current_user` each do their own `session.get(Tenant, tenant_id)` on separate connections, same request, same row. Highest-traffic fix — hits every write in the product.\n\n```python\nasync def _get_tenant_cached(session: AsyncSession, tenant_id: uuid.UUID) -> Tenant | None:\n    redis = get_redis()\n    cached = await redis.get(f\"tenant:gate:{tenant_id}\")\n    if cached is not None:\n        return Tenant(**json.loads(cached))\n    tenant = await session.get(Tenant, tenant_id)\n    if tenant is not None:\n        await redis.set(\n            f\"tenant:gate:{tenant_id}\",\n            json.dumps({\"id\": str(tenant.id), \"subscription_status\": tenant.subscription_status,\n                        \"is_demo\": tenant.is_demo,\n                        \"demo_expires_at\": tenant.demo_expires_at.isoformat() if tenant.demo_expires_at else None}),\n            ex=20,\n        )\n    return tenant\n```\nUse in both call sites. Invalidate on billing/demo field writes.\n\n**2. Duplicate audience query per notification pair — `app/workers/handlers/orders.py:145/155, 194/204, 431/441, 477/486`**\n\n`_push_users_for_workshop(...)` called once for `notify_push`, again with identical args for `notify_inapp` — same SELECT twice, on hottest worker path (every order transition).\n\n```python\nworkshop_user_ids = await _push_users_for_workshop(session, tenant_id, order.workshop_id)\nawait notify_push(session, tenant_id=tenant_id, user_ids=workshop_user_ids, ...)\nawait notify_inapp(session, tenant_id=tenant_id, user_ids=workshop_user_ids, ...)\n```\n\n**3. `resolve_tenant_instance` re-fetched per recipient in a loop — `app/services/notifications.py:87`, called from `orders.py:463-473`**\n\n`handle_delivered_to_workshop` loops admins, calls `notify()` per recipient — each independently re-fetches `Tenant` for WhatsApp instance config. N admins = N identical Tenant reads.\n\n```python\ninstance = await resolve_tenant_instance(session, tenant_id)\nfor admin_user in res.scalars().all():\n    await notify(session, tenant_id=tenant_id, phone=admin_user.phone, text=manufacturer_text,\n                 instance=instance, dedup_key=...)\n```\n(`notify()` needs optional `instance` param to skip re-lookup.)\n\n**4. New `httpx.AsyncClient` per WhatsApp send, no pooling — `app/services/whatsapp.py:67`, `:142`**\n\nFresh TCP+TLS handshake per message. Compounds finding #3's loop directly.\n\n```python\n_client: httpx.AsyncClient | None = None\n\ndef _get_client() -> httpx.AsyncClient:\n    global _client\n    if _client is None:\n        _client = httpx.AsyncClient(timeout=15)\n    return _client\n```\nUse `_get_client().post(...)` instead of `async with httpx.AsyncClient(...)`.\n\n**5. Serial per-recipient sends — `orders.py:463-473`**\n\nOnce #4 pools connections, fan out concurrently:\n```python\nawait asyncio.gather(*(\n    notify(session, tenant_id=tenant_id, phone=admin_user.phone, text=manufacturer_text,\n           dedup_key=f\"wa:notif:order.delivered_to_workshop:{order_id}:manufacturer:{admin_user.id}\")\n    for admin_user in res.scalars().all()\n))\n```\n\n**6. Unbounded in-process cache — memory leak — `app/services/address_lookup.py:18`**\n\n```python\n_cache: dict[str, dict] = {}\n```\nGrows forever, no TTL/cap, cold on every pod restart, not shared across replicas. Move to Redis:\n```python\nasync def lookup_cep(cep: str) -> dict:\n    redis = get_redis()\n    cached = await redis.get(f\"cep:{cep}\")\n    if cached:\n        return json.loads(cached)\n    ...\n    await redis.set(f\"cep:{cep}\", json.dumps(result))\n    return result\n```\n\n**7. Same admin population queried 3x with slightly different filters — `orders.py:452-459, 477, 486`**\n\nFetch once, filter in Python instead of 3 separate SELECTs.\n\n**8. JWT decoded twice per write request — `app/core/security.py:74`** via `deps.py:52` and `:329`. Minor cost alone, fold into #1's fix (share request-scoped claims/tenant cache).\n\n**9-10.** `notify_push`/`notify_inapp` DeviceToken lookups riding on #2's duplicate — fixed for free once #2 lands. `order_service/transitions.py` / `_common.py` / `platform.py` already batch correctly with `IN (...)` — no changes needed there.\n\n",
+         "level": 2
+       },
+       {
+-        "title": "Already good, don't touch",
+-        "content": "- `app/api/v1/orders/_common.py` — batches with `IN (...)`, this is the pattern items 3-5 should copy.\n- `app/api/v1/realtime_ws.py` — Redis pubsub torn down in `finally`, no leak.\n- `app/workers/consumer.py` — session opened/closed per message correctly, no connection leak.\n\nNo React re-render/frontend findings — `web/` and `mobile/` are empty stubs (Fase 2/3 per CLAUDE.md), nothing to review yet.\n\nPriority order for fixing: #2 (hot path, order volume) → #1 (unbounded growth) → #3/#4/#5 (redundant query cleanup) → #6 (caching) → #7 (nice-to-have).",
++        "title": "Files touched",
++        "content": "`api/deps.py` (#1,#8) · `workers/handlers/orders.py` (#2,#3,#5,#7) · `services/notifications.py` (#3,#9) · `services/whatsapp.py` (#4) · `services/address_lookup.py` (#6)\n\nAudit only, no code changed. Want me to implement any of these?",
+         "level": 2
+       }
+     ],
+     "codeBlocks": [
+       {
+         "language": "python",
+-        "code": "async def lookup_cep(cep: str) -> dict:\n    redis = get_redis()\n    cached = await redis.get(f\"cep:{cep}\")\n    if cached:\n        return json.loads(cached)\n    ...\n    await redis.set(f\"cep:{cep}\", json.dumps(result), ex=60 * 60 * 24 * 90)\n    return result"
++        "code": "async def _get_tenant_cached(session: AsyncSession, tenant_id: uuid.UUID) -> Tenant | None:\n    redis = get_redis()\n    cached = await redis.get(f\"tenant:gate:{tenant_id}\")\n    if cached is not None:\n        return Tenant(**json.loads(cached))\n    tenant = await session.get(Tenant, tenant_id)\n    if tenant is not None:\n        await redis.set(\n            f\"tenant:gate:{tenant_id}\",\n            json.dumps({\"id\": str(tenant.id), \"subscription_status\": tenant.subscription_status,\n                        \"is_demo\": tenant.is_demo,\n                        \"demo_expires_at\": tenant.demo_expires_at.isoformat() if tenant.demo_expires_at else None}),\n            ex=20,\n        )\n    return tenant"
+       },
+       {
+         "language": "python",
+-        "code": "rows = (await session.execute(\n    select(Supply).where(Supply.id.in_(supply_ids))\n    .order_by(Supply.id).with_for_update()\n)).scalars().all()\nsupplies_by_id = {s.id: s for s in rows}"
++        "code": "workshop_user_ids = await _push_users_for_workshop(session, tenant_id, order.workshop_id)\nawait notify_push(session, tenant_id=tenant_id, user_ids=workshop_user_ids, ...)\nawait notify_inapp(session, tenant_id=tenant_id, user_ids=workshop_user_ids, ...)"
++      },
++      {
++        "language": "python",
++        "code": "instance = await resolve_tenant_instance(session, tenant_id)\nfor admin_user in res.scalars().all():\n    await notify(session, tenant_id=tenant_id, phone=admin_user.phone, text=manufacturer_text,\n                 instance=instance, dedup_key=...)"
++      },
++      {
++        "language": "python",
++        "code": "_client: httpx.AsyncClient | None = None\n\ndef _get_client() -> httpx.AsyncClient:\n    global _client\n    if _client is None:\n        _client = httpx.AsyncClient(timeout=15)\n    return _client"
++      },
++      {
++        "language": "python",
++        "code": "await asyncio.gather(*(\n    notify(session, tenant_id=tenant_id, phone=admin_user.phone, text=manufacturer_text,\n           dedup_key=f\"wa:notif:order.delivered_to_workshop:{order_id}:manufacturer:{admin_user.id}\")\n    for admin_user in res.scalars().all()\n))"
++      },
++      {
++        "language": "python",
++        "code": "_cache: dict[str, dict] = {}"
++      },
++      {
++        "language": "python",
++        "code": "async def lookup_cep(cep: str) -> dict:\n    redis = get_redis()\n    cached = await redis.get(f\"cep:{cep}\")\n    if cached:\n        return json.loads(cached)\n    ...\n    await redis.set(f\"cep:{cep}\", json.dumps(result))\n    return result"
+       }
+     ]
+   },
+-  "rawOutputPreview": "Audit done. Backend only — web/mobile still empty stubs, no React code to check for re-renders.\n\n## Findings, worst first\n\n**1. Memory leak — unbounded in-process cache**\n`app/services/address_lookup.py:18,42,69` — `_cache: dict` grows forever, no TTL/eviction. Every CEP lookup stays forever. Multi-pod k8s = each replica duplicates it. Fix: move to Redis (already used elsewhere) with TTL:\n```python\nasync def lookup_cep(cep: str) -> dict:\n    redis = get_redis()\n    cached = await redis.get(f\"cep:{cep}\")\n    if cached:\n        return json.loads(cached)\n    ...\n    await redis.set(f\"cep:{cep}\", json.dumps(result), ex=60 * 60 * 24 * 90)\n    return result\n```\n\n**2. N+1 row locks on DISPATCH hot path**\n`app/services/order_service/stock.py` — 3 spots (`_consume_supplies_for_order:120-124`, `_restore_order_stock:236-237`, `lock_supplies:67-68`) loop `session.get(..., with_for_update=True)` per row — 5-15 round trips per order dispatch instead of 1. Fix, batch lock (keep deterministic order for deadlock avoidance):\n```python\nrows = (await session.execute(\n    select(Supply).where(Supply.id.in_(supply_ids))\n    .order_by(Supply.id).with_for_update()\n)).scalars().all()\nsupplies_by_id = {s.id: s for s in rows}\n```\n\n**3. Duplicate queries in worker handlers**\n`app/workers/handlers/orders.py` — `handle_status_changed` (141,150), `handle_workshop_reassigned` (189,198), `handle_delivered_to_workshop` (295,304,315-322,340,349) call `_push_users_for_workshop`/`_push_users_for_manufacturers` twice each for same tenant/workshop. `handle_out_for_delivery` already does it right (hoist once, reuse var) — copy that pattern. Worst case: 5 queries collapse to 2.\n\n**4. Dashboard runs same aggregate twice**\n`app/api/v1/reports/dashboard.py` — `_attention()`(375)→`_payment_attention()`(292) and `_money()`(376) both call `pending_payment_totals(session, tid, [])` independently. Compute once, pass into both.\n\n**5. Overview recomputes prev-period order count**\n`app/api/v1/reports/overview.py:260,",
+-  "rawOutputLength": 3264
++  "rawOutputPreview": "Audit done. Backend only — no React/frontend code exists yet (`web/` empty scaffold, no mobile app), so skip that part. No SQLAlchemy `relationship()` used anywhere (FKs resolved manually), so classic ORM N+1 doesn't apply here — issues instead are duplicate manual queries + missing caching/pooling. Redis already in stack (`app/core/redis_client.py`), so caching fixes reuse it, no new dep needed.\n\n## Top findings, most severe first\n\n**1. Every write request fetches `Tenant` twice — `app/api/deps.py:338` and `:394`**\n\n`enforce_subscription` (global middleware on every POST/PUT/PATCH/DELETE) and `get_current_user` each do their own `session.get(Tenant, tenant_id)` on separate connections, same request, same row. Highest-traffic fix — hits every write in the product.\n\n```python\nasync def _get_tenant_cached(session: AsyncSession, tenant_id: uuid.UUID) -> Tenant | None:\n    redis = get_redis()\n    cached = await redis.get(f\"tenant:gate:{tenant_id}\")\n    if cached is not None:\n        return Tenant(**json.loads(cached))\n    tenant = await session.get(Tenant, tenant_id)\n    if tenant is not None:\n        await redis.set(\n            f\"tenant:gate:{tenant_id}\",\n            json.dumps({\"id\": str(tenant.id), \"subscription_status\": tenant.subscription_status,\n                        \"is_demo\": tenant.is_demo,\n                        \"demo_expires_at\": tenant.demo_expires_at.isoformat() if tenant.demo_expires_at else None}),\n            ex=20,\n        )\n    return tenant\n```\nUse in both call sites. Invalidate on billing/demo field writes.\n\n**2. Duplicate audience query per notification pair — `app/workers/handlers/orders.py:145/155, 194/204, 431/441, 477/486`**\n\n`_push_users_for_workshop(...)` called once for `notify_push`, again with identical args for `notify_inapp` — same SELECT twice, on hottest worker path (every order transition).\n\n```python\nworkshop_user_ids = await _push_users_for_workshop(session, tenant_id, order.workshop_id)\nawait notify_push(session, tenant_id=tenan",
++  "rawOutputLength": 4944
+ }
+\ No newline at end of file
+diff --git a/.claude-flow/metrics/security-audit.json b/.claude-flow/metrics/security-audit.json
+index e8e7a91..be31cb5 100644
+--- a/.claude-flow/metrics/security-audit.json
++++ b/.claude-flow/metrics/security-audit.json
+@@ -1,12 +1,47 @@
+ {
+-  "timestamp": "2026-08-17T20:28:51.063Z",
+-  "mode": "local",
+-  "checks": {
+-    "envFilesProtected": true,
+-    "gitIgnoreExists": true,
+-    "noHardcodedSecrets": true
++  "timestamp": "2026-08-27T04:07:26.936Z",
++  "mode": "headless",
++  "workerType": "audit",
++  "model": "haiku",
++  "durationMs": 43019,
++  "executionId": "audit_1787803603917_4h76me",
++  "success": true,
++  "findings": {
++    "vulnerabilities": [
++      {
++        "severity": "low",
++        "file": ".claude/worktrees/*/backend/.venv/lib/python3.14/site-packages/urllib3/contrib/emscripten/emscripten_fetch_worker.js",
++        "line": 1,
++        "description": "Vendored third-party urllib3 file committed inside a stray git worktree under .claude/worktrees/. Vendored .venv site-packages should never be tracked in git — bloats repo, drifts from lockfile-pinned version, and makes dependency-vuln scanning noisy (can't tell real deps from copies)."
++      },
++      {
++        "severity": "low",
++        "file": "e2e/make-appstore.js, e2e/make-social.js, e2e/shoot-lp.js, e2e/shoot-pages.js",
++        "line": 1,
++        "description": "Hardcoded absolute local filesystem paths (/Users/igorbrandao/Desktop/..., /private/tmp/claude-501/...). Not exploitable remotely (these are local Playwright screenshot/marketing scripts, not served code), but leak local username/machine layout if this repo or its history goes public."
++      },
++      {
++        "severity": "low",
++        "file": ".claude/worktrees/ (3 duplicate agent-* worktrees present)",
++        "line": 0,
++        "description": "Multiple stale agent worktrees with duplicated vendored dependencies checked in. Repo hygiene issue — should be .gitignore'd, not a direct vuln, but increases attack surface for accidental secret leakage since whole .venv trees get swept into commits/diffs."
++      },
++      {
++        "severity": "informational",
++        "file": "loadtest/loadtest.js",
++        "line": 1,
++        "description": "Reads pre-minted JWTs from loadtest/tokens.json for load testing. File itself has no secrets, but confirm tokens.json is gitignored (not shown in context) since it holds live-role JWTs — if committed, that IS a credential leak."
++      }
++    ],
++    "riskScore": 15,
++    "recommendations": [
++      "Rerun audit against backend/app/** (auth.py, api/v1/*, models/*, alembic/) — that's where SQLi, authz, and secret-handling risk actually lives. Nothing in this context touches DB queries, JWT signing, or request handlers.",
++      "Add .venv/, node_modules/, and .claude/worktrees/ to .gitignore if not already — vendored deps and duplicate worktrees should never be tracked.",
++      "Verify loadtest/tokens.json is gitignored — it holds real JWTs by design.",
++      "Run `git log --all --full-history -- '*tokens.json' '*.env'` to confirm no credential file was ever committed historically.",
++      "For a real SQLi/XSS/authz pass, point security-reviewer or security-auditor agent directly at backend/app/api and backend/app/models."
++    ]
+   },
+-  "riskLevel": "low",
+-  "recommendations": [],
+-  "note": "Install Claude Code CLI for AI-powered security analysis"
++  "rawOutputPreview": "Caveman note first: context given ain't backend app code. Mostly Playwright screenshot scripts, load-test JS, and vendored `urllib3` (site-packages, third-party, not yours). No `app/`, `api/`, `models/`, auth routes in here — can't judge SQLi/XSS/authz on stuff not shown. Real audit needs `backend/app/**`.\n\nFindings below reflect ONLY what's in context. Score stays low-ish since nothing sensitive touched, but flagged as incomplete scope.\n\n```json\n{\n  \"vulnerabilities\": [\n    {\n      \"severity\": \"low\",\n      \"file\": \".claude/worktrees/*/backend/.venv/lib/python3.14/site-packages/urllib3/contrib/emscripten/emscripten_fetch_worker.js\",\n      \"line\": 1,\n      \"description\": \"Vendored third-party urllib3 file committed inside a stray git worktree under .claude/worktrees/. Vendored .venv site-packages should never be tracked in git — bloats repo, drifts from lockfile-pinned version, and makes dependency-vuln scanning noisy (can't tell real deps from copies).\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \"e2e/make-appstore.js, e2e/make-social.js, e2e/shoot-lp.js, e2e/shoot-pages.js\",\n      \"line\": 1,\n      \"description\": \"Hardcoded absolute local filesystem paths (/Users/igorbrandao/Desktop/..., /private/tmp/claude-501/...). Not exploitable remotely (these are local Playwright screenshot/marketing scripts, not served code), but leak local username/machine layout if this repo or its history goes public.\"\n    },\n    {\n      \"severity\": \"low\",\n      \"file\": \".claude/worktrees/ (3 duplicate agent-* worktrees present)\",\n      \"line\": 0,\n      \"description\": \"Multiple stale agent worktrees with duplicated vendored dependencies checked in. Repo hygiene issue — should be .gitignore'd, not a direct vuln, but increases attack surface for accidental secret leakage since whole .venv trees get swept into commits/diffs.\"\n    },\n    {\n      \"severity\": \"informational\",\n      \"file\": \"loadtest/loadtest.js\",\n      \"line\": 1,\n      \"description\": \"Reads pre-minted JWTs from loadtest/",
++  "rawOutputLength": 3072
+ }
+\ No newline at end of file
+diff --git a/.claude-flow/metrics/test-gaps.json b/.claude-flow/metrics/test-gaps.json
+index ce56935..7965db4 100644
+--- a/.claude-flow/metrics/test-gaps.json
++++ b/.claude-flow/metrics/test-gaps.json
+@@ -1,15 +1,39 @@
+ {
+-  "timestamp": "2026-08-16T19:39:29.909Z",
++  "timestamp": "2026-08-27T04:03:34.152Z",
+   "mode": "headless",
+   "workerType": "testgaps",
+   "model": "sonnet",
+-  "durationMs": 352789,
+-  "executionId": "testgaps_1786908817120_1ldp4w",
++  "durationMs": 278749,
++  "executionId": "testgaps_1787803135403_3l8lz9",
+   "success": true,
+   "findings": {
+-    "sections": [],
+-    "codeBlocks": []
++    "sections": [
++      {
++        "title": "Worst files (below 80%)",
++        "content": "\n| File | Cov | Missing stmts | Skeletons drafted, not implemented |\n|---|---|---|---|\n| `app/services/whatsapp_instances.py` | 36.0% | 103 | 11/12 |\n| `app/events/rabbit.py` | 42.9% | 20 | 0/1 (this one done, different name) |\n| `app/api/v1/realtime_ws.py` | 44.6% | 46 | 3/3 |\n| `app/services/notifications.py` | 44.8% | 48 | 9/9 |\n| `app/api/v1/media.py` | 45.7% | 19 | 7/7 |\n| `app/cli.py` | 46.4% | 158 | 10/13 |\n| `app/api/v1/whatsapp.py` | 51.2% | 42 | 1/1 |\n| `app/core/db.py` | 53.8% | 12 | 1/1 |\n| `app/api/v1/product_references.py` | 54.5% | 61 | 14/14 |\n| `app/services/push.py` | 56.7% | 26 | 3/3 |\n| `app/services/whatsapp.py` | 64.1% | 23 | not in doc yet |\n| `app/workers/handlers/accounts.py` | 68.2% | 27 | 10/10 |\n| `app/services/pulse_report.py` | 68.6% | 54 | 4/4 |\n| `app/services/demo_cleanup.py` | 76.3% | 14 | 1/1 |\n| `app/workers/consumer.py` | 77.6% | 13 | 3/3 |\n| `app/services/stage_service.py` | 78.5% | 23 | tracked, unnumbered |\n| `app/api/v1/outreach.py` | 78.7% | 23 | tracked, unnumbered |\n| `app/events/relay.py` | 79.2% | 10 | 2/2 |\n| `app/main.py` | 79.7% | 14 | 6/6 |\n| `app/services/prospecting.py` | 79.9% | 29 | tracked, unnumbered |\n\nImportant finding: this repo already carries a live backlog — `backend/tests/coverage_gap_analysis.md` (1372 lines) has per-file gap analysis with real docstrings pinpointing exact missing lines/branches, going back to 2026-08-18 and updated through 2026-08-26. Cross-checked every proposed skeleton against `tests/test_coverage_gaps_todo.py`: **93 drafted skeletons across 17 files are still `pass`-stubs, never implemented.** That's the actual current gap — not missing analysis, missing execution.\n\n",
++        "level": 2
++      },
++      {
++        "title": "Top 3 concrete gaps (skeletons already exist, ready to fill in)",
++        "content": "**`app/services/push.py`** (56.7%) — `_get_app`/`_send_sync`/`send_push` unexercised:\n```python\ndef test_send_push_returns_false_on_empty_or_all_blank_tokens():\n    \"\"\"tokens=[] and tokens=[\"\", None] — filter at push.py:126-128.\n    Assert returns (False, []); _get_app never called.\"\"\"\n\nasync def test_send_push_dispatch_error_is_swallowed_not_send_sync_error(monkeypatch):\n    \"\"\"asyncio.to_thread itself raises (dispatch-level, not _send_sync-level)\n    — push.py:131-133. Assert send_push returns (False, []), no propagation.\"\"\"\n\ndef test_send_sync_success_path_stringifies_data_values(monkeypatch):\n    \"\"\"_get_app -> sentinel app; messaging.send_each_for_multicast stubbed.\n    Assert MulticastMessage.data values all str — push.py:80-81.\"\"\"\n```\n\n**`app/api/v1/realtime_ws.py`** (44.6%) — DB branch of `_authenticate` + full handler body uncovered. `TestClient` can't see DB rows written outside its rolled-back transaction — doc recommends driving the coroutine directly against a fake `WebSocket`:\n```python\nasync def test_authenticate_rejects_deactivated_user(session, tenant, monkeypatch):\n    \"\"\"Real user active=False, real signed token.\n    Assert _authenticate(fake_ws) returns None — hits DB active-check\n    branch (90-96), not just claim-shape guard.\"\"\"\n\nasync def test_realtime_ws_handler_full_round_trip(monkeypatch):\n    \"\"\"Drive realtime_ws(fake_ws) end-to-end: accept -> auth -> pump loop\n    -> disconnect. Assert accepted, correct frames sent, socket closed.\"\"\"\n```\n\n**`app/services/whatsapp_instances.py`** (36.0%, worst file) — `create_for_tenant`/`get_qr`/`get_state`/`_raw_state` error branches untested:\n```python\nasync def test_create_for_tenant_wraps_network_exception(session, tenant, monkeypatch):\n    \"\"\"httpx.AsyncClient raises ConnectError on first probe call —\n    lines 151-153. Assert InstanceError('could not reach WhatsApp provider').\"\"\"\n\nasync def test_get_qr_raises_on_malformed_json_response(session, tenant, monkeypatch):\n    \"\"\"/instance/connect/{name} -> 200, non-JSON body — 213-216.\n    Assert InstanceError('bad QR response: ...').\"\"\"\n```\n\nFull 93-skeleton backlog with exact line numbers: `backend/tests/coverage_gap_analysis.md`. Rest of skeleton bodies (currently `pass`) live scattered through `backend/tests/test_coverage_gaps_todo.py` — implement those in place rather than writing new ones, names already match doc convention.\n\nGenuinely new gap, not yet in doc: `app/services/whatsapp.py::lookup_numbers` (64.1%) — worth adding as file #22 next pass.\n\n**Not committed** — `.md`/`.py` files above are all uncommitted local changes (part of the existing `M`/`??` status). No action taken on git.",
++        "level": 2
++      }
++    ],
++    "codeBlocks": [
++      {
++        "language": "python",
++        "code": "def test_send_push_returns_false_on_empty_or_all_blank_tokens():\n    \"\"\"tokens=[] and tokens=[\"\", None] — filter at push.py:126-128.\n    Assert returns (False, []); _get_app never called.\"\"\"\n\nasync def test_send_push_dispatch_error_is_swallowed_not_send_sync_error(monkeypatch):\n    \"\"\"asyncio.to_thread itself raises (dispatch-level, not _send_sync-level)\n    — push.py:131-133. Assert send_push returns (False, []), no propagation.\"\"\"\n\ndef test_send_sync_success_path_stringifies_data_values(monkeypatch):\n    \"\"\"_get_app -> sentinel app; messaging.send_each_for_multicast stubbed.\n    Assert MulticastMessage.data values all str — push.py:80-81.\"\"\""
++      },
++      {
++        "language": "python",
++        "code": "async def test_authenticate_rejects_deactivated_user(session, tenant, monkeypatch):\n    \"\"\"Real user active=False, real signed token.\n    Assert _authenticate(fake_ws) returns None — hits DB active-check\n    branch (90-96), not just claim-shape guard.\"\"\"\n\nasync def test_realtime_ws_handler_full_round_trip(monkeypatch):\n    \"\"\"Drive realtime_ws(fake_ws) end-to-end: accept -> auth -> pump loop\n    -> disconnect. Assert accepted, correct frames sent, socket closed.\"\"\""
++      },
++      {
++        "language": "python",
++        "code": "async def test_create_for_tenant_wraps_network_exception(session, tenant, monkeypatch):\n    \"\"\"httpx.AsyncClient raises ConnectError on first probe call —\n    lines 151-153. Assert InstanceError('could not reach WhatsApp provider').\"\"\"\n\nasync def test_get_qr_raises_on_malformed_json_response(session, tenant, monkeypatch):\n    \"\"\"/instance/connect/{name} -> 200, non-JSON body — 213-216.\n    Assert InstanceError('bad QR response: ...').\"\"\""
++      }
++    ]
+   },
+-  "rawOutputPreview": "Collects clean, 134 param-expanded cases, no errors.\n\nGap analysis done. Findings:\n\n**Baseline**: `coverage.json` shows 88.9% (1058 missing lines, 9497 statements). File `tests/test_coverage_gaps_todo.py` already existed as WIP from earlier today with 27 skeletons (webhook, whatsapp_instances, realtime_ws, grid pure fns, order transitions guard, push service, rabbit events, notifications service, media upload, RLS enforcement, report_filters, worker accounts handlers, whatsapp router, product_references, pulse_report). `test_captcha.py`, `test_core_security.py`, `test_order_transitions_service.py` are real (non-skeleton) tests already implemented — checked, no dup.\n\n**I extended that file with 71 new skeleton tests** (98 total, 134 param-expanded) covering the highest-risk gaps not yet touched, all read against actual source:\n\n- **Auth/security** (`api/deps.py`, `core/config.py`) — token rejection paths, affiliate disabled/must-change-password gates, `is_lapsed_write_exempt` prefix-vs-substring table, `enforce_subscription` write-only/lapsed-only gating, demo-expired lockout, weak-secret/RLS-role/gateway-misconfig boot validators.\n- **Money** (`billing/checkout.py`, `billing/signup_fee.py`, `workers/handlers/billing/*`, `payment_intents.py`, `mp_references.py`) — plan-change proration vs in-place reprice, double-checkout claim races, refund/chargeback reversal + trial clamp + discount restore, duplicate-payment \"PAID TWICE\" critical-log paths, reprice-failure-logged-not-raised, reference parser fail-closed table.\n- **Core infra** (`main.py`, `workers/consumer.py`, `services/storage.py`, `events/relay.py`) — CSP/cache-control headers, unhandled-exception 500 wrapper, money-event retry-then-drop worker contract, MinIO not-configured/paginated-delete, outbox linear backoff.\n- **`auth.py`** rate-limit helpers — `_client_ip` CF-header vs X-Forwarded-For spoofing, login throttle 429 + commit-on-prune.\n\nAll skip-marked with docstrings stating exact assertions, matching the",
+-  "rawOutputLength": 2827
++  "rawOutputPreview": "Suite ran clean: 1712 passed, 237 skipped, overall 90% (11086 stmts, 1141 missed).\n\n## Worst files (below 80%)\n\n| File | Cov | Missing stmts | Skeletons drafted, not implemented |\n|---|---|---|---|\n| `app/services/whatsapp_instances.py` | 36.0% | 103 | 11/12 |\n| `app/events/rabbit.py` | 42.9% | 20 | 0/1 (this one done, different name) |\n| `app/api/v1/realtime_ws.py` | 44.6% | 46 | 3/3 |\n| `app/services/notifications.py` | 44.8% | 48 | 9/9 |\n| `app/api/v1/media.py` | 45.7% | 19 | 7/7 |\n| `app/cli.py` | 46.4% | 158 | 10/13 |\n| `app/api/v1/whatsapp.py` | 51.2% | 42 | 1/1 |\n| `app/core/db.py` | 53.8% | 12 | 1/1 |\n| `app/api/v1/product_references.py` | 54.5% | 61 | 14/14 |\n| `app/services/push.py` | 56.7% | 26 | 3/3 |\n| `app/services/whatsapp.py` | 64.1% | 23 | not in doc yet |\n| `app/workers/handlers/accounts.py` | 68.2% | 27 | 10/10 |\n| `app/services/pulse_report.py` | 68.6% | 54 | 4/4 |\n| `app/services/demo_cleanup.py` | 76.3% | 14 | 1/1 |\n| `app/workers/consumer.py` | 77.6% | 13 | 3/3 |\n| `app/services/stage_service.py` | 78.5% | 23 | tracked, unnumbered |\n| `app/api/v1/outreach.py` | 78.7% | 23 | tracked, unnumbered |\n| `app/events/relay.py` | 79.2% | 10 | 2/2 |\n| `app/main.py` | 79.7% | 14 | 6/6 |\n| `app/services/prospecting.py` | 79.9% | 29 | tracked, unnumbered |\n\nImportant finding: this repo already carries a live backlog — `backend/tests/coverage_gap_analysis.md` (1372 lines) has per-file gap analysis with real docstrings pinpointing exact missing lines/branches, going back to 2026-08-18 and updated through 2026-08-26. Cross-checked every proposed skeleton against `tests/test_coverage_gaps_todo.py`: **93 drafted skeletons across 17 files are still `pass`-stubs, never implemented.** That's the actual current gap — not missing analysis, missing execution.\n\n## Top 3 concrete gaps (skeletons already exist, ready to fill in)\n\n**`app/services/push.py`** (56.7%) — `_get_app`/`_send_sync`/`send_push` unexercised:\n```python\ndef test_send_push_returns_false_on_empty_or_a",
++  "rawOutputLength": 4510
+ }
+\ No newline at end of file
+diff --git a/.claude-flow/neural/stats.json b/.claude-flow/neural/stats.json
+index e03fb65..1828424 100644
+--- a/.claude-flow/neural/stats.json
++++ b/.claude-flow/neural/stats.json
+@@ -1,6 +1,6 @@
+ {
+-  "trajectoriesRecorded": 4097,
+-  "patternsLearned": 4097,
++  "trajectoriesRecorded": 8063,
++  "patternsLearned": 8063,
+   "signalsProcessed": 0,
+-  "lastAdaptation": 1787018915448
++  "lastAdaptation": 1788731739786
+ }
+\ No newline at end of file

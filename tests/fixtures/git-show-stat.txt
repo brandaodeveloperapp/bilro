@@ -1,0 +1,40 @@
+commit de4c78411a917b80f4ec5e60015c4f350ac0be9f
+Author: Igor Brandao <brandaodeveloperapp@gmail.com>
+Date:   Sun Sep 6 18:54:57 2026 -0300
+
+    security: kill RCE from data file, stop denoise eating real errors
+    
+    Red-team found three defects that a token saver must never have.
+    
+    CRITICAL: `verify:` frontmatter was piped to `/bin/sh -c`, so any markdown
+    file under the memory dir was executable code. A planted memory ran its
+    payload and reported a green check. Declared commands now run through
+    execFile with a parsed argv, shell metacharacters are refused outright, and
+    nothing executes at all without an explicit --run.
+    
+    Two algorithm defects made bilro hide the very output it exists to surface.
+    A deterministic failure present in every run crossed the df ceiling and was
+    dropped forever; and a failure whose text carries a pid, ip or uuid took the
+    volatile branch, which skipped the never-seen-before guard, so even a brand
+    new error vanished. Both are fixed by a severity floor: a line reporting a
+    failure is never noise, however often it repeats, and it outranks everything
+    when output is trimmed to a budget.
+    
+    One test asserted the second bug rather than catching it, using a failure
+    line as its example of a droppable one. Fixture corrected.
+    
+    Also: observe() writes in one transaction and caps input lines, sqlite opens
+    with busy_timeout and WAL, subprocesses carry a timeout, and the ledger
+    writes atomically via rename.
+    
+    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01WYr99D31EZn3cW2792yZAM
+
+ bin/bilro           | 33 ++++++++++++++++++++++-----------
+ lib/exec.js         | 37 +++++++++++++++++++++++++++++++++++++
+ lib/learn.js        | 31 +++++++++++++++++++++++++++----
+ lib/ledger.js       |  6 ++++--
+ lib/sandbox.js      |  2 ++
+ tests/exec.test.js  | 31 +++++++++++++++++++++++++++++++
+ tests/learn.test.js | 23 ++++++++++++++++++++++-
+ 7 files changed, 145 insertions(+), 18 deletions(-)

@@ -1,0 +1,20 @@
+CONTAINER ID   IMAGE                                          COMMAND                   CREATED        STATUS                      PORTS     NAMES
+baca96337bec   alpine:latest                                  "sleep 60"                1 second ago   Up 1 second                           bilro-fixture-tmp
+20e2fc3e0fcc   rabbitmq:3.13-management-alpine                "docker-entrypoint.s…"    25 hours ago   Exited (137) 2 hours ago              rainha-rabbitmq-1
+32a40bdd3080   rainha-api                                     "sh -c 'mkdir -p \"$P…"   33 hours ago   Exited (137) 2 hours ago              rainha-api-1
+4bb195b98f43   node:20-alpine                                 "docker-entrypoint.s…"    2 days ago     Exited (0) 19 hours ago               rainha-web-1
+f95137f1256d   rainha-worker                                  "python -m app.worke…"    2 days ago     Exited (137) 25 hours ago             rainha-worker-1
+c3fb46c7b11d   postgres:16-alpine                             "docker-entrypoint.s…"    2 days ago     Exited (0) 2 hours ago                rainha-postgres-1
+5c611078768e   redis:7-alpine                                 "docker-entrypoint.s…"    2 days ago     Exited (0) 2 hours ago                rainha-redis-1
+7aeb82db9094   minio/minio:latest                             "/usr/bin/docker-ent…"    2 days ago     Exited (0) 2 hours ago                rainha-minio-1
+8e3b81db96ef   moby/buildkit:buildx-stable-1                  "/usr/bin/buildkitd-…"    3 days ago     Exited (1) 25 hours ago               buildx_buildkit_jutixbuilder0
+5e43859660c2   easyfile-api                                   "dotnet ASBZ.EasyFil…"    3 days ago     Exited (0) 25 hours ago               easyfile-api-1
+27a27396dd37   easyfile-rotina                                "dotnet ASBZ.EasyFil…"    3 days ago     Exited (0) 25 hours ago               easyfile-rotina-1
+ffd165c2f25c   easyfile-portal                                "dotnet ASBZ.EasyFil…"    3 days ago     Exited (0) 25 hours ago               easyfile-portal-1
+6225b0b31652   grafana/grafana:11.3.0                         "/run.sh"                 3 days ago     Exited (0) 25 hours ago               easyfile-grafana-1
+7a165769d1e4   otel/opentelemetry-collector-contrib:0.112.0   "/otelcol-contrib --…"    3 days ago     Exited (0) 25 hours ago               easyfile-otel-collector-1
+3e9f4b9694c9   rabbitmq:3.13-management                       "docker-entrypoint.s…"    3 days ago     Exited (137) 25 hours ago             easyfile-rabbitmq-1
+93387ae3c333   grafana/loki:3.2.1                             "/usr/bin/loki -conf…"    3 days ago     Exited (137) 25 hours ago             easyfile-loki-1
+ccdea4cf7124   prom/prometheus:v2.55.1                        "/bin/prometheus --c…"    3 days ago     Exited (0) 25 hours ago               easyfile-prometheus-1
+95c5958c8a3d   grafana/tempo:2.6.1                            "/tempo -config.file…"    3 days ago     Exited (137) 25 hours ago             easyfile-tempo-1
+a0f9f2221bf0   mcr.microsoft.com/mssql/server:2022-latest     "/opt/mssql/bin/laun…"    3 days ago     Exited (137) 25 hours ago             easyfile-sqlserver-1
