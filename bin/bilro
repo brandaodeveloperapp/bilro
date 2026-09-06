@@ -1,6 +1,10 @@
 #!/usr/bin/env node
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { homedir } from "node:os";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 import { execFileSync } from "node:child_process";
 import { loadMemories, audit } from "../lib/memory.js";
 import {
@@ -148,10 +152,34 @@ function verify(cwd) {
   console.log(`\n  ${DIM}${checked.length} verificadas, ${suspect.length} suspeitas, ${asserts.length} recentes${OFF}\n`);
 }
 
+function sessionOpen(cwd) {
+  const always = weighAlwaysOn();
+  const slug = "-" + cwd.replace(/^\//, "").replace(/\//g, "-");
+  const memory = weighMemory().filter((m) => m.project === slug);
+  const agents = weighAgents(agentDirs(cwd));
+  const total =
+    always.reduce((n, f) => n + f.tokens, 0) +
+    memory.reduce((n, m) => n + m.tokens, 0) +
+    agents.reduce((n, a) => n + a.catalogueTokens, 0);
+  const inherits = agents.filter((a) => a.inheritsEverything).length;
+  const parts = [`bilro: ${total} tok de custo fixo por request neste projeto.`];
+  if (inherits) parts.push(`${inherits} agentes sem tools: herdam o catalogo inteiro quando despachados.`);
+  parts.push("Antes de despachar agente, pergunte se da pra medir com ctx_execute.");
+  process.stdout.write(parts.join(" "));
+}
+
+function hook(kind) {
+  if (kind === "session") return sessionOpen(process.cwd());
+  const child = join(HERE, "..", "hooks", "preflight.js");
+  const raw = readFileSync(0, "utf8");
+  execFileSync(process.execPath, [child], { input: raw, stdio: ["pipe", "inherit", "ignore"] });
+}
+
 const [, , cmd = "bill"] = process.argv;
 if (cmd === "bill") bill(process.cwd());
 else if (cmd === "doctor") doctor();
 else if (cmd === "verify") verify(process.cwd());
+else if (cmd === "hook") hook(process.argv[3]);
 else {
   console.log(`
   bilro — o peso vazio do seu contexto
@@ -159,5 +187,6 @@ else {
     bilro bill      o que você paga por request, ranqueado
     bilro doctor    agentes mal configurados
     bilro verify    memoria que afirma fato e nao sabe se conferir
+    bilro hook <k>  ponto de entrada dos hooks (session | task)
 `);
 }

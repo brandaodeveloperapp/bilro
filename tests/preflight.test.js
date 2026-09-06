@@ -35,3 +35,18 @@ test("nao acusa repeticao em assunto diferente", () => {
   const out = run({ ...base, session_id: s, tool_input: { subagent_type: "b", description: "deploy kubernetes rollout", prompt: "subir imagem nova" } });
   assert.doesNotMatch(out, /mesmo assunto/);
 });
+
+test("hook task encaminha para o preflight", () => {
+  const out = execFileSync("node", [join(import.meta.dirname, "..", "bin", "bilro"), "hook", "task"], {
+    input: JSON.stringify({ ...base, session_id: randomUUID(), tool_input: { subagent_type: "x", prompt: "p" } }),
+    encoding: "utf8",
+  });
+  assert.match(out, /custo fixo/);
+});
+
+test("hook session resume a conta sem ler stdin", () => {
+  const out = execFileSync("node", [join(import.meta.dirname, "..", "bin", "bilro"), "hook", "session"], {
+    encoding: "utf8",
+  });
+  assert.match(out, /custo fixo por request/);
+});
