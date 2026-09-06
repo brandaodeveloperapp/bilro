@@ -2,7 +2,7 @@
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 import { execFileSync } from "node:child_process";
@@ -269,8 +269,7 @@ function sessionOpen(cwd) {
 function hook(kind) {
   if (kind === "session") return sessionOpen(process.cwd());
   const child = join(HERE, "..", "hooks", kind === "shadow" ? "shadow.js" : "preflight.js");
-  const raw = readFileSync(0, "utf8");
-  execFileSync(process.execPath, [child], { input: raw, stdio: ["pipe", "inherit", "ignore"] });
+  import(pathToFileURL(child).href);
 }
 
 function runCmd(argv) {
