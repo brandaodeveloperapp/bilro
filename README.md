@@ -60,11 +60,27 @@ $ bilro verify
 Memories that state a version, an amount or a count and have gone untouched
 are flagged even without a `verify:` — those are the ones that quietly lie.
 
-## What it is not
+## Run a command without paying for its output
 
-`bilro` measures. It does not compress. Pair it with the tools that actually
-save: a shell proxy for command output, a terse output style, a sandbox that
-keeps raw bytes out of the window.
+```
+$ bilro run "npx tsc --noEmit --listFiles" --find "features/references"
+
+  ok  7 trechos indexados, 11240 tok ficaram fora do contexto
+```
+
+The output is chunked into SQLite FTS5 and ranked by BM25 — both built into
+Node, no dependency — so the bytes stay on disk and only what you asked for
+comes back. `bilro find <term>` retrieves the rest whenever you need it.
+
+## Style
+
+```
+bilro style terse
+```
+
+Re-emits a concision ruleset at every session start, because a rule stated
+once decays in a long conversation. Code, commits, security notes and ordered
+steps are exempt.
 
 ## Name
 

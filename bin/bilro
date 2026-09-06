@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 import { execFileSync } from "node:child_process";
 import { loadMemories, audit } from "../lib/memory.js";
+import { ruleset, readLevel, writeLevel, LEVELS } from "../lib/style.js";
+import { run as sandboxRun, open as openIndex, search as searchIndex } from "../lib/sandbox.js";
 import {
   weighAlwaysOn,
   weighMemory,
@@ -84,6 +86,13 @@ function bill(cwd) {
   console.log();
 }
 
+function styleConflict() {
+  if (readLevel() === "off") return null;
+  const plugins = weighPlugins();
+  const rival = plugins.find((p) => /caveman/i.test(p));
+  return rival ? rival.split("@")[0] : null;
+}
+
 function doctor() {
   const agents = weighAgents(agentDirs(process.cwd()));
   const problems = [];
@@ -91,8 +100,14 @@ function doctor() {
     if (a.inheritsEverything) problems.push([a.name, "sem tools: — herda tudo"]);
     else if (!a.hasContextMode) problems.push([a.name, "sem ctx_* — context-mode não alcança"]);
   }
+  const rival = styleConflict();
+  if (rival) {
+    console.log(`\n  ${WARN}⚠${OFF}  bilro style esta ligado e ${rival} tambem injeta estilo.`);
+    console.log(`     ${DIM}duas regras competindo pioram a saida — desligue uma${OFF}`);
+  }
   if (!problems.length) {
-    console.log("\n  tudo no lugar.\n");
+    if (!rival) console.log("\n  tudo no lugar.\n");
+    else console.log();
     return;
   }
   console.log(`\n  ${problems.length} agentes com problema:\n`);
@@ -162,7 +177,10 @@ function sessionOpen(cwd) {
     memory.reduce((n, m) => n + m.tokens, 0) +
     agents.reduce((n, a) => n + a.catalogueTokens, 0);
   const inherits = agents.filter((a) => a.inheritsEverything).length;
-  const parts = [`bilro: ${total} tok de custo fixo por request neste projeto.`];
+  const parts = [];
+  const rules = ruleset();
+  if (rules) parts.push(rules);
+  parts.push(`bilro: ${total} tok de custo fixo por request neste projeto.`);
   if (inherits) parts.push(`${inherits} agentes sem tools: herdam o catalogo inteiro quando despachados.`);
   parts.push("Antes de despachar agente, pergunte se da pra medir com ctx_execute.");
   process.stdout.write(parts.join(" "));
@@ -175,11 +193,69 @@ function hook(kind) {
   execFileSync(process.execPath, [child], { input: raw, stdio: ["pipe", "inherit", "ignore"] });
 }
 
+function runCmd(argv) {
+  const qi = argv.indexOf("--find");
+  const command = (qi === -1 ? argv : argv.slice(0, qi)).join(" ");
+  const queries = qi === -1 ? [] : argv.slice(qi + 1);
+  if (!command) return console.log("\n  uso: bilro run <comando> [--find <termo>...]\n");
+  const r = sandboxRun({ command, queries });
+  console.log();
+  console.log(
+    `  ${r.failed ? "\x1b[31mfalhou\x1b[0m" : "ok"}  ${r.chunks} trechos indexados, ` +
+      `${BOLD}${r.withheldTokens} tok${OFF} ficaram fora do contexto`,
+  );
+  for (const h of r.hits) {
+    console.log(`\n  ${DIM}${h.q}${OFF}`);
+    console.log(
+      h.body
+        .split("\n")
+        .slice(0, 8)
+        .map((l) => `    ${l}`)
+        .join("\n"),
+    );
+  }
+  console.log(`\n  ${DIM}bilro find "<termo>" recupera o resto${OFF}\n`);
+}
+
+function findCmd(argv) {
+  const q = argv.join(" ");
+  if (!q) return console.log("\n  uso: bilro find <termo>\n");
+  const db = openIndex();
+  const rows = searchIndex(db, q, 5);
+  db.close();
+  if (!rows.length) return console.log(`\n  nada indexado bate com ${JSON.stringify(q)}\n`);
+  console.log();
+  for (const r of rows) {
+    console.log(`  ${DIM}${r.source}${OFF}`);
+    console.log(
+      r.body
+        .split("\n")
+        .slice(0, 10)
+        .map((l) => `    ${l}`)
+        .join("\n") + "\n",
+    );
+  }
+}
+
 const [, , cmd = "bill"] = process.argv;
 if (cmd === "bill") bill(process.cwd());
 else if (cmd === "doctor") doctor();
 else if (cmd === "verify") verify(process.cwd());
 else if (cmd === "hook") hook(process.argv[3]);
+else if (cmd === "run") runCmd(process.argv.slice(3));
+else if (cmd === "find") findCmd(process.argv.slice(3));
+else if (cmd === "style") {
+  const arg = process.argv[3];
+  if (!arg) console.log(`\n  nivel atual: ${readLevel()}   ${DIM}(${LEVELS.join(" | ")})${OFF}\n`);
+  else {
+    try {
+      console.log(`\n  estilo: ${writeLevel(arg)}\n`);
+    } catch (e) {
+      console.log(`\n  ${e.message}\n`);
+      process.exit(1);
+    }
+  }
+}
 else {
   console.log(`
   bilro — o peso vazio do seu contexto
@@ -188,5 +264,8 @@ else {
     bilro doctor    agentes mal configurados
     bilro verify    memoria que afirma fato e nao sabe se conferir
     bilro hook <k>  ponto de entrada dos hooks (session | task)
+    bilro style     nivel de concisao da resposta (off | lean | terse)
+    bilro run <cmd> roda no sandbox, indexa a saida, devolve so o tamanho
+    bilro find <q>  recupera trecho do que ja foi indexado
 `);
 }
