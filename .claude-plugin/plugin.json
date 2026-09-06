@@ -1,0 +1,23 @@
+{
+  "name": "bilro",
+  "description": "Weigh what your AI context costs before you ask it anything. Warns on subagent dispatch with the fixed cost you are about to pay.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Igor Brandão",
+    "url": "https://github.com/brandaodeveloperapp"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/preflight.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
