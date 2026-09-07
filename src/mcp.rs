@@ -48,6 +48,18 @@ fn tools() -> Value {
             }
         },
         {
+            "name": "bilro_fetch",
+            "description": "Fetches a web page, keeps its readable text in the index instead of the conversation, and returns only the passages matching what you ask for. Use it for documentation and reference pages, where the markup is most of the bytes and almost none of the meaning.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": { "type": "string", "description": "http or https only" },
+                    "find": { "type": "array", "items": { "type": "string" }, "description": "What to look for on the page" }
+                },
+                "required": ["url"]
+            }
+        },
+        {
             "name": "bilro_find",
             "description": "Searches everything already indexed by bilro_run, without running anything again.",
             "inputSchema": {
@@ -214,6 +226,31 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 }
             }
         }
+        "bilro_fetch" => {
+            let url = arg_str(args, "url");
+            if url.is_empty() {
+                return error_result("url is required".into());
+            }
+            match crate::web::fetch(&url) {
+                Err(e) => error_result(e),
+                Ok(page) => {
+                    let queries: Vec<String> = args
+                        .get("find")
+                        .and_then(|v| v.as_array())
+                        .map(|a| a.iter().filter_map(|q| q.as_str()).map(String::from).collect())
+                        .unwrap_or_default();
+                    let label = page.title.clone().unwrap_or_else(|| page.url.clone());
+                    let cabecalho = format!(
+                        "{}\n{} — {} bytes de pagina viraram {} de texto\n",
+                        label,
+                        page.url,
+                        page.bytes,
+                        page.text.len()
+                    );
+                    text_result(format!("{cabecalho}{}", hold_if_large(&label, &page.text, &queries, false)))
+                }
+            }
+        }
         "bilro_find" => {
             let query = arg_str(args, "query");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(8) as usize;
@@ -354,7 +391,7 @@ mod tests {
     fn tools_list_traz_todas_com_schema_bem_formado() {
         let r = handle(&json!({"jsonrpc":"2.0","id":2,"method":"tools/list"})).unwrap();
         let t = r["result"]["tools"].as_array().unwrap();
-        assert_eq!(t.len(), 7);
+        assert_eq!(t.len(), 8);
         for tool in t {
             assert!(tool["name"].as_str().unwrap().starts_with("bilro_"));
             assert!(!tool["description"].as_str().unwrap().is_empty());
@@ -426,6 +463,16 @@ mod tests {
             "name":"bilro_recall","arguments":{"cwd":"/caminho/que/nao/existe/em/lugar/nenhum"}
         }})).unwrap();
         assert!(r["result"]["isError"].as_bool() != Some(true), "recall vazio nao deveria ser erro");
+    }
+
+    #[test]
+    fn fetch_recusa_esquema_perigoso_sem_tentar_buscar() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":12,"method":"tools/call","params":{
+            "name":"bilro_fetch","arguments":{"url":"file:///etc/passwd"}
+        }})).unwrap();
+        assert_eq!(r["result"]["isError"], true);
+        let txt = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(txt.contains("http"), "deveria dizer o que aceita: {txt}");
     }
 
     #[test]

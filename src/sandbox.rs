@@ -89,6 +89,7 @@ pub fn index(conn: &Connection, label: &str, body: &str, source: &str) -> rusqli
     } else {
         body
     };
+    conn.execute("DELETE FROM chunks WHERE label = ?1 AND source = ?2", rusqlite::params![label, source])?;
     let pieces = chunk(body, DEFAULT_CHUNK_LINES);
     let at = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0);
     let mut stmt =
@@ -269,5 +270,56 @@ mod cap_tests {
         let tamanho = std::fs::metadata(&file).unwrap().len();
         let _ = std::fs::remove_dir_all(&dir);
         assert!(tamanho < 32 * 1024 * 1024, "indice ficou com {tamanho} bytes");
+    }
+}
+
+#[cfg(test)]
+mod reindex_tests {
+    use super::*;
+
+    fn temp_db() -> (PathBuf, Connection) {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static N: AtomicU64 = AtomicU64::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "bilro-ri-{}-{}",
+            std::process::id(),
+            N.fetch_add(1, Ordering::SeqCst)
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("i.db");
+        let c = open(&f).unwrap();
+        (dir, c)
+    }
+
+    #[test]
+    fn indexar_de_novo_substitui_em_vez_de_acumular() {
+        let (dir, conn) = temp_db();
+        let corpo = "primeira secao\n\nsegunda secao com termo raro xilofone";
+        for _ in 0..3 {
+            index(&conn, "pagina", corpo, "web").unwrap();
+        }
+        let hits = search(&conn, "xilofone", 10).unwrap();
+        assert_eq!(hits.len(), 1, "o mesmo trecho voltou {} vezes", hits.len());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn rotulos_diferentes_convivem() {
+        let (dir, conn) = temp_db();
+        index(&conn, "pagina-a", "termo raro xilofone aqui", "web").unwrap();
+        index(&conn, "pagina-b", "termo raro xilofone ali", "web").unwrap();
+        assert_eq!(search(&conn, "xilofone", 10).unwrap().len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn conteudo_novo_no_mesmo_rotulo_apaga_o_antigo() {
+        let (dir, conn) = temp_db();
+        index(&conn, "pagina", "conteudo velho zebra", "web").unwrap();
+        index(&conn, "pagina", "conteudo novo girafa", "web").unwrap();
+        assert!(search(&conn, "zebra", 5).unwrap().is_empty(), "sobrou o conteudo velho");
+        assert_eq!(search(&conn, "girafa", 5).unwrap().len(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

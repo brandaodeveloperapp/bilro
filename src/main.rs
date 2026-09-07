@@ -13,6 +13,7 @@ mod read;
 mod redact;
 mod ready;
 mod sandbox;
+mod web;
 mod script;
 mod shapes;
 mod style;
@@ -742,6 +743,61 @@ fn idade(at: i64) -> String {
     }
 }
 
+/// Fetches a page and shows only what was asked for, keeping the rest indexed.
+fn cmd_fetch(argv: &[String]) {
+    let qi = argv.iter().position(|a| a == "--find");
+    let url = argv.first().cloned().unwrap_or_default();
+    let queries: Vec<String> = match qi {
+        Some(i) => argv[i + 1..].to_vec(),
+        None => Vec::new(),
+    };
+    if url.is_empty() {
+        return eprintln!("  uso: bilro fetch <url> [--find <termo>...]");
+    }
+    match web::fetch(&url) {
+        Err(e) => eprintln!("  {e}"),
+        Ok(page) => {
+            println!(
+                "\n  {}\n  {DIM}{} bytes de pagina viraram {} de texto{OFF}\n",
+                page.title.clone().unwrap_or_else(|| page.url.clone()),
+                page.bytes,
+                page.text.len()
+            );
+            if queries.is_empty() {
+                for l in page.text.lines().take(40) {
+                    println!("  {l}");
+                }
+                return;
+            }
+            let Ok(conn) = sandbox::open_default() else {
+                return eprintln!("  {WARN}sem indice: mostrando so o cabecalho{OFF}");
+            };
+            let label = page.title.clone().unwrap_or_else(|| page.url.clone());
+            let chunks = sandbox::index(&conn, &label, &page.text, "web").unwrap_or(0);
+            let mut achou = 0;
+            for q in &queries {
+                let hits = sandbox::search(&conn, q, 3).unwrap_or_default();
+                if hits.is_empty() {
+                    println!("  {DIM}{q}: nada nesta pagina{OFF}");
+                    continue;
+                }
+                achou += hits.len();
+                println!("  {DIM}{q}{OFF}");
+                for h in hits {
+                    for l in h.body.lines().take(10) {
+                        println!("    {l}");
+                    }
+                }
+            }
+            if achou == 0 {
+                println!(
+                    "\n  {DIM}pagina guardada em {chunks} trechos. bilro find <outro termo> busca nela{OFF}"
+                );
+            }
+        }
+    }
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
@@ -789,6 +845,7 @@ fn main() {
         Some("mcp") => mcp::serve(),
         Some("exec") => cmd_exec(&rest),
         Some("recall") => cmd_recall(&rest),
+        Some("fetch") => cmd_fetch(&rest),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),
         Some("style") => println!("{}", style::ruleset(&rest.first().cloned().unwrap_or_else(style::read_level))),

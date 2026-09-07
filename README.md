@@ -30,7 +30,20 @@ bilro verify [--run]   checks memories that assert a dated fact
 bilro lint             broken links, orphaned memories, most-cited
 bilro propose          memories worth writing, from what you keep running
 bilro sessions         agents dispatched per session
+bilro exec <lang>      runs a snippet (code on stdin), only what it prints returns
+bilro recall [term]    what has already happened in this project
+bilro fetch <url>      fetches a page, indexes it, returns only what you asked for
+bilro install          registers the hooks and puts the binary on your PATH
+bilro mcp              MCP server over stdio
 ```
+
+## As an MCP server
+
+`install` registers bilro as a stdio MCP server, so its tools appear in the
+model's own list rather than in documentation someone has to remember:
+`bilro_script`, `bilro_run`, `bilro_fetch`, `bilro_recall`, `bilro_find`,
+`bilro_filter`, `bilro_read`, `bilro_grep`. A capability that has to be
+remembered is a capability that goes unused.
 
 ## How the compression works
 
@@ -84,10 +97,21 @@ and only a short list of read-only programs may be invoked at all. `git` is
 allowed but must name a read-only subcommand, because an alias beginning with
 `!` runs through a shell and `-c` can define one inline.
 
+## What it remembers
+
+A journal records what was asked for and which commands reported a failure,
+filed per project and searchable both by term and as a plain timeline. It is
+what answers "where were we" when a session resumes, instead of asking someone
+to repeat themselves. Entries are redacted before they are written and dropped
+once they are old.
+
 ## Requirements
 
-Rust 1.75+ to build. Nothing at runtime — the binary is self-contained,
-including SQLite with FTS5.
+Rust 1.75+ to build. At runtime the binary is self-contained — SQLite with FTS5
+is compiled in — except that `bilro fetch` shells out to `curl` for transport,
+which keeps a TLS stack and a certificate store out of the binary. Snippet
+languages beyond shell need their own interpreter installed; bilro says so
+rather than failing obscurely.
 
 ## Licence
 
