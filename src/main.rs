@@ -1,7 +1,6 @@
-use bilro::core::{filtered, home, learn_db, squeeze, suppressed_notice};
-use bilro::{batch, exec, filters, graph, grep, install, journal, learn, ledger, mcp, memory, ops, propose, read, ready, redact, sandbox, script, serve, shapes, style, weigh, web};
+use bilro::core::{home, learn_db, squeeze, suppressed_notice};
+use bilro::{exec, graph, grep, install, journal, learn, ledger, mcp, memory, ops, propose, read, ready, redact, sandbox, script, serve, shapes, style, weigh, web};
 
-use shapes::contract::Shape;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;

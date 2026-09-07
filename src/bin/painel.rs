@@ -331,7 +331,7 @@ fn cartao(ui: &mut egui::Ui, largura: f32, corpo: impl FnOnce(&mut egui::Ui)) {
     egui::Frame::none()
         .fill(PAINEL)
         .rounding(Rounding::same(10.0))
-        .stroke(Stroke::new(1.0, LINHA))
+        .stroke(Stroke::new(1.0_f32, LINHA))
         .inner_margin(egui::Margin::symmetric(16.0, 14.0))
         .show(ui, |ui| {
             ui.set_width(largura);
@@ -404,7 +404,7 @@ impl eframe::App for Painel {
         estilo.visuals.panel_fill = FUNDO;
         estilo.visuals.window_fill = PAINEL;
         estilo.visuals.override_text_color = Some(TINTA);
-        estilo.visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0, LINHA);
+        estilo.visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, LINHA);
         estilo.visuals.widgets.inactive.bg_fill = ELEVADO;
         estilo.visuals.widgets.hovered.bg_fill = ELEVADO;
         estilo.visuals.widgets.active.bg_fill = ELEVADO;
@@ -528,7 +528,7 @@ impl Painel {
             });
         ui.painter().line_segment(
             [ui.min_rect().left_top() + Vec2::new(0.0, 40.0), ui.min_rect().right_top() + Vec2::new(0.0, 40.0)],
-            Stroke::new(1.0, LINHA),
+            Stroke::new(1.0_f32, LINHA),
         );
 
         self.recalcular_visiveis();
@@ -635,11 +635,11 @@ impl Painel {
                     let t1 = (k + 1) as f32 / passos as f32;
                     pintor.line_segment(
                         [p1.lerp(p2, t0), p1.lerp(p2, t1)],
-                        Stroke::new(1.3, cor.linear_multiply(alfa)),
+                        Stroke::new(1.3_f32, cor.linear_multiply(alfa)),
                     );
                 }
             } else {
-                pintor.line_segment([p1, p2], Stroke::new(1.0, cor.linear_multiply(alfa * 0.8)));
+                pintor.line_segment([p1, p2], Stroke::new(1.0_f32, cor.linear_multiply(alfa * 0.8)));
             }
         }
 
@@ -661,7 +661,7 @@ impl Painel {
             pintor.circle_filled(p, raio + 2.0, FUNDO.linear_multiply(alfa));
             pintor.circle_filled(p, raio, cor.linear_multiply(alfa));
             if Some(i) == self.escolhido {
-                pintor.circle_stroke(p, raio + 3.0, Stroke::new(1.6, TINTA));
+                pintor.circle_stroke(p, raio + 3.0, Stroke::new(1.6_f32, TINTA));
             }
             let densidade_baixa = self.visivel.iter().filter(|v| **v).count() <= 24;
             let mostrar = if foco.is_some() || densidade_baixa { claro } else { no.entrando >= 3 };
@@ -690,7 +690,7 @@ impl Painel {
                 Vec2::new(largura, resposta.rect.height()),
             );
             pintor.rect_filled(area, Rounding::ZERO, PAINEL);
-            pintor.line_segment([area.left_top(), area.left_bottom()], Stroke::new(1.0, LINHA));
+            pintor.line_segment([area.left_top(), area.left_bottom()], Stroke::new(1.0_f32, LINHA));
             let mut filho = ui.child_ui(area.shrink(18.0), egui::Layout::top_down(egui::Align::Min), None);
             let no = &self.nos[i];
             filho.label(egui::RichText::new(&no.id).size(15.0).strong().color(TINTA));
@@ -733,7 +733,7 @@ impl Painel {
                 cartao(ui, largura, |ui| {
                     ui.horizontal(|ui| {
                         egui::Frame::none()
-                            .stroke(Stroke::new(1.0, cor_do_tipo(&e.kind)))
+                            .stroke(Stroke::new(1.0_f32, cor_do_tipo(&e.kind)))
                             .rounding(Rounding::same(10.0))
                             .inner_margin(egui::Margin::symmetric(7.0, 1.0))
                             .show(ui, |ui| {
