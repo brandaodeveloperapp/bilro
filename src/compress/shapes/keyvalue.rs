@@ -75,8 +75,74 @@ fn truncate_string(value: &str, stats: &mut Stats) -> String {
 /// string values are asked: a release note that happens to say "fixed an error"
 /// is prose, while `"status": "CrashLoopBackOff"` is the field the array exists
 /// to communicate, and reading the whole item as one blob confuses the two.
-const STATE_KEYS: [&str; 10] =
-    ["fail", "error", "restart", "exit", "ready", "healthy", "success", "status", "state", "ok"];
+const STATE_KEYS: [&str; 14] = [
+    "fail", "error", "restart", "exit", "ready", "healthy", "success", "status", "state", "ok",
+    "health", "alive", "online", "running",
+];
+
+/// What a machine answers when asked how it is and the answer is "badly".
+/// These arrive as the VALUE of a state field, not as a word in a sentence, so
+/// `is_severe` — which is tuned for a line of log — walks past every one of
+/// them. `"Status": "critical"` and `"state": "DEGRADED"` are the whole reason
+/// their item is worth keeping.
+const UNHEALTHY_STATES: [&str; 18] = [
+    "critical", "degraded", "offline", "down", "unhealthy", "failed", "failing", "error",
+    "errored", "stopped", "terminated", "crashloopbackoff", "notready", "not ready", "dead",
+    "inactive", "unavailable", "unreachable",
+];
+
+/// Which items of a uniform array disagree with the rest about their own state.
+///
+/// `"status": 0` means success in half the JSON APIs and "down" in the other
+/// half, and guessing wrong either deletes the broken machine or stops
+/// compressing the healthy fleet. The array answers what the field name cannot:
+/// when forty-nine items say one thing and one says another, the one is the
+/// reason somebody ran the command. No semantics required, only disagreement.
+fn state_outliers(items: &[Value]) -> Vec<usize> {
+    let mut odd: Vec<usize> = Vec::new();
+    let Some(Value::Object(first)) = items.first() else { return odd };
+    for key in first.keys() {
+        let named = key.to_ascii_lowercase();
+        if !STATE_KEYS.iter().any(|w| named.contains(w)) {
+            continue;
+        }
+        let mut seen: Vec<(String, usize)> = Vec::new();
+        let mut readings: Vec<String> = Vec::with_capacity(items.len());
+        let mut every_item_answers = true;
+        for item in items {
+            match item.get(key) {
+                Some(v @ (Value::Number(_) | Value::Bool(_))) => {
+                    let as_text = v.to_string();
+                    match seen.iter_mut().find(|(t, _)| *t == as_text) {
+                        Some((_, n)) => *n += 1,
+                        None => seen.push((as_text.clone(), 1)),
+                    }
+                    readings.push(as_text);
+                }
+                _ => {
+                    every_item_answers = false;
+                    break;
+                }
+            }
+        }
+        if !every_item_answers || seen.len() < 2 {
+            continue;
+        }
+        let majority = seen.iter().max_by_key(|(_, n)| *n).map(|(t, _)| t.clone());
+        let Some(majority) = majority else { continue };
+        for (i, reading) in readings.iter().enumerate() {
+            if *reading != majority && !odd.contains(&i) {
+                odd.push(i);
+            }
+        }
+    }
+    odd
+}
+
+fn value_reads_unhealthy(text: &str) -> bool {
+    let low = text.trim().to_ascii_lowercase();
+    UNHEALTHY_STATES.iter().any(|bad| low == *bad)
+}
 const TEXT_KEYS: [&str; 12] = [
     "status", "state", "message", "detail", "reason", "cause", "error", "failure", "condition",
     "phase", "result", "output",
@@ -97,7 +163,14 @@ fn state_field_is_bad(key: &str, value: &Value) -> bool {
     }
     let bad_when_present = k.contains("fail") || k.contains("error") || k.contains("restart") || k.contains("exit");
     let as_flag = |x: f64| if bad_when_present { x != 0.0 } else { x == 0.0 };
-    let reads_as_a_flag = k.contains("ready") || k.contains("healthy") || k.contains("success") || k == "ok";
+    let reads_as_a_flag = k.contains("ready")
+        || k.contains("healthy")
+        || k.contains("health")
+        || k.contains("alive")
+        || k.contains("online")
+        || k.contains("running")
+        || k.contains("success")
+        || k == "ok";
     match value {
         Value::Number(n) => match n.as_f64() {
             Some(x) if bad_when_present => x != 0.0,
@@ -114,7 +187,7 @@ fn state_field_is_bad(key: &str, value: &Value) -> bool {
         Value::String(s) => match s.parse::<f64>() {
             Ok(x) if reads_as_a_flag => as_flag(x),
             Ok(_) => false,
-            Err(_) => is_severe(s),
+            Err(_) => value_reads_unhealthy(s) || is_severe(s),
         },
         _ => false,
     }
@@ -136,7 +209,7 @@ fn reports_a_failure(value: &Value) -> bool {
             let named = k.to_ascii_lowercase();
             if TEXT_KEYS.iter().any(|w| named.contains(w)) {
                 if let Value::String(s) = v {
-                    return is_severe(s);
+                    return value_reads_unhealthy(s) || is_severe(s);
                 }
             }
             reports_a_failure(v)
@@ -152,11 +225,13 @@ fn shrink_value(value: &Value, stats: &mut Stats) -> Value {
                 let sig = shape_signature(&arr[0]);
                 let homogeneous = arr.iter().all(|v| shape_signature(v) == sig);
                 if homogeneous {
+                    let odd = state_outliers(arr);
                     let failures: Vec<Value> = arr
                         .iter()
+                        .enumerate()
                         .skip(1)
-                        .filter(|v| reports_a_failure(v))
-                        .map(|v| shrink_value(v, stats))
+                        .filter(|(i, v)| reports_a_failure(v) || odd.contains(i))
+                        .map(|(_, v)| shrink_value(v, stats))
                         .collect();
                     stats.collapsed += arr.len() - 1 - failures.len();
                     let mut out = serde_json::Map::new();
@@ -485,6 +560,46 @@ mod tests {
 
 #[cfg(test)]
 mod collapse_regressions {
+
+    #[test]
+    fn the_five_shapes_a_dead_machine_reports_itself_in() {
+        let cases: [(&str, &str); 5] = [
+            (
+                r#"{"nodes":[{"Node":"web-0","Status":"passing"},{"Node":"web-1","Status":"passing"},{"Node":"web-2","Status":"passing"},{"Node":"web-3","Status":"passing"},{"Node":"web-10","Status":"critical"}]}"#,
+                "web-10",
+            ),
+            (
+                r#"{"pools":[{"name":"p-0","state":"ONLINE"},{"name":"p-1","state":"ONLINE"},{"name":"p-2","state":"ONLINE"},{"name":"p-3","state":"ONLINE"},{"name":"pool-10","state":"DEGRADED"}]}"#,
+                "pool-10",
+            ),
+            (
+                r#"{"members":[{"name":"m-0","health":1},{"name":"m-1","health":1},{"name":"m-2","health":1},{"name":"m-3","health":1},{"name":"mongo-7","health":0}]}"#,
+                "mongo-7",
+            ),
+            (
+                r#"{"svcs":[{"service":"a","status":1},{"service":"b","status":1},{"service":"c","status":1},{"service":"d","status":1},{"service":"svc-10","status":0}]}"#,
+                "svc-10",
+            ),
+            (
+                r#"{"ns":[{"node":"n-0","state":"online"},{"node":"n-1","state":"online"},{"node":"n-2","state":"online"},{"node":"n-3","state":"online"},{"node":"n-10","state":"offline"}]}"#,
+                "n-10",
+            ),
+        ];
+        for (raw, broken) in cases {
+            let parsed: Value = serde_json::from_str(raw).unwrap();
+            let (text, _) = compress_json(&parsed);
+            assert!(text.contains(broken), "collapse ate {broken}:\n{text}");
+        }
+    }
+
+    #[test]
+    fn a_fleet_that_is_entirely_healthy_still_collapses() {
+        let raw = r#"{"nodes":[{"Node":"web-0","Status":"passing"},{"Node":"web-1","Status":"passing"},{"Node":"web-2","Status":"passing"},{"Node":"web-3","Status":"passing"},{"Node":"web-4","Status":"passing"}]}"#;
+        let parsed: Value = serde_json::from_str(raw).unwrap();
+        let (text, _) = compress_json(&parsed);
+        assert!(text.contains("(summary)"), "healthy fleet stopped compressing:\n{text}");
+        assert!(!text.contains("(failures)"), "invented a failure:\n{text}");
+    }
 
     #[test]
     fn a_failure_expressed_as_a_number_or_a_flag_is_still_a_failure() {
