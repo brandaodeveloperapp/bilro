@@ -84,6 +84,8 @@ When nothing survives compression, bilro says how many lines were suppressed
 instead of printing an empty screen. It does not claim none of them reported a
 failure: absence of failure is not provable from a list of words.
 
+<img src="docs/failure-rule.svg" alt="The same Go compile error across five identical runs: the noise around it is dropped, the error stays, and when nothing survives bilro says so rather than printing an empty screen." width="760">
+
 ---
 
 ## Compared to what it replaces
@@ -151,6 +153,8 @@ than the first position. That is what tells `Bearer eyJ0eXAi…` apart from
 `Bearer authentication`, and it holds at any length — the length rule it
 replaced let a five-character token through while masking an ordinary word.
 
+<img src="docs/redaction.svg" alt="Five lines carrying secrets in different formats go in; the same five come out with only the credential replaced, host and parameters still readable." width="760">
+
 ---
 
 ## What it does
@@ -202,6 +206,8 @@ question:
 A memory that is cited but was never written becomes a red node on a dashed
 line — a broken link is the interesting kind of link.
 
+<img src="docs/graph.svg" alt="The memory graph in four modes: global, local to one memory, clustered by type, and radial by how often each is cited." width="760">
+
 The browser panel listens on **loopback only**: it serves a record of your work,
 and has no business being reachable from another machine.
 
@@ -216,6 +222,8 @@ the model's own list rather than in documentation someone has to remember:
 `bilro_remember` · `bilro_find` · `bilro_filter` · `bilro_read` · `bilro_grep`
 
 A capability that has to be remembered is a capability that goes unused.
+
+<img src="docs/sandbox.svg" alt="A repository-wide scan produces sixty thousand lines; the snippet that reads them prints four, and only those four enter the conversation." width="760">
 
 ---
 
@@ -248,6 +256,8 @@ read-only programs may be invoked. `git` is allowed but must name a read-only
 subcommand, because an alias beginning with `!` runs through a shell and `-c`
 can define one inline.
 
+<img src="docs/declared-checks.svg" alt="A memory file carrying a malicious verify line is refused three ways: shell syntax, an interpreter as the program, and git configured to run a shell alias." width="760">
+
 ---
 
 ## The journal
@@ -264,6 +274,8 @@ bilro recall "redis"            # by term
 
 It is what answers "where were we" when a session resumes, instead of asking
 someone to repeat themselves.
+
+<img src="docs/journal.svg" alt="A session records what was asked, what failed, and what was vetoed; a week later bilro recall returns all three." width="760">
 
 ---
 

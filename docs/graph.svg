@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" width="760" height="340" role="img" aria-label="The memory graph in four modes: global, local to one memory, clustered by type, and radial by how often each is cited.">
+<style>
+  .bg { fill: #16151a; }
+  .chrome { fill: #1d1c22; }
+  .label { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #837e91; }
+  .head { font: 12px ui-sans-serif, system-ui, sans-serif; fill: #dcd9e3; }
+  .tag { font: 10px ui-sans-serif, system-ui, sans-serif; fill: #837e91; }
+  .edge { stroke: #2e2c37; fill: none; }
+  .broken { stroke: #e08b78; stroke-dasharray: 3 3; fill: none; }
+  .n { fill: #b98adf; }
+  .ghost { fill: #e08b78; }
+  .orphan { fill: #837e91; }
+
+  .m1 { animation: s1 16s infinite; }
+  .m2 { animation: s2 16s infinite; opacity: 0; }
+  .m3 { animation: s3 16s infinite; opacity: 0; }
+  .m4 { animation: s4 16s infinite; opacity: 0; }
+
+  @keyframes s1 { 0%,21% { opacity: 1; } 25%,100% { opacity: 0; } }
+  @keyframes s2 { 0%,24% { opacity: 0; } 28%,46% { opacity: 1; } 50%,100% { opacity: 0; } }
+  @keyframes s3 { 0%,49% { opacity: 0; } 53%,71% { opacity: 1; } 75%,100% { opacity: 0; } }
+  @keyframes s4 { 0%,74% { opacity: 0; } 78%,96% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+
+  <rect class="bg" width="760" height="340" rx="10"/>
+  <rect class="chrome" width="760" height="30" rx="10"/>
+  <rect class="chrome" y="20" width="760" height="10"/>
+  <text class="label" x="16" y="20">a network of memories asks more than one question</text>
+
+  <g class="m1">
+    <text class="head" x="24" y="58">Global</text>
+    <text class="tag" x="90" y="58">the whole network, positioned by the pull of its links</text>
+    <path class="edge" d="M180 150 L300 120 M300 120 L420 160 M420 160 L540 130 M180 150 L260 220 M260 220 L400 240 M400 240 L520 210 M300 120 L400 240 M420 160 L260 220"/>
+    <path class="broken" d="M540 130 L640 90"/>
+    <circle class="n" cx="180" cy="150" r="9"/>
+    <circle class="n" cx="300" cy="120" r="14"/>
+    <circle class="n" cx="420" cy="160" r="11"/>
+    <circle class="n" cx="540" cy="130" r="8"/>
+    <circle class="n" cx="260" cy="220" r="10"/>
+    <circle class="n" cx="400" cy="240" r="16"/>
+    <circle class="n" cx="520" cy="210" r="7"/>
+    <circle class="ghost" cx="640" cy="90" r="6"/>
+    <text class="tag" x="600" y="76">cited, never written</text>
+    <text class="label" x="24" y="300">Node size is how often others point at it. A dashed red edge leads to a</text>
+    <text class="label" x="24" y="318">memory somebody referenced and nobody wrote — the interesting kind of link.</text>
+  </g>
+
+  <g class="m2">
+    <text class="head" x="24" y="58">Local</text>
+    <text class="tag" x="86" y="58">only what one memory touches, to the depth you choose</text>
+    <path class="edge" d="M380 170 L260 130 M380 170 L500 130 M380 170 L280 240 M380 170 L490 235"/>
+    <circle class="n" cx="380" cy="170" r="18"/>
+    <circle class="n" cx="260" cy="130" r="9"/>
+    <circle class="n" cx="500" cy="130" r="9"/>
+    <circle class="n" cx="280" cy="240" r="9"/>
+    <circle class="n" cx="490" cy="235" r="9"/>
+    <text class="label" x="24" y="300">The question a global view cannot answer: what does this one memory</text>
+    <text class="label" x="24" y="318">actually reach, and what reaches it.</text>
+  </g>
+
+  <g class="m3">
+    <text class="head" x="24" y="58">By type</text>
+    <text class="tag" x="98" y="58">each kind pulled into its own cluster</text>
+    <circle class="n" cx="220" cy="130" r="11"/>
+    <circle class="n" cx="255" cy="160" r="9"/>
+    <circle class="n" cx="195" cy="170" r="8"/>
+    <text class="tag" x="196" y="205">project</text>
+
+    <circle class="n" cx="420" cy="120" r="14"/>
+    <circle class="n" cx="455" cy="155" r="9"/>
+    <text class="tag" x="410" y="195">feedback</text>
+
+    <circle class="n" cx="590" cy="150" r="10"/>
+    <circle class="n" cx="625" cy="185" r="7"/>
+    <text class="tag" x="582" y="222">reference</text>
+
+    <circle class="orphan" cx="330" cy="250" r="7"/>
+    <text class="tag" x="300" y="278">no type</text>
+
+    <text class="label" x="24" y="312">What a vault is made of, and which corner has grown lopsided.</text>
+  </g>
+
+  <g class="m4">
+    <text class="head" x="24" y="58">Radial</text>
+    <text class="tag" x="92" y="58">the most-cited at the centre, the rest in rings</text>
+    <circle cx="390" cy="180" r="55" fill="none" stroke="#24232b"/>
+    <circle cx="390" cy="180" r="100" fill="none" stroke="#212028"/>
+    <circle class="n" cx="390" cy="180" r="18"/>
+    <circle class="n" cx="345" cy="150" r="11"/>
+    <circle class="n" cx="440" cy="152" r="10"/>
+    <circle class="n" cx="430" cy="222" r="10"/>
+    <circle class="n" cx="340" cy="220" r="9"/>
+    <circle class="n" cx="300" cy="110" r="7"/>
+    <circle class="n" cx="480" cy="105" r="7"/>
+    <circle class="n" cx="500" cy="255" r="7"/>
+    <circle class="n" cx="285" cy="255" r="7"/>
+    <text class="label" x="24" y="312">Which memories the rest of the vault is built on, at a glance.</text>
+  </g>
+</svg>

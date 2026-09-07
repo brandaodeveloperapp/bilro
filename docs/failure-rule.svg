@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" width="760" height="320" role="img" aria-label="A Go compile error repeated across five identical runs survives compression, while the lines around it are dropped; when nothing survives, bilro says so instead of printing an empty screen.">
+<style>
+  .bg { fill: #16151a; }
+  .chrome { fill: #1d1c22; }
+  .t { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .prompt { fill: #b98adf; }
+  .cmd { fill: #dcd9e3; }
+  .out { fill: #837e91; }
+  .fail { fill: #e08b78; }
+  .note { fill: #7bc496; }
+  .label { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #837e91; }
+  .head { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #b98adf; }
+  .gone { fill: #35323d; }
+
+  .a { animation: sa 12s infinite; }
+  .b { animation: sb 12s infinite; opacity: 0; }
+  .c { animation: sc 12s infinite; opacity: 0; }
+
+  @keyframes sa { 0%,30% { opacity: 1; } 34%,100% { opacity: 0; } }
+  @keyframes sb { 0%,33% { opacity: 0; } 37%,63% { opacity: 1; } 67%,100% { opacity: 0; } }
+  @keyframes sc { 0%,66% { opacity: 0; } 70%,96% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+
+  <rect class="bg" width="760" height="320" rx="10"/>
+  <rect class="chrome" width="760" height="30" rx="10"/>
+  <rect class="chrome" y="20" width="760" height="10"/>
+  <text class="label" x="16" y="20">a line reporting a failure is never dropped</text>
+
+  <g class="a">
+    <text class="head" x="20" y="58">run 1 — nothing learned yet</text>
+    <text class="t" x="20" y="86"><tspan class="prompt">$</tspan> <tspan class="cmd">bilro filter go build ./...</tspan></text>
+    <text class="t out" x="20" y="112">compiling module cache</text>
+    <text class="t out" x="20" y="134">resolving dependencies</text>
+    <text class="t fail" x="20" y="156">./main.go:10:2: undefined: fooBar</text>
+    <text class="t out" x="20" y="178">build finished with errors</text>
+    <text class="label" x="20" y="222">Everything is new. Nothing is dropped.</text>
+  </g>
+
+  <g class="b">
+    <text class="head" x="20" y="58">run 5 — the same output, four times over</text>
+    <text class="t" x="20" y="86"><tspan class="prompt">$</tspan> <tspan class="cmd">bilro filter go build ./...</tspan></text>
+    <text class="t gone" x="20" y="112">compiling module cache</text>
+    <text class="t gone" x="20" y="134">resolving dependencies</text>
+    <text class="t fail" x="20" y="156">./main.go:10:2: undefined: fooBar</text>
+    <text class="t gone" x="20" y="178">build finished with errors</text>
+    <text class="label" x="20" y="222">The error repeats in every run, exactly like the noise around it —</text>
+    <text class="label" x="20" y="242">and it stays. Not one word of it matches a failure keyword;</text>
+    <text class="label" x="20" y="262">it is recognised by the shape every compiler prints: path, line, column.</text>
+  </g>
+
+  <g class="c">
+    <text class="head" x="20" y="58">when nothing survives</text>
+    <text class="t" x="20" y="86"><tspan class="prompt">$</tspan> <tspan class="cmd">bilro filter git log --oneline -40</tspan></text>
+    <text class="t note" x="20" y="122">identical to what this command has printed before:</text>
+    <text class="t note" x="20" y="144">40 lines suppressed. bilro saw no failure among them,</text>
+    <text class="t note" x="20" y="166">but it only recognises the ones it can name —</text>
+    <text class="t note" x="20" y="188">run without bilro if the result matters.</text>
+    <text class="label" x="20" y="232">An empty screen reads as "the command printed nothing".</text>
+    <text class="label" x="20" y="252">And absence of failure is not provable from a list of words,</text>
+    <text class="label" x="20" y="272">so it does not claim it.</text>
+  </g>
+</svg>
