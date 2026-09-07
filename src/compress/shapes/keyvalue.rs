@@ -1,5 +1,5 @@
-use crate::learn::is_severe;
-use crate::shapes::contract::{Compressed, Shape};
+use crate::compress::learn::is_severe;
+use crate::compress::shapes::contract::{Compressed, Shape};
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use serde_json::Value;
@@ -201,8 +201,8 @@ pub fn shape() -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shapes::install_log::detect as detect_install;
-    use crate::shapes::listing::detect as detect_listing;
+    use crate::compress::shapes::install_log::detect as detect_install;
+    use crate::compress::shapes::listing::detect as detect_listing;
 
     fn load(fixture: &str) -> String {
         let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), fixture);

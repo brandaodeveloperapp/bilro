@@ -1,4 +1,4 @@
-use crate::exec::spawn_with_timeout;
+use crate::proc::spawn_with_timeout;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rusqlite::{params, Connection};

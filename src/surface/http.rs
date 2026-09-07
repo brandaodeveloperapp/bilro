@@ -27,7 +27,7 @@ fn snapshot() -> serde_json::Value {
     let mut bytes_after = 0i64;
     let mut noisy: Vec<serde_json::Value> = Vec::new();
 
-    if let Ok(db) = crate::learn::open(&bilro_dir().join("learn.db")) {
+    if let Ok(db) = crate::compress::learn::open(&bilro_dir().join("learn.db")) {
         if let Ok(mut st) = db.prepare("SELECT r.sig, r.n, l.body FROM runs r LEFT JOIN last l ON l.sig = r.sig") {
             let rows = st.query_map([], |r| {
                 Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<String>>(2)?))
@@ -44,7 +44,7 @@ fn snapshot() -> serde_json::Value {
                         continue;
                     }
                     let before = body.chars().count() as i64;
-                    let after = crate::learn::denoise(&db, &sig, &body, 3, 0.8)
+                    let after = crate::compress::learn::denoise(&db, &sig, &body, 3, 0.8)
                         .map(|d| d.text.chars().count() as i64)
                         .unwrap_or(before);
                     bytes_before += before;
@@ -64,10 +64,10 @@ fn snapshot() -> serde_json::Value {
     noisy.truncate(8);
 
     let cwd = std::env::current_dir().unwrap_or_default();
-    let project = crate::journal::project_of(&cwd);
-    let events: Vec<serde_json::Value> = crate::journal::open_default()
+    let project = crate::store::journal::project_of(&cwd);
+    let events: Vec<serde_json::Value> = crate::store::journal::open_default()
         .ok()
-        .and_then(|db| crate::journal::timeline(&db, Some(&project), 25).ok())
+        .and_then(|db| crate::store::journal::timeline(&db, Some(&project), 25).ok())
         .unwrap_or_default()
         .iter()
         .map(|e| {
@@ -80,11 +80,11 @@ fn snapshot() -> serde_json::Value {
         })
         .collect();
 
-    let sessions = crate::ledger::sessions();
-    let dispatches: usize = sessions.iter().map(|s| crate::ledger::summarize(&s.id).dispatches).sum();
+    let sessions = crate::store::ledger::sessions();
+    let dispatches: usize = sessions.iter().map(|s| crate::store::ledger::summarize(&s.id).dispatches).sum();
 
     serde_json::json!({
-        "now": crate::ledger::now_ms(),
+        "now": crate::store::ledger::now_ms(),
         "project": project,
         "learned": learned,
         "with_history": with_history,
@@ -113,9 +113,9 @@ fn graph() -> serde_json::Value {
     let dir = home()
         .join(".claude")
         .join("projects")
-        .join(crate::journal::project_of(&cwd))
+        .join(crate::store::journal::project_of(&cwd))
         .join("memory");
-    let g = crate::graph::build(&dir);
+    let g = crate::store::graph::build(&dir);
 
     let incoming = |name: &str| g.back.get(name).map(|v| v.len()).unwrap_or(0);
     let outgoing = |name: &str| g.out.get(name).map(|v| v.len()).unwrap_or(0);

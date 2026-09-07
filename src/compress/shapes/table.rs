@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::learn::is_severe;
-use crate::shapes::contract::{Compressed, Shape};
+use crate::compress::learn::is_severe;
+use crate::compress::shapes::contract::{Compressed, Shape};
 
 static HEALTHY: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?i)^(Up|Running|Ready|Active|Completed|Succeeded|Bound|healthy)\b").unwrap()
@@ -271,7 +271,7 @@ pub fn shape() -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shapes::contract::MIN_CONFIDENCE;
+    use crate::compress::shapes::contract::MIN_CONFIDENCE;
 
     fn fixture(name: &str) -> String {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name);

@@ -163,7 +163,7 @@ pub fn draft(proposal: &Proposal) -> Draft {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::learn::{observe, open};
+    use crate::compress::learn::{observe, open};
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
 

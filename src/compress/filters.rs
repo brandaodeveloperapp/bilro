@@ -1,4 +1,4 @@
-use crate::learn::is_severe;
+use crate::compress::learn::is_severe;
 use once_cell::sync::Lazy;
 use regex::Regex;
 

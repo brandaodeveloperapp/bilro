@@ -1,6 +1,6 @@
-use crate::exec::spawn_with_timeout;
+use crate::proc::spawn_with_timeout;
 use crate::redact::redact;
-use crate::sandbox::{index, open_default, search, QueryHit};
+use crate::store::sandbox::{index, open_default, search, QueryHit};
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
 use std::sync::atomic::{AtomicUsize, Ordering};

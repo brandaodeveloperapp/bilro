@@ -1,4 +1,4 @@
-use crate::learn::{denoise, is_severe, open};
+use crate::compress::learn::{denoise, is_severe, open};
 use rusqlite::Connection;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -182,7 +182,7 @@ pub fn verdicts(m: &Metrics) -> Vec<Verdict> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::learn::observe;
+    use crate::compress::learn::observe;
     use std::path::Path;
 
     fn db() -> Connection {

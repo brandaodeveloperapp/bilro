@@ -1,8 +1,8 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::learn::is_severe;
-use crate::shapes::contract::{Compressed, Shape};
+use crate::compress::learn::is_severe;
+use crate::compress::shapes::contract::{Compressed, Shape};
 
 static FILE_HEADER: Lazy<Regex> = Lazy::new(|| Regex::new(r"^diff --(git|cc) ").unwrap());
 static HUNK: Lazy<Regex> = Lazy::new(|| Regex::new(r"^@@[@ ]").unwrap());
@@ -250,7 +250,7 @@ pub fn shape() -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shapes::contract::MIN_CONFIDENCE;
+    use crate::compress::shapes::contract::MIN_CONFIDENCE;
 
     fn fixture(name: &str) -> String {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name);

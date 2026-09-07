@@ -73,7 +73,7 @@ fn tools() -> Value {
                 "required": ["kind", "subject"]
             }
         },
-        crate::batch::mcp_tool_schema(),
+        crate::run::batch::mcp_tool_schema(),
         {
             "name": "bilro_find",
             "description": "Searches everything already indexed by bilro_run, without running anything again.",
@@ -129,16 +129,16 @@ fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) ->
     if output.len() <= RETURN_WHOLE_UNDER {
         return format!("{head}{output}");
     }
-    let Ok(conn) = crate::sandbox::open_default() else {
+    let Ok(conn) = crate::store::sandbox::open_default() else {
         return format!("{head}{}", &output[..RETURN_WHOLE_UNDER.min(output.len())]);
     };
-    let chunks = crate::sandbox::index(&conn, label, output, "script").unwrap_or(0);
+    let chunks = crate::store::sandbox::index(&conn, label, output, "script").unwrap_or(0);
     let mut out = format!(
         "{head}{} lines of output held in the index across {chunks} chunks, out of context.\n",
         output.lines().count()
     );
     for q in queries {
-        if let Ok(hits) = crate::sandbox::search(&conn, q, 3) {
+        if let Ok(hits) = crate::store::sandbox::search(&conn, q, 3) {
             for h in hits {
                 out.push_str(&format!("\n## {q}\n{}\n", h.body));
             }
@@ -176,7 +176,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 .unwrap_or_default();
             let cwd = arg_str(args, "cwd");
             let dir = if cwd.is_empty() { None } else { Some(Path::new(cwd.as_str())) };
-            let r = crate::sandbox::run(&command, None, &queries, dir);
+            let r = crate::store::sandbox::run(&command, None, &queries, dir);
             let mut out = format!(
                 "{} — {} chunks indexed, {} tokens stayed out of context\n",
                 if r.failed { "failed" } else { "ok" },
@@ -200,7 +200,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
             let cwd = arg_str(args, "cwd");
             let dir = if cwd.is_empty() { None } else { Some(Path::new(cwd.as_str())) };
             let timeout = args.get("timeout_ms").and_then(|v| v.as_u64());
-            match crate::script::run(&language, &code, dir, timeout) {
+            match crate::run::script::run(&language, &code, dir, timeout) {
                 Err(e) => error_result(e),
                 Ok(r) => {
                     let queries: Vec<String> = args
@@ -213,18 +213,18 @@ fn call_tool(name: &str, args: &Value) -> Value {
             }
         }
         "bilro_recall" => {
-            let Ok(db) = crate::journal::open_default() else {
+            let Ok(db) = crate::store::journal::open_default() else {
                 return error_result("no journal yet".into());
             };
             let cwd = arg_str(args, "cwd");
             let dir = if cwd.is_empty() { std::env::current_dir().unwrap_or_default() } else { PathBuf::from(cwd) };
-            let project = crate::journal::project_of(&dir);
+            let project = crate::store::journal::project_of(&dir);
             let query = arg_str(args, "query");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(12) as usize;
             let events = if query.trim().is_empty() {
-                crate::journal::timeline(&db, Some(&project), limit)
+                crate::store::journal::timeline(&db, Some(&project), limit)
             } else {
-                crate::journal::search(&db, &query, Some(&project), limit)
+                crate::store::journal::search(&db, &query, Some(&project), limit)
             };
             match events {
                 Err(e) => error_result(format!("recall failed: {e}")),
@@ -246,7 +246,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
             if url.is_empty() {
                 return error_result("url is required".into());
             }
-            match crate::web::fetch(&url) {
+            match crate::run::web::fetch(&url) {
                 Err(e) => error_result(e),
                 Ok(page) => {
                     let queries: Vec<String> = args
@@ -272,39 +272,39 @@ fn call_tool(name: &str, args: &Value) -> Value {
             if subject.trim().is_empty() {
                 return error_result("subject is required".into());
             }
-            if !crate::journal::is_known_kind(&kind) {
+            if !crate::store::journal::is_known_kind(&kind) {
                 return error_result(format!(
                     "unknown kind: {kind}. Use decision, rejected or constraint"
                 ));
             }
             let cwd = arg_str(args, "cwd");
             let dir = if cwd.is_empty() { std::env::current_dir().unwrap_or_default() } else { PathBuf::from(cwd) };
-            let Ok(db) = crate::journal::open_default() else {
+            let Ok(db) = crate::store::journal::open_default() else {
                 return error_result("no journal yet".into());
             };
-            match crate::journal::record(
+            match crate::store::journal::record(
                 &db,
                 &kind,
                 &subject,
                 &arg_str(args, "body"),
                 "deliberate",
-                &crate::journal::project_of(&dir),
+                &crate::store::journal::project_of(&dir),
             ) {
                 Err(e) => error_result(format!("could not write: {e}")),
                 Ok(()) => text_result(format!("stored as {kind}: {subject}")),
             }
         }
-        "bilro_batch" => match crate::batch::mcp_call(args) {
+        "bilro_batch" => match crate::run::batch::mcp_call(args) {
             Ok(text) => text_result(text),
             Err(e) => error_result(e),
         },
         "bilro_find" => {
             let query = arg_str(args, "query");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(8) as usize;
-            let Ok(conn) = crate::sandbox::open_default() else {
+            let Ok(conn) = crate::store::sandbox::open_default() else {
                 return error_result("no index yet".into());
             };
-            match crate::sandbox::search(&conn, &query, limit) {
+            match crate::store::sandbox::search(&conn, &query, limit) {
                 Err(e) => error_result(format!("search failed: {e}")),
                 Ok(hits) if hits.is_empty() => text_result(format!("nothing indexed matches {query}")),
                 Ok(hits) => {
@@ -323,7 +323,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
             }
             let cwd = arg_str(args, "cwd");
             let full = if cwd.is_empty() { command.clone() } else { format!("cd {cwd} && {command}") };
-            match crate::core::filtered(&full) {
+            match crate::compress::pipeline::filtered(&full) {
                 Ok((text, note, saved)) => {
                     let mut out = text;
                     if saved > 0 {
@@ -337,7 +337,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
         "bilro_read" => {
             let path = arg_str(args, "path");
             let outline = args.get("outline").and_then(|v| v.as_bool()).unwrap_or(false);
-            match crate::read::read(Path::new(&path), if outline { "outline" } else { "safe" }) {
+            match crate::compress::read::read(Path::new(&path), if outline { "outline" } else { "safe" }) {
                 Err(e) => error_result(format!("{path}: {e}")),
                 Ok(r) => {
                     let mut out = crate::redact::redact(&r.text);
@@ -363,7 +363,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
             if raw.trim().is_empty() {
                 return text_result("no result".into());
             }
-            let r = crate::grep::compress(&crate::redact::redact(&raw));
+            let r = crate::compress::grep::compress(&crate::redact::redact(&raw));
             text_result(format!("{}\n\n[{} matches in {} files]", r.text, r.hits, r.files))
         }
         other => error_result(format!("unknown tool: {other}")),

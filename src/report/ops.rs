@@ -82,7 +82,7 @@ fn measure_denoise_savings(db: &Connection) -> u64 {
     };
     rows.flatten()
         .filter_map(|(sig, body)| {
-            crate::learn::denoise(db, &sig, &body, 3, 0.8)
+            crate::compress::learn::denoise(db, &sig, &body, 3, 0.8)
                 .ok()
                 .map(|d| body.len().saturating_sub(d.text.len()) as u64)
         })
@@ -93,7 +93,7 @@ fn stats_at(home: &Path) -> Stats {
     let learn_path = learn_db_path(home);
     let (learned_commands, learned_mature, denoise_savings_bytes) = learn_path
         .exists()
-        .then(|| crate::learn::open(&learn_path).ok())
+        .then(|| crate::compress::learn::open(&learn_path).ok())
         .flatten()
         .map(|db| {
             let total: i64 = db.query_row("SELECT count(*) FROM runs", [], |r| r.get(0)).unwrap_or(0);
@@ -106,7 +106,7 @@ fn stats_at(home: &Path) -> Stats {
     let index_path = index_db_path(home);
     let indexed_chunks = index_path
         .exists()
-        .then(|| crate::sandbox::open(&index_path).ok())
+        .then(|| crate::store::sandbox::open(&index_path).ok())
         .flatten()
         .and_then(|db| db.query_row("SELECT count(*) FROM chunks", [], |r| r.get::<_, i64>(0)).ok())
         .unwrap_or(0) as usize;
@@ -114,7 +114,7 @@ fn stats_at(home: &Path) -> Stats {
     let journal_path = journal_db_path(home);
     let (journal_events_total, journal_events_by_kind) = journal_path
         .exists()
-        .then(|| crate::journal::open(&journal_path).ok())
+        .then(|| crate::store::journal::open(&journal_path).ok())
         .flatten()
         .map(|db| {
             let total: i64 = db.query_row("SELECT count(*) FROM events", [], |r| r.get(0)).unwrap_or(0);
@@ -333,17 +333,17 @@ fn check_fts5() -> Check {
 }
 
 fn check_scripts() -> Check {
-    let missing: Vec<&'static str> = crate::script::languages()
+    let missing: Vec<&'static str> = crate::run::script::languages()
         .into_iter()
-        .filter_map(crate::script::runtime_for)
-        .filter(|rt| !crate::script::available(rt))
+        .filter_map(crate::run::script::runtime_for)
+        .filter(|rt| !crate::run::script::available(rt))
         .map(|rt| rt.program)
         .collect();
     if missing.is_empty() {
         check(
             "script interpreters",
             true,
-            format!("available: {}", crate::script::languages().join(", ")),
+            format!("available: {}", crate::run::script::languages().join(", ")),
         )
     } else {
         check(
@@ -381,9 +381,9 @@ fn doctor_at(home: &Path) -> Vec<Check> {
         check_binary_on_path(),
         check_hooks(home),
         check_mcp(home),
-        check_db("learn.db opens", &learn_db_path(home), crate::learn::open),
-        check_db("index.db opens", &index_db_path(home), crate::sandbox::open),
-        check_db("journal.db opens", &journal_db_path(home), crate::journal::open),
+        check_db("learn.db opens", &learn_db_path(home), crate::compress::learn::open),
+        check_db("index.db opens", &index_db_path(home), crate::store::sandbox::open),
+        check_db("journal.db opens", &journal_db_path(home), crate::store::journal::open),
         check_fts5(),
         check_scripts(),
         check_curl(),
@@ -426,7 +426,7 @@ pub struct PurgeReport {
 fn purge_index_at(home: &Path, confirmed: bool) -> TargetReport {
     let path = index_db_path(home);
     let bytes = file_len(&path);
-    let db = path.exists().then(|| crate::sandbox::open(&path).ok()).flatten();
+    let db = path.exists().then(|| crate::store::sandbox::open(&path).ok()).flatten();
     let rows = db.as_ref().map(|d| count_table(d, "chunks")).unwrap_or(0);
     if confirmed {
         if let Some(d) = &db {
@@ -440,7 +440,7 @@ fn purge_index_at(home: &Path, confirmed: bool) -> TargetReport {
 fn purge_journal_at(home: &Path, confirmed: bool) -> TargetReport {
     let path = journal_db_path(home);
     let bytes = file_len(&path);
-    let db = path.exists().then(|| crate::journal::open(&path).ok()).flatten();
+    let db = path.exists().then(|| crate::store::journal::open(&path).ok()).flatten();
     let rows = db.as_ref().map(|d| count_table(d, "events")).unwrap_or(0);
     if confirmed {
         if let Some(d) = &db {
@@ -454,7 +454,7 @@ fn purge_journal_at(home: &Path, confirmed: bool) -> TargetReport {
 fn purge_learn_at(home: &Path, confirmed: bool) -> TargetReport {
     let path = learn_db_path(home);
     let bytes = file_len(&path);
-    let db = path.exists().then(|| crate::learn::open(&path).ok()).flatten();
+    let db = path.exists().then(|| crate::compress::learn::open(&path).ok()).flatten();
     let rows = db
         .as_ref()
         .map(|d| count_table(d, "runs") + count_table(d, "lines") + count_table(d, "last") + count_table(d, "exact"))
@@ -531,11 +531,11 @@ mod tests {
     #[test]
     fn stats_counts_learned_and_mature_commands() {
         let home = temp_home();
-        let mut db = crate::learn::open(&learn_db_path(&home)).unwrap();
+        let mut db = crate::compress::learn::open(&learn_db_path(&home)).unwrap();
         for _ in 0..5 {
-            crate::learn::observe(&mut db, "npm test", "line 1\nline 2").unwrap();
+            crate::compress::learn::observe(&mut db, "npm test", "line 1\nline 2").unwrap();
         }
-        crate::learn::observe(&mut db, "npm run build", "other output").unwrap();
+        crate::compress::learn::observe(&mut db, "npm run build", "other output").unwrap();
         drop(db);
 
         let s = stats_at(&home);
@@ -586,8 +586,8 @@ mod tests {
     #[test]
     fn purge_without_confirmed_does_not_delete_but_reports() {
         let home = temp_home();
-        let mut db = crate::learn::open(&learn_db_path(&home)).unwrap();
-        crate::learn::observe(&mut db, "cmd", "line").unwrap();
+        let mut db = crate::compress::learn::open(&learn_db_path(&home)).unwrap();
+        crate::compress::learn::observe(&mut db, "cmd", "line").unwrap();
         drop(db);
 
         let r = purge_at(&home, Purge::Learn, false);
@@ -595,7 +595,7 @@ mod tests {
         assert!(!r.targets[0].purged);
         assert!(r.targets[0].rows > 0, "should report what it would delete");
 
-        let db2 = crate::learn::open(&learn_db_path(&home)).unwrap();
+        let db2 = crate::compress::learn::open(&learn_db_path(&home)).unwrap();
         assert_eq!(count_table(&db2, "runs"), 1, "purge without confirmed deleted anyway");
         let _ = std::fs::remove_dir_all(&home);
     }
@@ -603,21 +603,21 @@ mod tests {
     #[test]
     fn purge_with_confirmed_deletes_only_the_requested_target() {
         let home = temp_home();
-        let mut learn_db = crate::learn::open(&learn_db_path(&home)).unwrap();
-        crate::learn::observe(&mut learn_db, "cmd", "line").unwrap();
+        let mut learn_db = crate::compress::learn::open(&learn_db_path(&home)).unwrap();
+        crate::compress::learn::observe(&mut learn_db, "cmd", "line").unwrap();
         drop(learn_db);
-        let idx = crate::sandbox::open(&index_db_path(&home)).unwrap();
-        crate::sandbox::index(&idx, "l", "indexed body", "source").unwrap();
+        let idx = crate::store::sandbox::open(&index_db_path(&home)).unwrap();
+        crate::store::sandbox::index(&idx, "l", "indexed body", "source").unwrap();
         drop(idx);
 
         let r = purge_at(&home, Purge::Learn, true);
         assert!(r.targets[0].purged);
 
-        let learn_db2 = crate::learn::open(&learn_db_path(&home)).unwrap();
+        let learn_db2 = crate::compress::learn::open(&learn_db_path(&home)).unwrap();
         assert_eq!(count_table(&learn_db2, "runs"), 0, "learn was not cleared");
         drop(learn_db2);
 
-        let idx2 = crate::sandbox::open(&index_db_path(&home)).unwrap();
+        let idx2 = crate::store::sandbox::open(&index_db_path(&home)).unwrap();
         assert_eq!(count_table(&idx2, "chunks"), 1, "index was deleted without being requested");
         let _ = std::fs::remove_dir_all(&home);
     }
@@ -625,14 +625,14 @@ mod tests {
     #[test]
     fn purge_all_clears_everything_and_stats_afterward_does_not_break() {
         let home = temp_home();
-        let mut learn_db = crate::learn::open(&learn_db_path(&home)).unwrap();
-        crate::learn::observe(&mut learn_db, "cmd", "line").unwrap();
+        let mut learn_db = crate::compress::learn::open(&learn_db_path(&home)).unwrap();
+        crate::compress::learn::observe(&mut learn_db, "cmd", "line").unwrap();
         drop(learn_db);
-        let idx = crate::sandbox::open(&index_db_path(&home)).unwrap();
-        crate::sandbox::index(&idx, "l", "body", "source").unwrap();
+        let idx = crate::store::sandbox::open(&index_db_path(&home)).unwrap();
+        crate::store::sandbox::index(&idx, "l", "body", "source").unwrap();
         drop(idx);
-        let jr = crate::journal::open(&journal_db_path(&home)).unwrap();
-        crate::journal::record(&jr, "prompt", "subject", "body", "s1", "project").unwrap();
+        let jr = crate::store::journal::open(&journal_db_path(&home)).unwrap();
+        crate::store::journal::record(&jr, "prompt", "subject", "body", "s1", "project").unwrap();
         drop(jr);
         std::fs::create_dir_all(sessions_dir_path(&home)).unwrap();
         std::fs::write(sessions_dir_path(&home).join("s1.json"), "{}").unwrap();

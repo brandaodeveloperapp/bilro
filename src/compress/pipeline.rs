@@ -1,4 +1,4 @@
-use crate::shapes::contract::Shape;
+use crate::compress::shapes::contract::Shape;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -14,13 +14,13 @@ pub fn learn_db() -> PathBuf {
 
 pub fn all_shapes() -> Vec<Shape> {
     vec![
-        crate::shapes::table::shape(),
-        crate::shapes::diff::shape(),
-        crate::shapes::listing::shape(),
-        crate::shapes::install_log::shape(),
-        crate::shapes::keyvalue::shape(),
-        crate::shapes::test_report::shape(),
-        crate::shapes::diagnostics::shape(),
+        crate::compress::shapes::table::shape(),
+        crate::compress::shapes::diff::shape(),
+        crate::compress::shapes::listing::shape(),
+        crate::compress::shapes::install_log::shape(),
+        crate::compress::shapes::keyvalue::shape(),
+        crate::compress::shapes::test_report::shape(),
+        crate::compress::shapes::diagnostics::shape(),
     ]
 }
 
@@ -28,12 +28,12 @@ pub fn all_shapes() -> Vec<Shape> {
 /// Structure first, then history: a shape works on a command never seen before,
 /// while denoise needs several runs before it may judge anything.
 pub fn squeeze(command: &str, output: &str) -> (String, String) {
-    let shaped = crate::shapes::apply(&all_shapes(), output);
+    let shaped = crate::compress::shapes::apply(&all_shapes(), output);
     let mut note = shaped.shape.map(|s| s.to_string()).unwrap_or_default();
-    let Ok(db) = crate::learn::open(&learn_db()) else {
+    let Ok(db) = crate::compress::learn::open(&learn_db()) else {
         return (shaped.text, note);
     };
-    match crate::learn::denoise(&db, command, &shaped.text, 3, 0.8) {
+    match crate::compress::learn::denoise(&db, command, &shaped.text, 3, 0.8) {
         Ok(d) if d.learned && d.dropped > 0 => {
             if !note.is_empty() {
                 note.push_str(" + ");
@@ -70,8 +70,8 @@ pub fn filtered(command: &str) -> Result<(String, String, usize), String> {
     let raw = crate::redact::redact(&captured);
     let before = raw.len();
     let (text, note) = squeeze(command, &raw);
-    if let Ok(mut db) = crate::learn::open(&learn_db()) {
-        let _ = crate::learn::observe(&mut db, command, &raw);
+    if let Ok(mut db) = crate::compress::learn::open(&learn_db()) {
+        let _ = crate::compress::learn::observe(&mut db, command, &raw);
     }
     let saved = if before > text.len() { 100 - text.len() * 100 / before.max(1) } else { 0 };
     let text = match suppressed_notice(&raw, &text) {

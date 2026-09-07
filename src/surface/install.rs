@@ -54,7 +54,7 @@ pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::
         .unwrap_or_else(|| json!({}));
 
     if path.exists() {
-        let backup = path.with_extension(format!("json.bak-{}", crate::ledger::now_ms()));
+        let backup = path.with_extension(format!("json.bak-{}", crate::store::ledger::now_ms()));
         std::fs::copy(&path, &backup)?;
         report.backup = Some(backup);
     }

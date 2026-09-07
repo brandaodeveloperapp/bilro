@@ -1,5 +1,5 @@
-use crate::learn::is_severe;
-use crate::shapes::contract::{Compressed, Shape};
+use crate::compress::learn::is_severe;
+use crate::compress::shapes::contract::{Compressed, Shape};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
@@ -355,8 +355,8 @@ pub fn shape() -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shapes::install_log::detect as detect_install;
-    use crate::shapes::keyvalue::detect as detect_keyvalue;
+    use crate::compress::shapes::install_log::detect as detect_install;
+    use crate::compress::shapes::keyvalue::detect as detect_keyvalue;
 
     fn load(fixture: &str) -> String {
         let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), fixture);

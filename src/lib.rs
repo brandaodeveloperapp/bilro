@@ -1,26 +1,13 @@
-//! bilro: token economy for coding agents.
+//! bilro: context economy for coding agents.
+//!
+//! The layers point one way. `surface` is reached from outside and calls
+//! `report`, which reads what `compress` and `run` produced, which rest on
+//! `store`. `redact` sits under all of them and depends on nothing.
 
-pub mod batch;
-pub mod core;
-pub mod exec;
-pub mod filters;
-pub mod graph;
-pub mod grep;
-pub mod install;
-pub mod journal;
-pub mod learn;
-pub mod ledger;
-pub mod mcp;
-pub mod memory;
-pub mod ops;
-pub mod propose;
-pub mod read;
-pub mod ready;
+pub mod compress;
+pub mod proc;
 pub mod redact;
-pub mod sandbox;
-pub mod script;
-pub mod serve;
-pub mod shapes;
-pub mod style;
-pub mod weigh;
-pub mod web;
+pub mod report;
+pub mod run;
+pub mod store;
+pub mod surface;

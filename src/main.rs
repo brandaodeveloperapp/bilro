@@ -1,5 +1,10 @@
-use bilro::core::{home, learn_db, squeeze, suppressed_notice};
-use bilro::{exec, graph, grep, install, journal, learn, ledger, mcp, memory, ops, propose, read, ready, redact, sandbox, script, serve, style, weigh, web};
+use bilro::compress::pipeline::{home, learn_db, squeeze, suppressed_notice};
+use bilro::compress::{grep, learn, read};
+use bilro::redact;
+use bilro::report::{ops, propose, ready, style, weigh};
+use bilro::run::{exec, script, web};
+use bilro::store::{graph, journal, ledger, memory, sandbox};
+use bilro::surface::{http, install, mcp};
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -861,7 +866,7 @@ fn main() {
         Some("stats") => cmd_stats(),
         Some("doctor") => cmd_doctor(),
         Some("purge") => cmd_purge(&rest),
-        Some("serve") => serve::serve(rest.first().and_then(|p| p.parse().ok()).unwrap_or(7777)),
+        Some("serve") => http::serve(rest.first().and_then(|p| p.parse().ok()).unwrap_or(7777)),
         Some("fetch") => cmd_fetch(&rest),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),

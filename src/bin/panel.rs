@@ -1,4 +1,6 @@
-use bilro::{graph, journal, learn, ledger, ops};
+use bilro::compress::learn;
+use bilro::report::ops;
+use bilro::store::{graph, journal, ledger};
 use eframe::egui;
 use egui::{Align2, Color32, FontId, Pos2, Rect, Rounding, Sense, Stroke, Vec2};
 use std::path::PathBuf;

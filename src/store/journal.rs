@@ -63,7 +63,7 @@ pub fn record(
     }
     db.execute(
         "INSERT INTO events(kind, subject, body, session, project, at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![kind, subject, body, session, project, crate::ledger::now_ms()],
+        params![kind, subject, body, session, project, crate::store::ledger::now_ms()],
     )?;
     Ok(())
 }
@@ -99,7 +99,7 @@ fn row_to_event(r: &rusqlite::Row) -> rusqlite::Result<Event> {
 /// Ranked search. Scoped to one project by default, because recall is about
 /// what happened here, not everywhere.
 pub fn search(db: &Connection, query: &str, project: Option<&str>, limit: usize) -> rusqlite::Result<Vec<Event>> {
-    let Some(match_query) = crate::sandbox::to_match_query(query) else {
+    let Some(match_query) = crate::store::sandbox::to_match_query(query) else {
         return Ok(Vec::new());
     };
     let mut sql = String::from(
@@ -135,7 +135,7 @@ pub fn timeline(db: &Connection, project: Option<&str>, limit: usize) -> rusqlit
 /// Drops what is old enough to have stopped mattering, so the file does not
 /// grow without end.
 pub fn prune(db: &Connection, older_than_days: i64) -> rusqlite::Result<usize> {
-    let cutoff = crate::ledger::now_ms() - older_than_days * 86_400_000;
+    let cutoff = crate::store::ledger::now_ms() - older_than_days * 86_400_000;
     let n = db.execute("DELETE FROM events WHERE CAST(at AS INTEGER) < ?1", params![cutoff])?;
     Ok(n)
 }
@@ -223,7 +223,7 @@ mod tests {
         record(&d, "prompt", "recent", "", "s1", "proj").unwrap();
         d.execute(
             "INSERT INTO events(kind, subject, body, session, project, at) VALUES ('prompt','old','','s0','proj',?1)",
-            params![crate::ledger::now_ms() - 90 * 86_400_000i64],
+            params![crate::store::ledger::now_ms() - 90 * 86_400_000i64],
         )
         .unwrap();
         assert_eq!(prune(&d, 60).unwrap(), 1);
