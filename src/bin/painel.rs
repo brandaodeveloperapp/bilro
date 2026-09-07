@@ -691,7 +691,7 @@ impl Painel {
             );
             pintor.rect_filled(area, Rounding::ZERO, PAINEL);
             pintor.line_segment([area.left_top(), area.left_bottom()], Stroke::new(1.0_f32, LINHA));
-            let mut filho = ui.child_ui(area.shrink(18.0), egui::Layout::top_down(egui::Align::Min), None);
+            let mut filho = ui.new_child(egui::UiBuilder::new().max_rect(area.shrink(18.0)).layout(egui::Layout::top_down(egui::Align::Min)));
             let no = &self.nos[i];
             filho.label(egui::RichText::new(&no.id).size(15.0).strong().color(TINTA));
             filho.label(egui::RichText::new(&no.tipo).size(11.0).color(FRACO).monospace());

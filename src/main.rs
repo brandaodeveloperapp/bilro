@@ -1,5 +1,5 @@
 use bilro::core::{home, learn_db, squeeze, suppressed_notice};
-use bilro::{exec, graph, grep, install, journal, learn, ledger, mcp, memory, ops, propose, read, ready, redact, sandbox, script, serve, shapes, style, weigh, web};
+use bilro::{exec, graph, grep, install, journal, learn, ledger, mcp, memory, ops, propose, read, ready, redact, sandbox, script, serve, style, weigh, web};
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
