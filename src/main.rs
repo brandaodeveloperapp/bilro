@@ -1,3 +1,4 @@
+mod batch;
 mod exec;
 mod filters;
 mod graph;
@@ -66,6 +67,57 @@ fn squeeze(command: &str, output: &str) -> (String, String) {
     }
 }
 
+/// Records what a tool call produced when it is worth remembering: a failure,
+/// a subagent's conclusion, or the shape of a command that ran. A hook can see
+/// these mechanically; what it cannot see is why a decision was made, which is
+/// what `bilro_remember` exists for.
+fn hook_outcome() {
+    let mut raw = String::new();
+    if std::io::stdin().read_to_string(&mut raw).is_err() {
+        return;
+    }
+    let Ok(data) = serde_json::from_str::<serde_json::Value>(&raw) else { return };
+    let tool = data["tool_name"].as_str().unwrap_or("");
+    if tool.is_empty() || tool == "Bash" {
+        return;
+    }
+    let response = &data["tool_response"];
+    let body = response
+        .as_str()
+        .map(String::from)
+        .unwrap_or_else(|| serde_json::to_string(response).unwrap_or_default());
+    let session = data["session_id"].as_str().unwrap_or("desconhecida");
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let project = journal::project_of(&cwd);
+
+    let (kind, subject) = if tool == "Task" || tool == "Agent" {
+        let desc = data["tool_input"]["description"].as_str().unwrap_or("agente");
+        ("agente", desc.to_string())
+    } else {
+        let falhou = body.lines().any(learn::is_severe);
+        if !falhou {
+            return;
+        }
+        let alvo = data["tool_input"]["file_path"]
+            .as_str()
+            .or_else(|| data["tool_input"]["pattern"].as_str())
+            .unwrap_or("");
+        ("erro-tool", format!("{tool} {alvo}").trim().to_string())
+    };
+
+    let resumo: String = body
+        .lines()
+        .filter(|l| learn::is_severe(l) || kind == "agente")
+        .take(8)
+        .collect::<Vec<_>>()
+        .join("\n");
+    if let Ok(db) = journal::open_default() {
+        let _ = journal::record(&db, kind, &subject, &resumo, session, &project);
+    }
+}
+
+/// Records what a tool call produced when it is worth remembering: a failure
+/// from any tool, or a subagent's conclusion. These a hook can see; why a
 fn hook_shadow() {
     let mut raw = String::new();
     if std::io::stdin().read_to_string(&mut raw).is_err() {
@@ -830,6 +882,7 @@ fn main() {
             Some("task") => hook_task(&std::env::current_dir().unwrap_or_default()),
             Some("bash") => hook_bash(),
             Some("prompt") => hook_prompt(),
+            Some("outcome") => hook_outcome(),
             _ => {}
         },
         Some("filter") => std::process::exit(run_filtered(&rest)),

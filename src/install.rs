@@ -7,6 +7,8 @@ const HOOKS: &[(&str, Option<&str>, &str)] = &[
     ("PostToolUse", Some("Bash"), "hook shadow"),
     ("SessionStart", None, "hook session"),
     ("UserPromptSubmit", None, "hook prompt"),
+    ("PostToolUse", Some("Task"), "hook outcome"),
+    ("PostToolUse", Some("Edit"), "hook outcome"),
 ];
 
 pub struct Report {
@@ -70,7 +72,11 @@ pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::
             .as_array_mut()
             .unwrap();
 
-        let ja_registrado = groups.iter().any(|g| {
+        let mesmo_matcher = |g: &Value| {
+            g.get("matcher").and_then(|m| m.as_str()) == *matcher
+                || (matcher.is_none() && g.get("matcher").is_none())
+        };
+        let ja_registrado = groups.iter().filter(|g| mesmo_matcher(g)).any(|g| {
             g.get("hooks")
                 .and_then(|h| h.as_array())
                 .map(|arr| arr.iter().any(|h| h.get("command").and_then(|c| c.as_str()) == Some(command.as_str())))
@@ -199,7 +205,7 @@ mod tests {
     fn registra_os_quatro_hooks_num_ambiente_limpo() {
         let home = temp();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
-        assert_eq!(r.added.len(), 5, "adicionados: {:?}", r.added);
+        assert_eq!(r.added.len(), 7, "adicionados: {:?}", r.added);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         assert!(s["hooks"]["PreToolUse"].as_array().unwrap().len() >= 2);
         std::fs::remove_dir_all(&home).ok();
@@ -211,7 +217,7 @@ mod tests {
         install(&home, Path::new("/opt/bilro"), None).unwrap();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
         assert!(r.added.is_empty(), "nao pode adicionar de novo: {:?}", r.added);
-        assert_eq!(r.already.len(), 5);
+        assert_eq!(r.already.len(), 7);
         std::fs::remove_dir_all(&home).ok();
     }
 
@@ -220,10 +226,28 @@ mod tests {
         let home = temp();
         install(&home, Path::new("/caminho/antigo/bilro"), None).unwrap();
         let r = install(&home, Path::new("/caminho/novo/bilro"), None).unwrap();
-        assert_eq!(r.replaced.len(), 5, "deveria substituir: {:?}", r.replaced);
+        assert_eq!(r.replaced.len(), 7, "deveria substituir: {:?}", r.replaced);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         let txt = s.to_string();
         assert!(!txt.contains("/caminho/antigo/"), "sobrou o caminho antigo");
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn dois_hooks_com_o_mesmo_comando_em_matchers_diferentes_convivem() {
+        let home = temp();
+        let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
+        let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
+        let post = s["hooks"]["PostToolUse"].as_array().unwrap();
+        let outcome_matchers: Vec<&str> = post
+            .iter()
+            .filter(|g| {
+                g["hooks"].as_array().unwrap().iter().any(|h| h["command"].as_str().unwrap_or("").ends_with("hook outcome"))
+            })
+            .map(|g| g["matcher"].as_str().unwrap_or("*"))
+            .collect();
+        assert!(outcome_matchers.contains(&"Task"), "faltou Task: {outcome_matchers:?} | added {:?}", r.added);
+        assert!(outcome_matchers.contains(&"Edit"), "faltou Edit: {outcome_matchers:?}");
         std::fs::remove_dir_all(&home).ok();
     }
 

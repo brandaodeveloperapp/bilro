@@ -68,6 +68,15 @@ pub fn record(
     Ok(())
 }
 
+/// The kinds worth filing. The first four are observed by hooks; the last three
+/// are judgements, which no hook can infer from a tool call — they are recorded
+/// deliberately, at the moment they are made.
+pub const KINDS: &[&str] = &["pedido", "falha", "erro-tool", "agente", "decisao", "descartado", "restricao"];
+
+pub fn is_known_kind(kind: &str) -> bool {
+    KINDS.contains(&kind)
+}
+
 #[derive(Debug)]
 pub struct Event {
     pub kind: String,

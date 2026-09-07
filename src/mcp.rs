@@ -60,6 +60,21 @@ fn tools() -> Value {
             }
         },
         {
+            "name": "bilro_remember",
+            "description": "Files something decided, rejected or discovered so a later session does not have to rediscover it. Call it the moment it happens — when the user settles a question, vetoes an approach, or a constraint of this machine or project comes to light. A hook cannot infer any of these from a tool call. Use kind: decisao for what was settled, descartado for an approach ruled out (say why), restricao for a fact about the environment that will bite again.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "kind": { "type": "string", "enum": ["decisao", "descartado", "restricao"] },
+                    "subject": { "type": "string", "description": "One line, the thing itself" },
+                    "body": { "type": "string", "description": "Why, and what it means for later" },
+                    "cwd": { "type": "string" }
+                },
+                "required": ["kind", "subject"]
+            }
+        },
+        crate::batch::mcp_tool_schema(),
+        {
             "name": "bilro_find",
             "description": "Searches everything already indexed by bilro_run, without running anything again.",
             "inputSchema": {
@@ -251,6 +266,38 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 }
             }
         }
+        "bilro_remember" => {
+            let kind = arg_str(args, "kind");
+            let subject = arg_str(args, "subject");
+            if subject.trim().is_empty() {
+                return error_result("subject is required".into());
+            }
+            if !crate::journal::is_known_kind(&kind) {
+                return error_result(format!(
+                    "kind desconhecido: {kind}. Use decisao, descartado ou restricao"
+                ));
+            }
+            let cwd = arg_str(args, "cwd");
+            let dir = if cwd.is_empty() { std::env::current_dir().unwrap_or_default() } else { PathBuf::from(cwd) };
+            let Ok(db) = crate::journal::open_default() else {
+                return error_result("sem diario ainda".into());
+            };
+            match crate::journal::record(
+                &db,
+                &kind,
+                &subject,
+                &arg_str(args, "body"),
+                "deliberado",
+                &crate::journal::project_of(&dir),
+            ) {
+                Err(e) => error_result(format!("nao consegui gravar: {e}")),
+                Ok(()) => text_result(format!("guardado como {kind}: {subject}")),
+            }
+        }
+        "bilro_batch" => match crate::batch::mcp_call(args) {
+            Ok(text) => text_result(text),
+            Err(e) => error_result(e),
+        },
         "bilro_find" => {
             let query = arg_str(args, "query");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(8) as usize;
@@ -391,7 +438,7 @@ mod tests {
     fn tools_list_traz_todas_com_schema_bem_formado() {
         let r = handle(&json!({"jsonrpc":"2.0","id":2,"method":"tools/list"})).unwrap();
         let t = r["result"]["tools"].as_array().unwrap();
-        assert_eq!(t.len(), 8);
+        assert_eq!(t.len(), 10);
         for tool in t {
             assert!(tool["name"].as_str().unwrap().starts_with("bilro_"));
             assert!(!tool["description"].as_str().unwrap().is_empty());
@@ -473,6 +520,24 @@ mod tests {
         assert_eq!(r["result"]["isError"], true);
         let txt = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(txt.contains("http"), "deveria dizer o que aceita: {txt}");
+    }
+
+    #[test]
+    fn remember_recusa_kind_inventado_e_diz_os_validos() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":13,"method":"tools/call","params":{
+            "name":"bilro_remember","arguments":{"kind":"qualquer","subject":"x"}
+        }})).unwrap();
+        assert_eq!(r["result"]["isError"], true);
+        let txt = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(txt.contains("decisao") && txt.contains("restricao"), "veio: {txt}");
+    }
+
+    #[test]
+    fn remember_sem_assunto_e_recusado() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":14,"method":"tools/call","params":{
+            "name":"bilro_remember","arguments":{"kind":"decisao","subject":"  "}
+        }})).unwrap();
+        assert_eq!(r["result"]["isError"], true);
     }
 
     #[test]
