@@ -196,7 +196,7 @@ pub fn detect(lines: &[&str]) -> f64 {
 }
 
 /// Compresses a diagnostics-list style output: groups repeats by rule/code,
-/// keeps one concrete example (path:line) per group plus every `is_severe`
+/// keeps one concrete example (path:line) per group plus every word-severe
 /// occurrence, and always says how many others were folded in.
 pub fn compress(lines: &[&str]) -> Compressed {
     let parsed = parse_entries(lines);
@@ -285,7 +285,7 @@ mod tests {
     }
 
     fn severe_lines<'a>(lines: &[&'a str]) -> Vec<&'a str> {
-        lines.iter().copied().filter(|l| is_severe(l)).collect()
+        lines.iter().copied().filter(|l| is_severe_text(l)).collect()
     }
 
     #[test]
