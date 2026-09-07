@@ -1,17 +1,15 @@
+<div align="center">
+
 # bilro
 
-Context economy for coding agents. Runs your command, returns only what informs,
-and learns what your tools always print so it stops repeating it back to you.
+**Context economy for coding agents.**
 
-```
-$ bilro filter git log --oneline -40
-9f3c1ab fix(worker): retry the job that fails when the queue is empty
+Runs your command, returns only what informs, and learns what your tools always
+print so it stops repeating it back to you.
 
-  98% smaller (39 repeated lines)
-```
+<img src="docs/compression.svg" alt="A terminal running the same git log four times. The first run prints forty commits; the fourth prints one — the only line reporting a failure — and says 98% smaller." width="760">
 
-Out of forty commits, the one line mentioning a failure survived. The other
-thirty-nine you had already seen on previous runs.
+</div>
 
 ---
 
@@ -21,17 +19,15 @@ thirty-nine you had already seen on previous runs.
 curl -fsSL https://raw.githubusercontent.com/brandaodeveloperapp/bilro/main/install.sh | sh
 ```
 
-Downloads the binary for your platform, or builds from source if there is none,
+Downloads a binary for your platform, or builds from source when there is none,
 puts it on your PATH, and registers the hooks and the MCP server. Running it
 twice registers nothing twice.
-
-Check it:
 
 ```sh
 bilro doctor
 ```
 
-From source, if you prefer:
+From source:
 
 ```sh
 git clone https://github.com/brandaodeveloperapp/bilro
@@ -44,66 +40,78 @@ stack and a certificate store out of the binary.
 
 ---
 
-## The first five minutes
+## What it actually saves
 
-**1. See what your context costs before you ask for anything.**
+Measured on this machine, same commands, same moment. `raw` is the untouched
+output; the rest is how much of it never reached the conversation.
 
-```sh
-bilro bill
-```
+| command | raw | rtk | bilro, first run | bilro, once learned |
+|---|---:|---:|---:|---:|
+| `git log --oneline -40` | 2845 B | 0% | 0% | **98%** |
+| `env` | 4161 B | 66% | 51% | **92%** |
+| `git status` | 1273 B | 28% | 22% | **36%** |
+| `ls -laR src` | 4166 B | **77%** | 66% | 66% |
+| `cargo test` | 1259 B | **96%** | 0% | 64% |
 
-Adds up CLAUDE.md, MEMORY.md and the agent catalogue. That number is paid on
-every request, used or not.
+Read the last two columns together, because they are the honest shape of this
+tool. On a command it has never seen, bilro only has structure to work with and
+is often the weaker option. Once a command has run three times it knows what
+that command always prints, and the same output collapses.
 
-**2. Run a verbose command two or three times.**
+**Where a hand-written rule still wins.** rtk cuts a test report better than
+bilro does, because someone wrote a rule for that exact tool. bilro compresses
+by shape rather than by program name, which covers tools nobody wrote a rule
+for and costs some precision on the ones they did.
 
-```sh
-bilro filter npm test
-bilro filter npm test
-bilro filter npm test
-```
-
-The first time it cuts nothing — there is nothing to compare against. From the
-third run on it knows what that command always prints, and returns what changed.
-
-**3. See what it kept.**
-
-```sh
-bilro stats
-bilro recall
-```
-
-**4. Open the panel.**
-
-```sh
-bilro-panel
-```
+**Where history wins.** `git log --oneline` has no structure to exploit — every
+line is different, and a rule-based filter has nothing to remove. It is the same
+forty lines every time, though, and that is the thing bilro can see.
 
 ---
 
-## What it does
+## The rule that outranks compression
 
-```
-bilro filter <cmd>     runs the command and returns only what informs
-bilro read <file>      reads a file compressed (--outline for structure only)
-bilro grep <pattern>   search grouped by file, without the repetition
-bilro exec <lang>      runs a snippet, only what it prints comes back
-bilro run <cmd>        runs and indexes; only the passage you ask for returns
-bilro find <term>      searches what has already been indexed
-bilro fetch <url>      fetches a page, indexes it, returns what you asked for
-bilro recall [term]    what has already happened in this project
-bilro ready            can the tools it replaces be retired yet?
-bilro bill             fixed context cost per request
-bilro verify [--run]   checks memories that assert a dated fact
-bilro lint             broken links, orphaned memories, most-cited
-bilro propose          memories worth writing
-bilro stats            what it holds and how much it saves
-bilro doctor           diagnose the installation
-bilro purge <target>   delete stored data (--confirm confirms)
-bilro serve [port]     panel in the browser
-bilro install          register hooks and MCP server
-bilro mcp              MCP server over stdio
-```
+**A line reporting a failure is never dropped.** Not when it repeats, not when
+it appears in every run, not when output is trimmed to a budget. A build that
+breaks the same way every day is still the answer to what happened, and a tool
+that hides it is worse than no tool.
+
+Severity is recognised two ways: by the words and marks a line uses, and by the
+shape every compiler and linter on earth prints — a path, a line, a column. The
+second matters because the first only knows the languages someone listed.
+
+When nothing survives compression, bilro says how many lines were suppressed
+instead of printing an empty screen. It does not claim none of them reported a
+failure: absence of failure is not provable from a list of words.
+
+---
+
+## Compared to what it replaces
+
+Three tools were in this seat. What follows is what each does, not a score —
+only rtk was measured head to head, above.
+
+| | bilro | rtk | caveman | context-mode |
+|---|:---:|:---:|:---:|:---:|
+| filters shell output | yes | yes | — | — |
+| learns per command | **yes** | no | — | — |
+| compresses by output shape | **7 shapes** | ~79 tool rules | — | — |
+| never drops a failure line | **enforced, tested** | not stated | — | — |
+| redacts credentials | **yes** | no | — | — |
+| runs code in a sandbox | 5 languages | — | — | yes |
+| full-text index of output | yes | — | — | yes |
+| journal of what happened | **yes** | — | — | yes |
+| records decisions deliberately | **yes** | — | — | — |
+| fetches and indexes a page | yes | — | — | yes |
+| writing-style rules | yes | — | yes | — |
+| MCP server | yes | — | — | yes |
+| desktop panel | **yes** | — | — | — |
+| single binary, no runtime | **yes** | yes | no | no |
+
+The honest caveat: rtk's numbers above are measured; the capability columns for
+caveman and context-mode come from using them, not from benchmarking them. No
+other tool has been compared, and inventing numbers for one would be worse than
+leaving the column empty.
 
 ---
 
@@ -130,23 +138,6 @@ events that happen to share a shape.
 
 ---
 
-## The rule that outranks compression
-
-**A line reporting a failure is never dropped.** Not when it repeats, not when
-it appears in every run, not when output is trimmed to a budget. A build that
-breaks the same way every day is still the answer to what happened, and a tool
-that hides it is worse than no tool.
-
-Severity is recognised two ways: by the words and marks a line uses, and by the
-**shape** every compiler and linter on earth prints — a path, a line, a column.
-The second matters because the first only knows the languages someone listed.
-
-When nothing survives compression, bilro says how many lines were suppressed
-instead of printing an empty screen. It does not claim none of them reported a
-failure: absence of failure is not provable from a list of words.
-
----
-
 ## Credentials
 
 Output is redacted before it is shown and before it is stored, because a secret
@@ -155,16 +146,43 @@ written to the database once survives every later run. What is inspected is the
 parameters, `Authorization` headers, bare JWTs, password flags and private key
 blocks all carry secrets under innocent labels.
 
-What is not a secret stays readable — the host and database of a connection
-string, the `page` parameter beside the API key, the word `Bearer` without its
-token.
+A credential carries a digit, a separator, or a capital letter somewhere other
+than the first position. That is what tells `Bearer eyJ0eXAi…` apart from
+`Bearer authentication`, and it holds at any length — the length rule it
+replaced let a five-character token through while masking an ordinary word.
+
+---
+
+## What it does
+
+```
+bilro filter <cmd>     runs the command and returns only what informs
+bilro read <file>      reads a file compressed (--outline for structure only)
+bilro grep <pattern>   search grouped by file, without the repetition
+bilro exec <lang>      runs a snippet, only what it prints comes back
+bilro run <cmd>        runs and indexes; only the passage you ask for returns
+bilro find <term>      searches what has already been indexed
+bilro fetch <url>      fetches a page, indexes it, returns what you asked for
+bilro recall [term]    what has already happened in this project
+bilro ready            can the tools it replaces be retired yet?
+bilro bill             fixed context cost per request
+bilro verify [--run]   checks memories that assert a dated fact
+bilro lint             broken links, orphaned memories, most-cited
+bilro propose          memories worth writing
+bilro stats            what it holds and how much it saves
+bilro doctor           diagnose the installation
+bilro purge <target>   delete stored data (--confirm confirms)
+bilro serve [port]     panel in the browser
+bilro install          register hooks and the MCP server
+bilro mcp              MCP server over stdio
+```
 
 ---
 
 ## The panel
 
 ```sh
-bilro-panel      # native application
+bilro-panel      # native application, drawn on the GPU
 bilro serve      # in the browser, at http://127.0.0.1:7777
 ```
 

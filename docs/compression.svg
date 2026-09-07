@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" role="img" aria-label="A terminal running git log forty times: the first run prints forty lines, the fortieth prints one — the only line reporting a failure.">
+<style>
+  .bg { fill: #16151a; }
+  .chrome { fill: #1d1c22; }
+  .dot { r: 5; }
+  .t { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .prompt { fill: #b98adf; }
+  .cmd { fill: #dcd9e3; }
+  .out { fill: #837e91; }
+  .fail { fill: #e08b78; }
+  .note { fill: #7bc496; }
+  .label { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #837e91; }
+
+  .run1, .run2, .note1, .note2 { opacity: 0; }
+
+  .run1 { animation: showFirst 11s infinite; }
+  .note1 { animation: showFirst 11s infinite; }
+  .run2 { animation: showSecond 11s infinite; }
+  .note2 { animation: showSecond 11s infinite; }
+
+  @keyframes showFirst {
+    0%   { opacity: 0; }
+    4%   { opacity: 1; }
+    42%  { opacity: 1; }
+    47%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes showSecond {
+    0%   { opacity: 0; }
+    50%  { opacity: 0; }
+    55%  { opacity: 1; }
+    95%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .line { animation: typeIn 11s infinite; }
+  @keyframes typeIn {
+    0%, 3% { opacity: 0; }
+    6%     { opacity: 1; }
+    100%   { opacity: 1; }
+  }
+</style>
+
+  <rect class="bg" width="760" height="420" rx="10"/>
+  <rect class="chrome" width="760" height="34" rx="10"/>
+  <rect class="chrome" y="24" width="760" height="10"/>
+  <circle class="dot" cx="20" cy="17" fill="#e08b78"/>
+  <circle class="dot" cx="40" cy="17" fill="#dfc07a"/>
+  <circle class="dot" cx="60" cy="17" fill="#7bc496"/>
+  <text class="label" x="355" y="21">bilro</text>
+
+  <g class="run1">
+    <text class="t" x="22" y="64"><tspan class="prompt">$</tspan> <tspan class="cmd">bilro filter git log --oneline -40</tspan></text>
+    <text class="label" x="600" y="64">first run</text>
+
+    <text class="t out" x="22" y="90">d14b684 Land the coverage work</text>
+    <text class="t out" x="22" y="108">04c1f7f Drop the redundant index</text>
+    <text class="t out" x="22" y="126">b429599 Capture attribution at signup</text>
+    <text class="t out" x="22" y="144">9944f67 Return consumed stock on cancel</text>
+    <text class="t out" x="22" y="162">2f81aa0 Split the settlement report</text>
+    <text class="t fail" x="22" y="180">2945d6b Alert on WhatsApp when health fails</text>
+    <text class="t out" x="22" y="198">7c30e19 Move the queue behind a flag</text>
+    <text class="t out" x="22" y="216">e5b0c44 Rename the delivery stage</text>
+    <text class="t out" x="22" y="234">1a9f8d2 Backfill the missing invoices</text>
+    <text class="t out" x="22" y="252">c7e441b Tighten the tenant scope</text>
+    <text class="t out" x="22" y="270">3d2b90f Drop the unused migration</text>
+    <text class="t out" x="22" y="288">8ae1c56 Cache the price table</text>
+    <text class="t out" x="22" y="306">f0d7e83 Fix the pagination cursor</text>
+    <text class="t out" x="22" y="324">6b1c2af Retry the webhook once</text>
+    <text class="t out" x="22" y="342">a4e90d1 … and twenty-six more</text>
+
+    <text class="label" x="22" y="378">2845 bytes — nothing learned yet, so nothing is dropped</text>
+  </g>
+
+  <g class="run2">
+    <text class="t" x="22" y="64"><tspan class="prompt">$</tspan> <tspan class="cmd">bilro filter git log --oneline -40</tspan></text>
+    <text class="label" x="580" y="64">fourth run</text>
+
+    <text class="t fail" x="22" y="98">2945d6b Alert on WhatsApp when health fails</text>
+
+    <text class="t note" x="22" y="136">98% smaller (39 repeated lines)</text>
+
+    <text class="label" x="22" y="176">Thirty-nine of those lines appeared in every previous run.</text>
+    <text class="label" x="22" y="196">The one that survived is the one reporting a failure —</text>
+    <text class="label" x="22" y="216">that rule outranks compression, always.</text>
+
+    <text class="label" x="22" y="378">2845 bytes in, 51 bytes out</text>
+  </g>
+</svg>
