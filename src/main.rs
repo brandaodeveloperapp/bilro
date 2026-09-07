@@ -119,7 +119,7 @@ fn suppressed_notice(raw: &str, text: &str) -> Option<String> {
     }
     let lines = raw.lines().filter(|l| !l.trim().is_empty()).count();
     Some(format!(
-        "identico ao que este comando ja imprimiu antes: {lines} linhas suprimidas, nenhuma delas relatando falha"
+        "identico ao que este comando ja imprimiu antes: {lines} linhas suprimidas. bilro nao viu falha entre elas, mas so reconhece as que sabe nomear — rode sem bilro se o resultado importa"
     ))
 }
 
@@ -469,7 +469,8 @@ mod tests {
     fn saida_vazia_nunca_sai_calada() {
         let aviso = suppressed_notice("alpha\nbeta\ngamma", "").expect("deveria avisar");
         assert!(aviso.contains("3 linhas suprimidas"));
-        assert!(aviso.contains("nenhuma delas relatando falha"));
+        assert!(!aviso.contains("nenhuma delas relatando falha"), "nao pode afirmar ausencia de falha");
+        assert!(aviso.contains("so reconhece as que sabe nomear"));
     }
 
     #[test]

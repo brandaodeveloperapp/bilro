@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::learn::is_severe;
+use crate::learn::{is_severe, is_severe_text};
 use crate::shapes::contract::{Compressed, Shape};
 
 static COLON_LOC: Lazy<Regex> = Lazy::new(|| {
@@ -119,7 +119,7 @@ fn parse_entries(lines: &[&str]) -> Parsed {
             let code = rule_code_of(line, &m.msg);
             entries.insert(
                 i,
-                Entry { loc, code, severe: is_severe(line), header_index: None },
+                Entry { loc, code, severe: is_severe_text(line), header_index: None },
             );
             order.push(i);
             continue;
@@ -133,7 +133,7 @@ fn parse_entries(lines: &[&str]) -> Parsed {
             let code = rule_code_of(line, &c["msg"]);
             entries.insert(
                 i,
-                Entry { loc, code, severe: is_severe(line), header_index: current_header },
+                Entry { loc, code, severe: is_severe_text(line), header_index: current_header },
             );
             order.push(i);
             continue;

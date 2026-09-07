@@ -15,16 +15,21 @@ static HEX_RUN: Lazy<Regex> = Lazy::new(|| Regex::new(r"[0-9a-f]{7,}").unwrap())
 static NUMERIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+(?:[.,]\d+)?").unwrap());
 
 static SEVERE_WORDS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(
-        r"(?i)\b(error|erro|failed|failing|failure|fails|fail|falha|falham|falhou|fatal|panic|exception|traceback|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined is not|segmentation fault|FAIL)\b",
-    )
-    .unwrap()
+    Regex::new(r"(?i)\b(error|erro|errors|failed|failing|failure|fails|fail|falha|falham|falhou|fatal|panic|panicked|exception|traceback|stacktrace|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined|undeclared|unresolved|unmet|unexpected|invalid|illegal|missing|abort|aborted|killed|segmentation fault|core dumped|exit status|exit code|rejected|conflict|mismatch|FAIL|ERR)\b").unwrap()
 });
-static SEVERE_MARKS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[✕✗]").unwrap());
+static SEVERE_MARKS: Lazy<Regex> = Lazy::new(|| Regex::new("[✕✗✖❌×⨯]").unwrap());
+static DIAGNOSTIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\S+:\d+(:\d+)?:\s").unwrap());
 
 /// A line reporting a failure is never noise, however often it repeats. A build
 /// that breaks the same way every day is still the answer to "what happened".
 pub fn is_severe(line: &str) -> bool {
+    is_severe_text(line) || DIAGNOSTIC.is_match(line)
+}
+
+/// Severity carried by the words or marks a line uses, ignoring the structural
+/// `path:line:col:` shape. A grouping compressor already accounts for that
+/// shape by keeping a count and an example, so it asks this narrower question.
+pub fn is_severe_text(line: &str) -> bool {
     SEVERE_WORDS.is_match(line) || SEVERE_MARKS.is_match(line)
 }
 
@@ -385,6 +390,28 @@ mod tests {
     fn novidade_lista_so_o_que_nao_existia() {
         let n = novelty("a\nb", "a\nb\nc");
         assert_eq!(n, vec!["c".to_string()]);
+    }
+
+    #[test]
+    fn diagnostico_de_compilador_e_severo_em_qualquer_linguagem() {
+        for l in [
+            "./main.go:10:2: undefined: fooBar",
+            "src/lib.rs:42:9: expected semicolon",
+            "app/models.py:8:1: E402 import not at top",
+            "src/App.tsx:15:3: Type error",
+        ] {
+            assert!(is_severe(l), "diagnostico deveria ser severo: {l}");
+        }
+        for l in ["compilando modulo", "asset main.js 2.1 MiB", "Done in 3s", "web-1 1/1 Running"] {
+            assert!(!is_severe(l), "nao deveria ser severa: {l}");
+        }
+    }
+
+    #[test]
+    fn is_severe_pega_erro_que_nao_usa_a_palavra_erro() {
+        for l in ["npm ERR! code ELIFECYCLE", "Killed", "exit status 1", "Segmentation fault (core dumped)", "ld: undefined reference to foo"] {
+            assert!(is_severe(l), "deveria ser severa: {l}");
+        }
     }
 
     #[test]

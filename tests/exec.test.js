@@ -44,6 +44,18 @@ test("interpretador como programa e recusado mesmo sem metacaractere", () => {
 });
 
 test("verificacao legitima continua permitida", () => {
-  for (const linha of ["git rev-parse HEAD", "cat package.json", "kubectl get pods"])
+  for (const linha of ["git rev-parse HEAD", "git log --oneline -1", "cat package.json"])
     assert.equal(isAllowedProgram(linha), true, linha);
+});
+
+test("programa que e motor de execucao saiu da lista", () => {
+  for (const linha of [
+    'git -c "alias.pwn=!touch /tmp/x" pwn',
+    "git --exec-path=/tmp log",
+    "curl -o /tmp/x file:///etc/hosts",
+    "kubectl exec pod -- touch /tmp/x",
+    "docker run -v /:/host alpine touch /host/tmp/x",
+    "git push origin main",
+  ])
+    assert.equal(isAllowedProgram(linha), false, `deveria recusar: ${linha}`);
 });
