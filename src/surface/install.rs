@@ -26,6 +26,10 @@ fn settings_path(home: &Path) -> PathBuf {
 }
 
 /// Puts the binary on the path and registers the hooks, keeping a copy of the
+/// settings file it changes. A binary that already sits at the link location
+/// is left where it is: symlinking it to itself makes it unrunnable.
+///
+/// Original note: puts the binary on the path and registers the hooks, keeping a copy of the
 /// settings file it changes. Registering the same hook twice would double every
 /// message, so an entry already pointing at this binary is left alone.
 pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::Result<Report> {
@@ -42,9 +46,14 @@ pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::
     if let Some(dir) = link_dir {
         std::fs::create_dir_all(dir)?;
         let link = dir.join("bilro");
-        let _ = std::fs::remove_file(&link);
-        std::os::unix::fs::symlink(binary, &link)?;
-        report.linked = Some(link);
+        let already_there = std::fs::canonicalize(&link).ok() == std::fs::canonicalize(binary).ok();
+        if already_there {
+            report.linked = Some(link);
+        } else {
+            let _ = std::fs::remove_file(&link);
+            std::os::unix::fs::symlink(binary, &link)?;
+            report.linked = Some(link);
+        }
     }
 
     let path = settings_path(home);
@@ -163,7 +172,7 @@ fn register_mcp(home: &Path, binary: &Path) -> std::io::Result<Option<&'static s
 mod tests {
     use super::*;
 
-    fn temp() -> PathBuf {
+    pub(super) fn temp() -> PathBuf {
         use std::sync::atomic::{AtomicU64, Ordering};
         static N: AtomicU64 = AtomicU64::new(0);
         let d = std::env::temp_dir().join(format!(
@@ -294,6 +303,45 @@ mod tests {
         std::fs::write(settings_path(&home), "{}").unwrap();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
         assert!(r.backup.is_some_and(|b| b.exists()), "no backup");
+        std::fs::remove_dir_all(&home).ok();
+    }
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::*;
+    use super::tests::temp;
+
+    #[test]
+    fn a_binary_already_at_the_link_path_is_not_linked_to_itself() {
+        let home = temp();
+        let bin_dir = home.join("bin");
+        std::fs::create_dir_all(&bin_dir).unwrap();
+        let binary = bin_dir.join("bilro");
+        std::fs::write(&binary, "#!/bin/sh\necho hi\n").unwrap();
+
+        install(&home, &binary, Some(&bin_dir)).unwrap();
+
+        let meta = std::fs::symlink_metadata(&binary).unwrap();
+        assert!(!meta.file_type().is_symlink(), "linked the binary to itself");
+        assert!(std::fs::read_to_string(&binary).unwrap().contains("echo hi"));
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn a_binary_elsewhere_is_still_linked() {
+        let home = temp();
+        let bin_dir = home.join("bin");
+        let real = home.join("elsewhere");
+        std::fs::create_dir_all(&real).unwrap();
+        let binary = real.join("bilro");
+        std::fs::write(&binary, "x").unwrap();
+
+        install(&home, &binary, Some(&bin_dir)).unwrap();
+
+        let link = bin_dir.join("bilro");
+        assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::canonicalize(&link).unwrap(), std::fs::canonicalize(&binary).unwrap());
         std::fs::remove_dir_all(&home).ok();
     }
 }
