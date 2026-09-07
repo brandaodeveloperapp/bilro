@@ -1,7 +1,6 @@
 use crate::proc::spawn_with_timeout;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::io::Read;
 use std::path::PathBuf;
 use std::process::Command;
 
