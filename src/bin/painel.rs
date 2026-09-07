@@ -81,6 +81,7 @@ struct Painel {
     projeto: String,
     dir_memorias: String,
     recarregar_em: f64,
+    projetos: Vec<(String, u64)>,
     modo: Modo,
     profundidade: usize,
     repulsao: f32,
@@ -109,6 +110,7 @@ impl Painel {
             projeto: String::new(),
             dir_memorias: String::new(),
             recarregar_em: 0.0,
+            projetos: Vec::new(),
             modo: Modo::Global,
             profundidade: 1,
             repulsao: 2800.0,
@@ -119,11 +121,62 @@ impl Painel {
         p
     }
 
+    /// Every project that has memories, the fullest first. A window opened from
+    /// the dock has no meaningful working directory, so the panel chooses rather
+    /// than inheriting one — and it chooses by weight, because the most recently
+    /// touched directory is as often leftover scratch as it is real work.
+    fn descobrir_projetos(&mut self) {
+        let raiz = home().join(".claude").join("projects");
+        let mut achados: Vec<(String, u64)> = std::fs::read_dir(&raiz)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|e| {
+                let memoria = e.path().join("memory");
+                if !memoria.is_dir() {
+                    return None;
+                }
+                let arquivos: Vec<_> = std::fs::read_dir(&memoria)
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .filter(|f| f.file_name().to_string_lossy().ends_with(".md"))
+                    .collect();
+                if arquivos.is_empty() {
+                    return None;
+                }
+                let quando = arquivos
+                    .iter()
+                    .filter_map(|f| f.metadata().ok()?.modified().ok())
+                    .filter_map(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs())
+                    .max()
+                    .unwrap_or(0);
+                let _ = quando;
+                Some((e.file_name().to_string_lossy().to_string(), arquivos.len() as u64))
+            })
+            .collect();
+        achados.sort_by_key(|(_, t)| std::cmp::Reverse(*t));
+        self.projetos = achados;
+    }
+
+    fn nome_curto(slug: &str) -> String {
+        slug.rsplit('-').next().unwrap_or(slug).to_string()
+    }
+
     /// Reads everything the panel shows from the same stores the CLI uses, so
     /// the two can never disagree about what happened.
     fn carregar(&mut self) {
-        let cwd = std::env::current_dir().unwrap_or_default();
-        self.projeto = journal::project_of(&cwd);
+        self.descobrir_projetos();
+        if self.projeto.is_empty() || self.projeto == "-" {
+            let cwd = std::env::current_dir().unwrap_or_default();
+            let do_cwd = journal::project_of(&cwd);
+            self.projeto = if self.projetos.iter().any(|(p, _)| *p == do_cwd) {
+                do_cwd
+            } else {
+                self.projetos.first().map(|(p, _)| p.clone()).unwrap_or(do_cwd)
+            };
+        }
         let dir = home().join(".claude").join("projects").join(&self.projeto).join("memory");
         self.dir_memorias = dir.display().to_string();
 
@@ -416,11 +469,31 @@ impl eframe::App for Painel {
             .exact_width(228.0)
             .frame(egui::Frame::none().fill(PAINEL).inner_margin(egui::Margin::symmetric(16.0, 16.0)))
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("bilro").size(17.0).strong().color(TINTA));
-                    let curto = self.projeto.rsplit('-').next().unwrap_or("").to_string();
-                    ui.label(egui::RichText::new(curto).size(11.0).color(FRACO));
-                });
+                ui.label(egui::RichText::new("bilro").size(17.0).strong().color(TINTA));
+                ui.add_space(8.0);
+                let atual = Self::nome_curto(&self.projeto);
+                let mut trocou = None;
+                egui::ComboBox::from_id_salt("projeto")
+                    .selected_text(egui::RichText::new(atual).size(12.0).color(TINTA))
+                    .width(ui.available_width())
+                    .show_ui(ui, |ui| {
+                        for (slug, _) in &self.projetos {
+                            let marcado = *slug == self.projeto;
+                            if ui
+                                .selectable_label(marcado, egui::RichText::new(Self::nome_curto(slug)).size(12.0))
+                                .on_hover_text(slug)
+                                .clicked()
+                            {
+                                trocou = Some(slug.clone());
+                            }
+                        }
+                    });
+                if let Some(novo) = trocou {
+                    self.projeto = novo;
+                    self.escolhido = None;
+                    self.nos.clear();
+                    self.recarregar_em = 0.0;
+                }
                 ui.add_space(14.0);
 
                 for (aba, nome) in [(Aba::Grafo, "Grafo"), (Aba::Atividade, "Atividade"), (Aba::Metricas, "Metricas")] {
