@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 const PAGE: &str = include_str!("panel.html");
 
+const ICONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="9" r="4" fill="#b98adf"/><circle cx="9" cy="23" r="3" fill="#b98adf"/><circle cx="23" cy="23" r="3" fill="#b98adf"/><path d="M16 9L9 23M16 9l7 14M9 23h14" stroke="#6a4d8c" stroke-width="1.5" fill="none"/></svg>"##;
+
 fn home() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()))
 }
@@ -102,6 +104,79 @@ fn snapshot() -> serde_json::Value {
     })
 }
 
+/// The memory network as nodes and edges. A note's weight is how often other
+/// notes point at it, which is what makes a hub visible at a glance; an edge
+/// pointing at a name nobody wrote is marked rather than dropped, because a
+/// broken link is the interesting kind.
+fn grafo() -> serde_json::Value {
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let dir = home()
+        .join(".claude")
+        .join("projects")
+        .join(crate::journal::project_of(&cwd))
+        .join("memory");
+    let g = crate::graph::build(&dir);
+
+    let entrando = |nome: &str| g.back.get(nome).map(|v| v.len()).unwrap_or(0);
+    let saindo = |nome: &str| g.out.get(nome).map(|v| v.len()).unwrap_or(0);
+
+    let nos: Vec<serde_json::Value> = g
+        .memories
+        .iter()
+        .map(|m| {
+            let dentro = entrando(&m.name);
+            let fora = saindo(&m.name);
+            let primeira = m
+                .body
+                .lines()
+                .find(|l| !l.trim().is_empty() && !l.starts_with('#'))
+                .unwrap_or("")
+                .chars()
+                .take(160)
+                .collect::<String>();
+            serde_json::json!({
+                "id": m.name,
+                "tipo": m.kind.clone().unwrap_or_else(|| "sem tipo".into()),
+                "entrando": dentro,
+                "saindo": fora,
+                "orfa": dentro == 0 && fora == 0,
+                "resumo": crate::redact::redact(&primeira),
+                "verificavel": m.verify.is_some(),
+            })
+        })
+        .collect();
+
+    let mut arestas = Vec::new();
+    for (de, alvos) in &g.out {
+        for para in alvos {
+            arestas.push(serde_json::json!({
+                "de": de,
+                "para": para,
+                "quebrada": !g.names.contains(para),
+            }));
+        }
+    }
+
+    let fantasmas: Vec<serde_json::Value> = arestas
+        .iter()
+        .filter(|a| a["quebrada"] == true)
+        .filter_map(|a| a["para"].as_str().map(String::from))
+        .collect::<std::collections::BTreeSet<String>>()
+        .into_iter()
+        .map(|nome| {
+            serde_json::json!({
+                "id": nome, "tipo": "nao existe", "entrando": 0, "saindo": 0,
+                "orfa": false, "resumo": "esta memoria e citada mas nunca foi escrita",
+                "verificavel": false, "fantasma": true
+            })
+        })
+        .collect();
+
+    let todos: Vec<serde_json::Value> = nos.into_iter().chain(fantasmas).collect();
+    let caminho = dir.display().to_string();
+    serde_json::json!({ "nos": todos, "arestas": arestas, "dir": caminho })
+}
+
 fn respond(stream: &mut TcpStream, status: &str, tipo: &str, body: &str) {
     let head = format!(
         "HTTP/1.1 {status}\r\nContent-Type: {tipo}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
@@ -119,7 +194,9 @@ fn handle(mut stream: TcpStream) {
     }
     let rota = linha.split_whitespace().nth(1).unwrap_or("/");
     match rota {
+        "/api/grafo" => respond(&mut stream, "200 OK", "application/json; charset=utf-8", &grafo().to_string()),
         "/api/estado" => respond(&mut stream, "200 OK", "application/json; charset=utf-8", &snapshot().to_string()),
+        "/favicon.ico" => respond(&mut stream, "200 OK", "image/svg+xml", ICONE),
         "/" | "/index.html" => respond(&mut stream, "200 OK", "text/html; charset=utf-8", PAGE),
         _ => respond(&mut stream, "404 Not Found", "text/plain; charset=utf-8", "nao existe"),
     }
@@ -157,6 +234,44 @@ mod tests {
         }
         assert!(s["cobertura"].as_f64().unwrap() >= 0.0);
         assert!(s["economia"].as_f64().unwrap() <= 1.0);
+    }
+
+    #[test]
+    fn favicon_e_servido_para_nao_sujar_o_console() {
+        assert!(ICONE.contains("<svg"), "icone invalido");
+    }
+
+    #[test]
+    fn grafo_tem_nos_arestas_e_marca_link_quebrado() {
+        let g = grafo();
+        assert!(g["nos"].is_array(), "faltou nos");
+        assert!(g["arestas"].is_array(), "faltou arestas");
+        for a in g["arestas"].as_array().unwrap() {
+            assert!(a["quebrada"].is_boolean(), "aresta sem marca de quebrada");
+        }
+        for n in g["nos"].as_array().unwrap() {
+            assert!(n["id"].is_string() && !n["id"].as_str().unwrap().is_empty());
+            assert!(n["entrando"].is_number() && n["saindo"].is_number());
+        }
+    }
+
+    #[test]
+    fn memoria_citada_e_nunca_escrita_vira_no_fantasma() {
+        let g = grafo();
+        let nos = g["nos"].as_array().unwrap();
+        let quebradas: Vec<&str> = g["arestas"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|a| a["quebrada"] == true)
+            .map(|a| a["para"].as_str().unwrap())
+            .collect();
+        for alvo in quebradas {
+            assert!(
+                nos.iter().any(|n| n["id"] == alvo),
+                "aresta quebrada aponta para {alvo}, que nao virou no"
+            );
+        }
     }
 
     #[test]

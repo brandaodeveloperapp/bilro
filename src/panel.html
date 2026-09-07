@@ -6,126 +6,194 @@
 <title>bilro</title>
 <style>
   :root {
-    --fundo: #fbfaf8;
-    --papel: #ffffff;
-    --tinta: #1b1a18;
-    --fraco: #6b6862;
-    --linha: #e6e2db;
-    --destaque: #a8571f;
-    --bom: #2f7d54;
-    --ruim: #a8341f;
+    --fundo: #16151a;
+    --painel: #1d1c22;
+    --elevado: #24232b;
+    --tinta: #dcd9e3;
+    --fraco: #837e91;
+    --linha: #2e2c37;
+    --destaque: #b98adf;
+    --destaque-fraco: #6a4d8c;
+    --bom: #7bc496;
+    --ruim: #e08b78;
+    --aviso: #dfc07a;
   }
-  @media (prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: light) {
     :root {
-      --fundo: #141312;
-      --papel: #1c1b19;
-      --tinta: #ece9e4;
-      --fraco: #98938a;
-      --linha: #2e2c28;
-      --destaque: #e0a06a;
-      --bom: #6fbf8f;
-      --ruim: #e08b78;
+      --fundo: #faf9fb; --painel: #ffffff; --elevado: #f2f0f5;
+      --tinta: #23212b; --fraco: #726d80; --linha: #e4e1ea;
+      --destaque: #7a4fae; --destaque-fraco: #c3a8dd;
+      --bom: #2f7d54; --ruim: #b04a30; --aviso: #9a7a1c;
     }
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    margin: 0; background: var(--fundo); color: var(--tinta);
-    font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
-    padding: 32px 24px 64px;
+    margin: 0; background: var(--fundo); color: var(--tinta); overflow: hidden;
+    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  .capa { max-width: 1040px; margin: 0 auto; }
-  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
-  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
-  .projeto { color: var(--fraco); font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .estado { margin-left: auto; font-size: 12px; color: var(--fraco); }
-  .ponto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bom); margin-right: 6px; }
-  .ponto.parado { background: var(--ruim); }
+  .app { display: grid; grid-template-columns: 232px 1fr; height: 100%; }
 
-  .titular { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 14px; }
-  .cartao { background: var(--papel); border: 1px solid var(--linha); border-radius: 10px; padding: 16px 18px; }
-  .rotulo { font-size: 12px; color: var(--fraco); text-transform: lowercase; }
-  .numero { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .numero small { font-size: 14px; font-weight: 400; color: var(--fraco); margin-left: 4px; }
-  .nota { font-size: 12px; color: var(--fraco); margin-top: 3px; }
+  aside { background: var(--painel); border-right: 1px solid var(--linha); display: flex; flex-direction: column; overflow-y: auto; }
+  .marca { padding: 18px 18px 14px; display: flex; align-items: baseline; gap: 8px; }
+  .marca b { font-size: 16px; letter-spacing: -0.01em; }
+  .marca span { font-size: 11px; color: var(--fraco); }
+  nav { padding: 0 10px; }
+  nav button {
+    display: flex; width: 100%; align-items: center; gap: 9px; background: none; border: 0;
+    color: var(--fraco); font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 6px;
+    cursor: pointer; text-align: left;
+  }
+  nav button:hover { background: var(--elevado); color: var(--tinta); }
+  nav button[aria-current="true"] { background: var(--elevado); color: var(--tinta); font-weight: 500; }
+  nav button i { width: 14px; height: 14px; border-radius: 3px; background: var(--destaque-fraco); flex: none; font-style: normal; }
+  nav button[aria-current="true"] i { background: var(--destaque); }
 
-  .barra { height: 5px; background: var(--linha); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .atalhos { padding: 14px 18px; }
+  .atalhos h5 { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--fraco); margin: 0 0 8px; font-weight: 600; }
+  .atalhos button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--tinta); font: inherit; font-size: 12px; padding: 4px 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .atalhos button:hover { color: var(--destaque); }
+  .atalhos button small { color: var(--fraco); font-size: 11px; }
+  .resumo { margin-top: auto; padding: 14px 18px 18px; border-top: 1px solid var(--linha); }
+  .metrica { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 12px; }
+  .metrica span { color: var(--fraco); }
+  .metrica b { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .pulso { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--fraco); margin-top: 10px; }
+  .pulso i { width: 6px; height: 6px; border-radius: 50%; background: var(--bom); }
+  .pulso.parado i { background: var(--ruim); }
+
+  main { position: relative; overflow: hidden; }
+  .vista { position: absolute; inset: 0; display: none; }
+  .vista[data-ativa] { display: block; }
+
+  #tela { width: 100%; height: 100%; display: block; cursor: grab; }
+  #tela:active { cursor: grabbing; }
+  .legenda {
+    position: absolute; left: 16px; bottom: 16px; background: var(--painel); border: 1px solid var(--linha);
+    border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--fraco); display: flex; gap: 14px;
+  }
+  .legenda em { font-style: normal; display: flex; align-items: center; gap: 6px; }
+  .legenda i { width: 8px; height: 8px; border-radius: 50%; }
+  .dica { position: absolute; right: 16px; top: 16px; font-size: 11px; color: var(--fraco); }
+
+  .gaveta {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 330px; background: var(--painel);
+    border-left: 1px solid var(--linha); padding: 20px; overflow-y: auto; transform: translateX(100%);
+    transition: transform .18s ease;
+  }
+  .gaveta[data-aberta] { transform: none; }
+  .gaveta h3 { margin: 0 0 4px; font-size: 15px; word-break: break-word; }
+  .cru { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--fraco); }
+  .selo { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--linha); color: var(--fraco); margin: 8px 8px 0 0; }
+  .gaveta p { color: var(--fraco); font-size: 13px; margin: 14px 0; }
+  .gaveta h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); margin: 18px 0 6px; }
+  .gaveta ul { margin: 0; padding: 0; list-style: none; }
+  .gaveta li { padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--linha); }
+  .gaveta li button { background: none; border: 0; color: var(--destaque); font: inherit; cursor: pointer; padding: 0; text-align: left; }
+  .fechar { position: absolute; right: 14px; top: 14px; background: none; border: 0; color: var(--fraco); cursor: pointer; font-size: 18px; line-height: 1; }
+
+  .rolar { position: absolute; inset: 0; overflow-y: auto; padding: 24px 28px 40px; }
+  .cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: 9px; padding: 14px 16px; }
+  .rotulo { font-size: 11px; color: var(--fraco); }
+  .numero { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .nota { font-size: 11px; color: var(--fraco); margin-top: 2px; }
+  .barra { height: 4px; background: var(--linha); border-radius: 3px; overflow: hidden; margin-top: 9px; }
   .barra i { display: block; height: 100%; background: var(--destaque); }
 
-  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
-  @media (max-width: 780px) { .duas { grid-template-columns: 1fr; } }
-
-  h2 { font-size: 13px; text-transform: lowercase; color: var(--fraco); margin: 0 0 12px; font-weight: 600; letter-spacing: 0.02em; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  td { padding: 6px 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); margin: 0 0 10px; }
+  .bloco { background: var(--painel); border: 1px solid var(--linha); border-radius: 9px; padding: 16px 18px; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td { padding: 6px 0; border-bottom: 1px solid var(--linha); }
   tr:last-child td { border-bottom: 0; }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
-  .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--fraco); white-space: nowrap; padding-left: 12px; }
-
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; word-break: break-all; }
+  .num { text-align: right; color: var(--fraco); white-space: nowrap; padding-left: 12px; font-variant-numeric: tabular-nums; }
   .evento { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linha); }
   .evento:last-child { border-bottom: 0; }
-  .tipo { font-size: 11px; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--linha); color: var(--fraco); white-space: nowrap; height: fit-content; }
-  .tipo.falha, .tipo\.erro-tool { color: var(--ruim); border-color: var(--ruim); }
-  .assunto { flex: 1; min-width: 0; }
-  .assunto b { font-weight: 500; display: block; }
-  .assunto span { color: var(--fraco); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .idade { color: var(--fraco); font-size: 12px; white-space: nowrap; }
-  .vazio { color: var(--fraco); font-size: 13px; padding: 10px 0; }
-  .rodape { margin-top: 24px; font-size: 12px; color: var(--fraco); display: flex; gap: 18px; flex-wrap: wrap; }
+  .tipo { font-size: 10px; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--linha); color: var(--fraco); white-space: nowrap; height: fit-content; text-transform: uppercase; letter-spacing: .04em; }
+  .tipo[data-t="falha"], .tipo[data-t="erro-tool"] { color: var(--ruim); border-color: var(--ruim); }
+  .tipo[data-t="restricao"], .tipo[data-t="decisao"], .tipo[data-t="descartado"] { color: var(--aviso); border-color: var(--aviso); }
+  .corpo { flex: 1; min-width: 0; }
+  .corpo b { font-weight: 500; display: block; }
+  .corpo span { color: var(--fraco); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .idade { color: var(--fraco); font-size: 11px; white-space: nowrap; }
+  .vazio { color: var(--fraco); font-size: 13px; padding: 8px 0; }
 </style>
 </head>
 <body>
-<div class="capa">
-  <header>
-    <h1>bilro</h1>
-    <span class="projeto" id="projeto"></span>
-    <span class="estado"><span class="ponto" id="ponto"></span><span id="atualizado">carregando</span></span>
-  </header>
+<div class="app">
+  <aside>
+    <div class="marca"><b>bilro</b><span id="projeto"></span></div>
+    <nav>
+      <button data-vista="grafo" aria-current="true"><i></i>Grafo</button>
+      <button data-vista="atividade"><i></i>Atividade</button>
+      <button data-vista="metricas"><i></i>Metricas</button>
+    </nav>
+    <div class="atalhos">
+      <h5>mais citadas</h5>
+      <div id="atalhos"></div>
+    </div>
+    <div class="resumo">
+      <div class="metrica"><span>economia</span><b id="m-economia">—</b></div>
+      <div class="metrica"><span>cobertura</span><b id="m-cobertura">—</b></div>
+      <div class="metrica"><span>memorias</span><b id="m-memorias">—</b></div>
+      <div class="metrica"><span>links quebrados</span><b id="m-quebrados">—</b></div>
+      <div class="pulso" id="pulso"><i></i><span id="atualizado">carregando</span></div>
+    </div>
+  </aside>
 
-  <div class="titular">
-    <div class="cartao">
-      <div class="rotulo">economia medida</div>
-      <div class="numero" id="economia">—</div>
-      <div class="barra"><i id="barra-economia" style="width:0"></i></div>
-      <div class="nota" id="economia-nota"></div>
-    </div>
-    <div class="cartao">
-      <div class="rotulo">cobertura</div>
-      <div class="numero" id="cobertura">—</div>
-      <div class="barra"><i id="barra-cobertura" style="width:0"></i></div>
-      <div class="nota" id="cobertura-nota"></div>
-    </div>
-    <div class="cartao">
-      <div class="rotulo">comandos aprendidos</div>
-      <div class="numero" id="aprendidos">—</div>
-      <div class="nota" id="sessoes-nota"></div>
-    </div>
-    <div class="cartao">
-      <div class="rotulo">em disco</div>
-      <div class="numero" id="disco">—</div>
-      <div class="nota" id="disco-nota"></div>
-    </div>
-  </div>
+  <main>
+    <section class="vista" data-vista="grafo" data-ativa>
+      <canvas id="tela"></canvas>
+      <div class="dica">arraste um no · role para aproximar · clique para abrir</div>
+      <div class="legenda">
+        <em><i style="background:var(--destaque)"></i>memoria</em>
+        <em><i style="background:var(--fraco)"></i>orfa</em>
+        <em><i style="background:var(--ruim)"></i>citada e nunca escrita</em>
+      </div>
+      <div class="gaveta" id="gaveta">
+        <button class="fechar" id="fechar">×</button>
+        <h3 id="g-nome"></h3>
+        <div class="cru" id="g-tipo"></div>
+        <div id="g-selos"></div>
+        <p id="g-resumo"></p>
+        <h4>aponta para</h4>
+        <ul id="g-saindo"></ul>
+        <h4>citada por</h4>
+        <ul id="g-entrando"></ul>
+      </div>
+    </section>
 
-  <div class="duas">
-    <div class="cartao">
-      <h2>o que mais se repete</h2>
-      <table id="barulhentos"></table>
-      <div class="vazio" id="barulhentos-vazio" hidden>nenhum comando repetiu o suficiente para o denoise agir. Ele precisa de tres execucoes antes de julgar.</div>
-    </div>
-    <div class="cartao">
-      <h2>o que passou por aqui</h2>
-      <div id="eventos"></div>
-      <div class="vazio" id="eventos-vazio" hidden>nada registrado neste projeto ainda.</div>
-    </div>
-  </div>
+    <section class="vista" data-vista="atividade">
+      <div class="rolar">
+        <h2>o que passou por aqui</h2>
+        <div class="bloco"><div id="eventos"></div><div class="vazio" id="eventos-vazio" hidden>nada registrado neste projeto ainda.</div></div>
+      </div>
+    </section>
 
-  <div class="rodape">
-    <span id="rodape-sessoes"></span>
-    <span id="rodape-bytes"></span>
-  </div>
+    <section class="vista" data-vista="metricas">
+      <div class="rolar">
+        <div class="cartoes">
+          <div class="cartao">
+            <div class="rotulo">economia medida</div><div class="numero" id="c-economia">—</div>
+            <div class="barra"><i id="b-economia"></i></div><div class="nota" id="n-economia"></div>
+          </div>
+          <div class="cartao">
+            <div class="rotulo">cobertura</div><div class="numero" id="c-cobertura">—</div>
+            <div class="barra"><i id="b-cobertura"></i></div><div class="nota" id="n-cobertura"></div>
+          </div>
+          <div class="cartao"><div class="rotulo">comandos aprendidos</div><div class="numero" id="c-aprendidos">—</div><div class="nota" id="n-sessoes"></div></div>
+          <div class="cartao"><div class="rotulo">em disco</div><div class="numero" id="c-disco">—</div><div class="nota" id="n-disco"></div></div>
+        </div>
+        <h2>o que mais se repete</h2>
+        <div class="bloco"><table id="barulhentos"></table><div class="vazio" id="barulhentos-vazio" hidden>nenhum comando repetiu o bastante. O denoise precisa de tres execucoes antes de julgar.</div></div>
+      </div>
+    </section>
+  </main>
 </div>
 
 <script>
+const $ = (id) => document.getElementById(id);
 const pct = (x) => `${Math.round(x * 100)}%`;
 const bytes = (n) => n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : n > 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
 const idade = (ms, agora) => {
@@ -135,87 +203,344 @@ const idade = (ms, agora) => {
   if (min < 1440) return `${Math.round(min / 60)}h`;
   return `${Math.round(min / 1440)}d`;
 };
+const cor = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
 
-function texto(id, valor) { document.getElementById(id).textContent = valor; }
+for (const b of document.querySelectorAll("nav button")) {
+  b.onclick = () => {
+    for (const o of document.querySelectorAll("nav button")) o.setAttribute("aria-current", String(o === b));
+    for (const v of document.querySelectorAll(".vista")) v.toggleAttribute("data-ativa", v.dataset.vista === b.dataset.vista);
+    if (b.dataset.vista === "grafo") dimensionar();
+  };
+}
 
-function pintar(d) {
-  texto("projeto", d.projeto || "");
-  texto("economia", pct(d.economia));
-  document.getElementById("barra-economia").style.width = pct(d.economia);
-  texto("economia-nota", d.bytes_antes
-    ? `${bytes(d.bytes_antes - d.bytes_depois)} cortados de ${bytes(d.bytes_antes)}`
-    : "sem historico suficiente ainda");
+const tela = $("tela");
+const ctx = tela.getContext("2d");
+let nos = [], arestas = [], porNome = new Map();
+let camera = { x: 0, y: 0, z: 1 };
+let dirMemorias = "";
+let arrastando = null, panorama = null, sobre = null, escolhido = null;
 
-  texto("cobertura", pct(d.cobertura));
-  document.getElementById("barra-cobertura").style.width = pct(d.cobertura);
-  texto("cobertura-nota", `${d.com_historico} de ${d.aprendidos} com 3+ execucoes`);
+function dimensionar() {
+  const r = tela.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  tela.width = r.width * dpr;
+  tela.height = r.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", dimensionar);
 
-  texto("aprendidos", d.aprendidos);
-  texto("sessoes-nota", `${d.despachos} agentes despachados`);
+function montarGrafo(d) {
+  dirMemorias = d.dir || "";
+  const antes = new Map(nos.map((n) => [n.id, n]));
+  const r = tela.getBoundingClientRect();
+  nos = d.nos.map((n, i) => {
+    const velho = antes.get(n.id);
+    const angulo = (i / Math.max(1, d.nos.length)) * Math.PI * 2;
+    return {
+      ...n,
+      x: velho ? velho.x : Math.cos(angulo) * 180 + (r.width / 2 || 400),
+      y: velho ? velho.y : Math.sin(angulo) * 180 + (r.height / 2 || 300),
+      vx: 0, vy: 0,
+      raio: 5 + Math.min(14, Math.sqrt(n.entrando) * 4),
+    };
+  });
+  porNome = new Map(nos.map((n) => [n.id, n]));
+  arestas = d.arestas.filter((a) => porNome.has(a.de) && porNome.has(a.para));
+  $("m-memorias").textContent = d.nos.filter((n) => !n.fantasma).length;
+  const atalhos = $("atalhos");
+  atalhos.replaceChildren();
+  for (const n of [...nos].sort((a, b) => b.entrando - a.entrando).slice(0, 6)) {
+    if (!n.entrando) continue;
+    const b = document.createElement("button");
+    b.title = n.id;
+    b.textContent = n.id;
+    const s = document.createElement("small");
+    s.textContent = `  ${n.entrando}`;
+    b.append(s);
+    b.onclick = () => { escolhido = n; abrir(n); centralizar(n); };
+    atalhos.append(b);
+  }
+  $("m-quebrados").textContent = d.arestas.filter((a) => a.quebrada).length;
+}
 
+function passo() {
+  const r = tela.getBoundingClientRect();
+  const cx = r.width / 2, cy = r.height / 2;
+  for (let i = 0; i < nos.length; i++) {
+    const a = nos[i];
+    for (let j = i + 1; j < nos.length; j++) {
+      const b = nos[j];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      let d2 = dx * dx + dy * dy || 0.01;
+      if (d2 > 250000) continue;
+      const f = 2600 / d2;
+      const d = Math.sqrt(d2);
+      const ux = dx / d, uy = dy / d;
+      a.vx -= ux * f; a.vy -= uy * f;
+      b.vx += ux * f; b.vy += uy * f;
+    }
+  }
+  for (const e of arestas) {
+    const a = porNome.get(e.de), b = porNome.get(e.para);
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.hypot(dx, dy) || 0.01;
+    const f = (d - 150) * 0.0018;
+    const ux = dx / d, uy = dy / d;
+    a.vx += ux * f * d * 0.06; a.vy += uy * f * d * 0.06;
+    b.vx -= ux * f * d * 0.06; b.vy -= uy * f * d * 0.06;
+  }
+  for (let i = 0; i < nos.length; i++) {
+    const a = nos[i];
+    for (let j = i + 1; j < nos.length; j++) {
+      const b = nos[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const min = a.raio + b.raio + 26;
+      const d = Math.hypot(dx, dy) || 0.01;
+      if (d >= min) continue;
+      const empurra = (min - d) / d * 0.5;
+      a.x -= dx * empurra; a.y -= dy * empurra;
+      b.x += dx * empurra; b.y += dy * empurra;
+    }
+  }
+  for (const n of nos) {
+    n.vx += (cx - n.x) * 0.0006;
+    n.vy += (cy - n.y) * 0.0006;
+    if (n === arrastando) continue;
+    n.vx *= 0.82; n.vy *= 0.82;
+    n.x += n.vx; n.y += n.vy;
+  }
+}
+
+function paraTela(n) { return { x: (n.x - camera.x) * camera.z, y: (n.y - camera.y) * camera.z }; }
+
+function desenhar() {
+  const r = tela.getBoundingClientRect();
+  ctx.clearRect(0, 0, r.width, r.height);
+  if (!nos.length) {
+    ctx.fillStyle = cor("--fraco");
+    ctx.textAlign = "center";
+    ctx.font = "13px ui-sans-serif, system-ui, sans-serif";
+    ctx.fillText("este projeto ainda nao tem memorias", r.width / 2, r.height / 2 - 8);
+    ctx.font = "12px ui-monospace, Menlo, monospace";
+    ctx.fillText(dirMemorias || "", r.width / 2, r.height / 2 + 14);
+    return;
+  }
+  const vizinhos = new Set();
+  const foco = sobre || escolhido;
+  if (foco) {
+    vizinhos.add(foco.id);
+    for (const e of arestas) {
+      if (e.de === foco.id) vizinhos.add(e.para);
+      if (e.para === foco.id) vizinhos.add(e.de);
+    }
+  }
+  for (const e of arestas) {
+    const a = paraTela(porNome.get(e.de)), b = paraTela(porNome.get(e.para));
+    const relevante = !foco || (vizinhos.has(e.de) && vizinhos.has(e.para));
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = e.quebrada ? cor("--ruim") : cor("--linha");
+    ctx.globalAlpha = relevante ? (e.quebrada ? 0.75 : 0.55) : 0.12;
+    ctx.lineWidth = e.quebrada ? 1.3 : 1;
+    if (e.quebrada) ctx.setLineDash([3, 3]); else ctx.setLineDash([]);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  for (const n of nos) {
+    const p = paraTela(n);
+    const relevante = !foco || vizinhos.has(n.id);
+    ctx.globalAlpha = relevante ? 1 : 0.2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, n.raio * camera.z, 0, Math.PI * 2);
+    ctx.fillStyle = n.fantasma ? cor("--ruim") : n.orfa ? cor("--fraco") : cor("--destaque");
+    ctx.fill();
+    if (n === escolhido) {
+      ctx.lineWidth = 2; ctx.strokeStyle = cor("--tinta"); ctx.stroke();
+    }
+    const mostrarRotulo = foco ? relevante : n.entrando >= 3;
+    if (camera.z > 0.55 && mostrarRotulo) {
+      ctx.font = "11px ui-sans-serif, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      const rotulo = n.id.length > 26 ? n.id.slice(0, 25) + "…" : n.id;
+      const larg = ctx.measureText(rotulo).width;
+      const ty = p.y + n.raio * camera.z + 14;
+      ctx.fillStyle = cor("--fundo");
+      ctx.globalAlpha = (relevante ? 1 : 0.2) * 0.82;
+      ctx.fillRect(p.x - larg / 2 - 3, ty - 9, larg + 6, 13);
+      ctx.globalAlpha = relevante ? 1 : 0.2;
+      ctx.fillStyle = cor("--tinta");
+      ctx.fillText(rotulo, p.x, ty);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function centralizar(n) {
+  const r = tela.getBoundingClientRect();
+  camera.x = n.x - r.width / (2 * camera.z);
+  camera.y = n.y - r.height / (2 * camera.z);
+}
+
+function laco() { passo(); desenhar(); requestAnimationFrame(laco); }
+
+function noEm(ex, ey) {
+  for (const n of nos) {
+    const p = paraTela(n);
+    if (Math.hypot(p.x - ex, p.y - ey) <= n.raio * camera.z + 5) return n;
+  }
+  return null;
+}
+
+tela.addEventListener("mousedown", (ev) => {
+  const r = tela.getBoundingClientRect();
+  const ex = ev.clientX - r.left, ey = ev.clientY - r.top;
+  const alvo = noEm(ex, ey);
+  if (alvo) { arrastando = alvo; } else { panorama = { x: ev.clientX, y: ev.clientY, cx: camera.x, cy: camera.y }; }
+});
+window.addEventListener("mousemove", (ev) => {
+  const r = tela.getBoundingClientRect();
+  const ex = ev.clientX - r.left, ey = ev.clientY - r.top;
+  if (arrastando) {
+    arrastando.x = ex / camera.z + camera.x;
+    arrastando.y = ey / camera.z + camera.y;
+    arrastando.vx = 0; arrastando.vy = 0;
+  } else if (panorama) {
+    camera.x = panorama.cx - (ev.clientX - panorama.x) / camera.z;
+    camera.y = panorama.cy - (ev.clientY - panorama.y) / camera.z;
+  } else {
+    sobre = noEm(ex, ey);
+    tela.style.cursor = sobre ? "pointer" : "grab";
+  }
+});
+window.addEventListener("mouseup", (ev) => {
+  const r = tela.getBoundingClientRect();
+  const alvo = noEm(ev.clientX - r.left, ev.clientY - r.top);
+  if (arrastando && alvo === arrastando) abrir(arrastando);
+  else if (!arrastando && !panorama && alvo) abrir(alvo);
+  arrastando = null; panorama = null;
+});
+tela.addEventListener("wheel", (ev) => {
+  ev.preventDefault();
+  const r = tela.getBoundingClientRect();
+  const ex = ev.clientX - r.left, ey = ev.clientY - r.top;
+  const antes = { x: ex / camera.z + camera.x, y: ey / camera.z + camera.y };
+  camera.z = Math.min(3, Math.max(0.25, camera.z * (ev.deltaY < 0 ? 1.12 : 0.89)));
+  camera.x = antes.x - ex / camera.z;
+  camera.y = antes.y - ey / camera.z;
+}, { passive: false });
+
+function lista(el, nomes) {
+  el.replaceChildren();
+  if (!nomes.length) {
+    const li = document.createElement("li");
+    li.className = "vazio";
+    li.textContent = "nenhuma";
+    el.append(li);
+    return;
+  }
+  for (const nome of nomes) {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.textContent = nome;
+    b.onclick = () => { const alvo = porNome.get(nome); if (alvo) abrir(alvo); };
+    li.append(b);
+    el.append(li);
+  }
+}
+
+function abrir(n) {
+  escolhido = n;
+  $("g-nome").textContent = n.id;
+  $("g-tipo").textContent = n.fantasma ? "citada, nunca escrita" : n.tipo;
+  const selos = $("g-selos");
+  selos.replaceChildren();
+  const marcas = [`${n.entrando} citacoes`, `${n.saindo} links`];
+  if (n.verificavel) marcas.push("tem verify:");
+  if (n.orfa) marcas.push("orfa");
+  for (const m of marcas) {
+    const s = document.createElement("span");
+    s.className = "selo";
+    s.textContent = m;
+    selos.append(s);
+  }
+  $("g-resumo").textContent = n.resumo || "";
+  lista($("g-saindo"), arestas.filter((a) => a.de === n.id).map((a) => a.para));
+  lista($("g-entrando"), arestas.filter((a) => a.para === n.id).map((a) => a.de));
+  $("gaveta").setAttribute("data-aberta", "");
+}
+$("fechar").onclick = () => { $("gaveta").removeAttribute("data-aberta"); escolhido = null; };
+
+function pintarEstado(d) {
+  $("projeto").textContent = (d.projeto || "").split("-").slice(-1)[0] || "";
+  $("m-economia").textContent = pct(d.economia);
+  $("m-cobertura").textContent = pct(d.cobertura);
+
+  $("c-economia").textContent = pct(d.economia);
+  $("b-economia").style.width = pct(d.economia);
+  $("n-economia").textContent = d.bytes_antes ? `${bytes(d.bytes_antes - d.bytes_depois)} de ${bytes(d.bytes_antes)}` : "sem historico ainda";
+  $("c-cobertura").textContent = pct(d.cobertura);
+  $("b-cobertura").style.width = pct(d.cobertura);
+  $("n-cobertura").textContent = `${d.com_historico} de ${d.aprendidos} com 3+ execucoes`;
+  $("c-aprendidos").textContent = d.aprendidos;
+  $("n-sessoes").textContent = `${d.despachos} agentes despachados`;
   const total = Object.values(d.discos).reduce((a, b) => a + b, 0);
-  texto("disco", bytes(total).split(" ")[0]);
-  document.getElementById("disco").insertAdjacentHTML("beforeend", `<small>${bytes(total).split(" ")[1]}</small>`);
-  texto("disco-nota", Object.entries(d.discos).map(([k, v]) => `${k.replace(".db", "")} ${bytes(v)}`).join(" · "));
+  $("c-disco").textContent = bytes(total);
+  $("n-disco").textContent = Object.entries(d.discos).map(([k, v]) => `${k.replace(".db", "")} ${bytes(v)}`).join(" · ");
 
-  const tabela = document.getElementById("barulhentos");
-  tabela.replaceChildren();
-  document.getElementById("barulhentos-vazio").hidden = d.barulhentos.length > 0;
+  const t = $("barulhentos");
+  t.replaceChildren();
+  $("barulhentos-vazio").hidden = d.barulhentos.length > 0;
   for (const b of d.barulhentos) {
     const tr = document.createElement("tr");
-    const cmd = document.createElement("td");
-    cmd.className = "mono";
-    cmd.textContent = b.comando;
-    const n = document.createElement("td");
-    n.className = "num";
-    n.textContent = `${b.execucoes}x · ${bytes(b.cortado)}`;
-    tr.append(cmd, n);
-    tabela.append(tr);
+    const c1 = document.createElement("td");
+    c1.className = "mono"; c1.textContent = b.comando;
+    const c2 = document.createElement("td");
+    c2.className = "num"; c2.textContent = `${b.execucoes}x · ${bytes(b.cortado)}`;
+    tr.append(c1, c2); t.append(tr);
   }
 
-  const lista = document.getElementById("eventos");
+  const lista = $("eventos");
   lista.replaceChildren();
-  document.getElementById("eventos-vazio").hidden = d.eventos.length > 0;
+  $("eventos-vazio").hidden = d.eventos.length > 0;
   for (const e of d.eventos) {
     const div = document.createElement("div");
     div.className = "evento";
     const tipo = document.createElement("span");
-    tipo.className = `tipo ${e.tipo}`;
-    tipo.textContent = e.tipo;
-    const meio = document.createElement("div");
-    meio.className = "assunto";
-    const b = document.createElement("b");
-    b.textContent = e.assunto;
-    const s = document.createElement("span");
-    s.textContent = e.corpo || "";
-    meio.append(b, s);
-    const quando = document.createElement("span");
-    quando.className = "idade";
-    quando.textContent = idade(e.quando, d.agora);
-    div.append(tipo, meio, quando);
+    tipo.className = "tipo"; tipo.dataset.t = e.tipo; tipo.textContent = e.tipo;
+    const corpo = document.createElement("div");
+    corpo.className = "corpo";
+    const b = document.createElement("b"); b.textContent = e.assunto;
+    const s = document.createElement("span"); s.textContent = e.corpo || "";
+    corpo.append(b, s);
+    const q = document.createElement("span");
+    q.className = "idade"; q.textContent = idade(e.quando, d.agora);
+    div.append(tipo, corpo, q);
     lista.append(div);
   }
-
-  texto("rodape-sessoes", `${d.sessoes} sessoes registradas`);
-  texto("rodape-bytes", `${d.bytes_antes.toLocaleString("pt-BR")} caracteres observados`);
 }
 
 async function atualizar() {
-  const ponto = document.getElementById("ponto");
+  const pulso = $("pulso");
   try {
-    const r = await fetch("/api/estado");
-    if (!r.ok) throw new Error(r.status);
-    pintar(await r.json());
-    ponto.classList.remove("parado");
-    texto("atualizado", `atualizado ${new Date().toLocaleTimeString("pt-BR")}`);
+    const [estado, grafo] = await Promise.all([
+      fetch("/api/estado").then((r) => r.json()),
+      fetch("/api/grafo").then((r) => r.json()),
+    ]);
+    pintarEstado(estado);
+    montarGrafo(grafo);
+    pulso.classList.remove("parado");
+    $("atualizado").textContent = new Date().toLocaleTimeString("pt-BR");
   } catch (e) {
-    ponto.classList.add("parado");
-    texto("atualizado", `sem contato com o bilro (${e.message})`);
+    pulso.classList.add("parado");
+    $("atualizado").textContent = "sem contato";
   }
 }
 
+dimensionar();
+laco();
 atualizar();
-setInterval(atualizar, 4000);
+setInterval(atualizar, 5000);
 </script>
 </body>
 </html>
