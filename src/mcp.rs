@@ -20,6 +20,21 @@ fn tools() -> Value {
             }
         },
         {
+            "name": "bilro_script",
+            "description": "Runs a snippet in its own interpreter and returns only what it printed. Use it to DERIVE an answer from data — filter, count, parse, aggregate — so the raw bytes never enter the conversation. Output larger than a few kilobytes is indexed instead of returned; pass find to say what you are looking for.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "language": { "type": "string", "description": "shell, javascript, python, ruby or perl" },
+                    "code": { "type": "string" },
+                    "find": { "type": "array", "items": { "type": "string" }, "description": "What to look for, when the output is too large to return whole" },
+                    "cwd": { "type": "string" },
+                    "timeout_ms": { "type": "integer" }
+                },
+                "required": ["language", "code"]
+            }
+        },
+        {
             "name": "bilro_find",
             "description": "Searches everything already indexed by bilro_run, without running anything again.",
             "inputSchema": {
@@ -64,6 +79,37 @@ fn tools() -> Value {
     ])
 }
 
+const RETURN_WHOLE_UNDER: usize = 4096;
+
+/// Returns short output as it is, and holds a long one in the index so the
+/// conversation gets the passages asked for instead of every byte. This is the
+/// whole reason to run a snippet through bilro rather than a plain shell.
+fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) -> String {
+    let head = if failed { "falhou\n" } else { "" };
+    if output.len() <= RETURN_WHOLE_UNDER {
+        return format!("{head}{output}");
+    }
+    let Ok(conn) = crate::sandbox::open_default() else {
+        return format!("{head}{}", &output[..RETURN_WHOLE_UNDER.min(output.len())]);
+    };
+    let chunks = crate::sandbox::index(&conn, label, output, "script").unwrap_or(0);
+    let mut out = format!(
+        "{head}{} linhas de saida guardadas no indice em {chunks} trechos, fora do contexto.\n",
+        output.lines().count()
+    );
+    for q in queries {
+        if let Ok(hits) = crate::sandbox::search(&conn, q, 3) {
+            for h in hits {
+                out.push_str(&format!("\n## {q}\n{}\n", h.body));
+            }
+        }
+    }
+    if queries.is_empty() {
+        out.push_str("\nUse bilro_find para buscar nela, ou passe find na proxima chamada.");
+    }
+    out
+}
+
 fn text_result(text: String) -> Value {
     json!({ "content": [{ "type": "text", "text": text }] })
 }
@@ -104,6 +150,27 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 out.push_str("\nnenhum trecho casou com o que foi pedido");
             }
             text_result(out)
+        }
+        "bilro_script" => {
+            let language = arg_str(args, "language");
+            let code = arg_str(args, "code");
+            if language.is_empty() || code.is_empty() {
+                return error_result("language and code are required".into());
+            }
+            let cwd = arg_str(args, "cwd");
+            let dir = if cwd.is_empty() { None } else { Some(Path::new(cwd.as_str())) };
+            let timeout = args.get("timeout_ms").and_then(|v| v.as_u64());
+            match crate::script::run(&language, &code, dir, timeout) {
+                Err(e) => error_result(e),
+                Ok(r) => {
+                    let queries: Vec<String> = args
+                        .get("find")
+                        .and_then(|v| v.as_array())
+                        .map(|a| a.iter().filter_map(|q| q.as_str()).map(String::from).collect())
+                        .unwrap_or_default();
+                    text_result(hold_if_large(&format!("{language} snippet"), &r.output, &queries, r.failed))
+                }
+            }
         }
         "bilro_find" => {
             let query = arg_str(args, "query");
@@ -181,11 +248,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
 /// protocol gets no reply at all — sending one is what makes a client hang.
 pub fn handle(req: &Value) -> Option<Value> {
     let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
-    let id = req.get("id").cloned();
-    if id.is_none() {
-        return None;
-    }
-    let id = id.unwrap();
+    let id = req.get("id").cloned()?;
 
     let result = match method {
         "initialize" => json!({
@@ -249,7 +312,7 @@ mod tests {
     fn tools_list_traz_as_cinco_com_schema() {
         let r = handle(&json!({"jsonrpc":"2.0","id":2,"method":"tools/list"})).unwrap();
         let t = r["result"]["tools"].as_array().unwrap();
-        assert_eq!(t.len(), 5);
+        assert_eq!(t.len(), 6);
         for tool in t {
             assert!(tool["name"].as_str().unwrap().starts_with("bilro_"));
             assert!(!tool["description"].as_str().unwrap().is_empty());
@@ -286,6 +349,33 @@ mod tests {
         let txt = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(txt.contains("bilro"));
         assert!(!txt.contains("esboco"), "modo seguro nao deve avisar de esboco");
+    }
+
+    #[test]
+    fn script_deriva_resposta_sem_trazer_os_dados() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":8,"method":"tools/call","params":{
+            "name":"bilro_script",
+            "arguments":{"language":"shell","code":"seq 1 100000"}
+        }})).unwrap();
+        let txt = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(txt.contains("indice"), "saida grande deveria ir para o indice: {}", &txt[..80.min(txt.len())]);
+        assert!(txt.len() < 4000, "voltou grande demais: {} bytes", txt.len());
+    }
+
+    #[test]
+    fn script_curto_volta_inteiro() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{
+            "name":"bilro_script","arguments":{"language":"shell","code":"echo 42"}
+        }})).unwrap();
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("42"));
+    }
+
+    #[test]
+    fn script_sem_argumento_e_erro_de_conteudo() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":10,"method":"tools/call","params":{
+            "name":"bilro_script","arguments":{"language":"shell"}
+        }})).unwrap();
+        assert_eq!(r["result"]["isError"], true);
     }
 
     #[test]

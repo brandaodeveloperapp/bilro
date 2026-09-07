@@ -12,6 +12,7 @@ mod read;
 mod redact;
 mod ready;
 mod sandbox;
+mod script;
 mod shapes;
 mod style;
 mod weigh;
@@ -641,6 +642,30 @@ fn cmd_install() {
     }
 }
 
+/// Runs a snippet from the command line, reading the code from stdin so no
+/// quoting has to survive the shell twice.
+fn cmd_exec(argv: &[String]) {
+    let lang = argv.first().cloned().unwrap_or_else(|| "shell".into());
+    if script::runtime_for(&lang).is_none() {
+        return eprintln!("  linguagem nao suportada: {lang}. Disponiveis: {}", script::languages().join(", "));
+    }
+    let mut code = String::new();
+    if std::io::stdin().read_to_string(&mut code).is_err() || code.trim().is_empty() {
+        return eprintln!("  uso: echo '<codigo>' | bilro exec <linguagem>");
+    }
+    let cwd = std::env::current_dir().unwrap_or_default();
+    match script::run(&lang, &code, Some(&cwd), None) {
+        Err(e) => eprintln!("  {e}"),
+        Ok(r) => {
+            print!("{}", r.output);
+            if r.failed {
+                eprintln!("\n  {WARN}o script terminou com erro{OFF}");
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
@@ -658,6 +683,7 @@ fn usage() {
          \x20   bilro find <termo>     busca no que ja foi indexado\n\
          \x20   bilro style [nivel]    regras de escrita da sessao\n\
          \x20   bilro install          registra os hooks e poe o binario no PATH\n\
+         \x20   bilro exec <ling>      roda trecho de codigo (stdin), so o impresso volta\n\
          \x20   bilro mcp              servidor MCP por stdio\n"
     );
 }
@@ -685,6 +711,7 @@ fn main() {
         Some("sessions") => cmd_sessions(),
         Some("install") => cmd_install(),
         Some("mcp") => mcp::serve(),
+        Some("exec") => cmd_exec(&rest),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),
         Some("style") => println!("{}", style::ruleset(&rest.first().cloned().unwrap_or_else(style::read_level))),

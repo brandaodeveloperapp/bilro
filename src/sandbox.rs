@@ -27,6 +27,10 @@ pub fn default_db_path() -> PathBuf {
     home().join(".claude").join("bilro").join("index.db")
 }
 
+/// Beyond this an index costs more to keep than the answers it holds are
+/// worth: a single verbose run once grew the file past a hundred megabytes.
+const MAX_INDEXED_BYTES: usize = 8 * 1024 * 1024;
+
 /// Splits on blank lines so a section stays whole, then caps runaway blocks.
 pub fn chunk(text: &str, max_lines: usize) -> Vec<String> {
     let mut out = Vec::new();
@@ -77,6 +81,14 @@ pub fn open_default() -> rusqlite::Result<Connection> {
 /// Indexes `body` as chunks tied to `label`/`source`, returning how many
 /// pieces it was split into.
 pub fn index(conn: &Connection, label: &str, body: &str, source: &str) -> rusqlite::Result<usize> {
+    let body = if body.len() > MAX_INDEXED_BYTES {
+        match body.char_indices().nth(MAX_INDEXED_BYTES) {
+            Some((i, _)) => &body[..i],
+            None => body,
+        }
+    } else {
+        body
+    };
     let pieces = chunk(body, DEFAULT_CHUNK_LINES);
     let at = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0);
     let mut stmt =
@@ -236,5 +248,26 @@ mod tests {
         let r = run("echo antes; exit 3", None, &[], None);
         assert!(r.failed);
         assert!(r.withheld_tokens > 0);
+    }
+}
+
+#[cfg(test)]
+mod cap_tests {
+    use super::*;
+
+    #[test]
+    fn saida_gigante_nao_infla_o_indice_sem_limite() {
+        let dir = std::env::temp_dir().join(format!("bilro-cap-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("i.db");
+        let conn = open(&file).unwrap();
+        let enorme = "linha de log com algum conteudo\n".repeat(600_000);
+        assert!(enorme.len() > 16 * 1024 * 1024, "fixture precisa passar do cap");
+        index(&conn, "gigante", &enorme, "teste").unwrap();
+        drop(conn);
+        let tamanho = std::fs::metadata(&file).unwrap().len();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(tamanho < 32 * 1024 * 1024, "indice ficou com {tamanho} bytes");
     }
 }
