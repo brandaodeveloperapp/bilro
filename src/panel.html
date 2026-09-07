@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bilro</title>
+<style>
+  :root {
+    --fundo: #fbfaf8;
+    --papel: #ffffff;
+    --tinta: #1b1a18;
+    --fraco: #6b6862;
+    --linha: #e6e2db;
+    --destaque: #a8571f;
+    --bom: #2f7d54;
+    --ruim: #a8341f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #141312;
+      --papel: #1c1b19;
+      --tinta: #ece9e4;
+      --fraco: #98938a;
+      --linha: #2e2c28;
+      --destaque: #e0a06a;
+      --bom: #6fbf8f;
+      --ruim: #e08b78;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--tinta);
+    font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  .capa { max-width: 1040px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .projeto { color: var(--fraco); font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .estado { margin-left: auto; font-size: 12px; color: var(--fraco); }
+  .ponto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bom); margin-right: 6px; }
+  .ponto.parado { background: var(--ruim); }
+
+  .titular { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .cartao { background: var(--papel); border: 1px solid var(--linha); border-radius: 10px; padding: 16px 18px; }
+  .rotulo { font-size: 12px; color: var(--fraco); text-transform: lowercase; }
+  .numero { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .numero small { font-size: 14px; font-weight: 400; color: var(--fraco); margin-left: 4px; }
+  .nota { font-size: 12px; color: var(--fraco); margin-top: 3px; }
+
+  .barra { height: 5px; background: var(--linha); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .barra i { display: block; height: 100%; background: var(--destaque); }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 780px) { .duas { grid-template-columns: 1fr; } }
+
+  h2 { font-size: 13px; text-transform: lowercase; color: var(--fraco); margin: 0 0 12px; font-weight: 600; letter-spacing: 0.02em; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 6px 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--fraco); white-space: nowrap; padding-left: 12px; }
+
+  .evento { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linha); }
+  .evento:last-child { border-bottom: 0; }
+  .tipo { font-size: 11px; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--linha); color: var(--fraco); white-space: nowrap; height: fit-content; }
+  .tipo.falha, .tipo\.erro-tool { color: var(--ruim); border-color: var(--ruim); }
+  .assunto { flex: 1; min-width: 0; }
+  .assunto b { font-weight: 500; display: block; }
+  .assunto span { color: var(--fraco); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .idade { color: var(--fraco); font-size: 12px; white-space: nowrap; }
+  .vazio { color: var(--fraco); font-size: 13px; padding: 10px 0; }
+  .rodape { margin-top: 24px; font-size: 12px; color: var(--fraco); display: flex; gap: 18px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="capa">
+  <header>
+    <h1>bilro</h1>
+    <span class="projeto" id="projeto"></span>
+    <span class="estado"><span class="ponto" id="ponto"></span><span id="atualizado">carregando</span></span>
+  </header>
+
+  <div class="titular">
+    <div class="cartao">
+      <div class="rotulo">economia medida</div>
+      <div class="numero" id="economia">—</div>
+      <div class="barra"><i id="barra-economia" style="width:0"></i></div>
+      <div class="nota" id="economia-nota"></div>
+    </div>
+    <div class="cartao">
+      <div class="rotulo">cobertura</div>
+      <div class="numero" id="cobertura">—</div>
+      <div class="barra"><i id="barra-cobertura" style="width:0"></i></div>
+      <div class="nota" id="cobertura-nota"></div>
+    </div>
+    <div class="cartao">
+      <div class="rotulo">comandos aprendidos</div>
+      <div class="numero" id="aprendidos">—</div>
+      <div class="nota" id="sessoes-nota"></div>
+    </div>
+    <div class="cartao">
+      <div class="rotulo">em disco</div>
+      <div class="numero" id="disco">—</div>
+      <div class="nota" id="disco-nota"></div>
+    </div>
+  </div>
+
+  <div class="duas">
+    <div class="cartao">
+      <h2>o que mais se repete</h2>
+      <table id="barulhentos"></table>
+      <div class="vazio" id="barulhentos-vazio" hidden>nenhum comando repetiu o suficiente para o denoise agir. Ele precisa de tres execucoes antes de julgar.</div>
+    </div>
+    <div class="cartao">
+      <h2>o que passou por aqui</h2>
+      <div id="eventos"></div>
+      <div class="vazio" id="eventos-vazio" hidden>nada registrado neste projeto ainda.</div>
+    </div>
+  </div>
+
+  <div class="rodape">
+    <span id="rodape-sessoes"></span>
+    <span id="rodape-bytes"></span>
+  </div>
+</div>
+
+<script>
+const pct = (x) => `${Math.round(x * 100)}%`;
+const bytes = (n) => n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : n > 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
+const idade = (ms, agora) => {
+  const min = Math.max(0, Math.round((agora - ms) / 60000));
+  if (min < 1) return "agora";
+  if (min < 60) return `${min}min`;
+  if (min < 1440) return `${Math.round(min / 60)}h`;
+  return `${Math.round(min / 1440)}d`;
+};
+
+function texto(id, valor) { document.getElementById(id).textContent = valor; }
+
+function pintar(d) {
+  texto("projeto", d.projeto || "");
+  texto("economia", pct(d.economia));
+  document.getElementById("barra-economia").style.width = pct(d.economia);
+  texto("economia-nota", d.bytes_antes
+    ? `${bytes(d.bytes_antes - d.bytes_depois)} cortados de ${bytes(d.bytes_antes)}`
+    : "sem historico suficiente ainda");
+
+  texto("cobertura", pct(d.cobertura));
+  document.getElementById("barra-cobertura").style.width = pct(d.cobertura);
+  texto("cobertura-nota", `${d.com_historico} de ${d.aprendidos} com 3+ execucoes`);
+
+  texto("aprendidos", d.aprendidos);
+  texto("sessoes-nota", `${d.despachos} agentes despachados`);
+
+  const total = Object.values(d.discos).reduce((a, b) => a + b, 0);
+  texto("disco", bytes(total).split(" ")[0]);
+  document.getElementById("disco").insertAdjacentHTML("beforeend", `<small>${bytes(total).split(" ")[1]}</small>`);
+  texto("disco-nota", Object.entries(d.discos).map(([k, v]) => `${k.replace(".db", "")} ${bytes(v)}`).join(" · "));
+
+  const tabela = document.getElementById("barulhentos");
+  tabela.replaceChildren();
+  document.getElementById("barulhentos-vazio").hidden = d.barulhentos.length > 0;
+  for (const b of d.barulhentos) {
+    const tr = document.createElement("tr");
+    const cmd = document.createElement("td");
+    cmd.className = "mono";
+    cmd.textContent = b.comando;
+    const n = document.createElement("td");
+    n.className = "num";
+    n.textContent = `${b.execucoes}x · ${bytes(b.cortado)}`;
+    tr.append(cmd, n);
+    tabela.append(tr);
+  }
+
+  const lista = document.getElementById("eventos");
+  lista.replaceChildren();
+  document.getElementById("eventos-vazio").hidden = d.eventos.length > 0;
+  for (const e of d.eventos) {
+    const div = document.createElement("div");
+    div.className = "evento";
+    const tipo = document.createElement("span");
+    tipo.className = `tipo ${e.tipo}`;
+    tipo.textContent = e.tipo;
+    const meio = document.createElement("div");
+    meio.className = "assunto";
+    const b = document.createElement("b");
+    b.textContent = e.assunto;
+    const s = document.createElement("span");
+    s.textContent = e.corpo || "";
+    meio.append(b, s);
+    const quando = document.createElement("span");
+    quando.className = "idade";
+    quando.textContent = idade(e.quando, d.agora);
+    div.append(tipo, meio, quando);
+    lista.append(div);
+  }
+
+  texto("rodape-sessoes", `${d.sessoes} sessoes registradas`);
+  texto("rodape-bytes", `${d.bytes_antes.toLocaleString("pt-BR")} caracteres observados`);
+}
+
+async function atualizar() {
+  const ponto = document.getElementById("ponto");
+  try {
+    const r = await fetch("/api/estado");
+    if (!r.ok) throw new Error(r.status);
+    pintar(await r.json());
+    ponto.classList.remove("parado");
+    texto("atualizado", `atualizado ${new Date().toLocaleTimeString("pt-BR")}`);
+  } catch (e) {
+    ponto.classList.add("parado");
+    texto("atualizado", `sem contato com o bilro (${e.message})`);
+  }
+}
+
+atualizar();
+setInterval(atualizar, 4000);
+</script>
+</body>
+</html>

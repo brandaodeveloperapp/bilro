@@ -9,6 +9,7 @@ mod mcp;
 mod ledger;
 mod learn;
 mod memory;
+mod ops;
 mod propose;
 mod read;
 mod redact;
@@ -16,6 +17,7 @@ mod ready;
 mod sandbox;
 mod web;
 mod script;
+mod serve;
 mod shapes;
 mod style;
 mod weigh;
@@ -850,6 +852,56 @@ fn cmd_fetch(argv: &[String]) {
     }
 }
 
+fn cmd_stats() {
+    let s = ops::stats();
+    println!("\n  o que o bilro guarda e quanto poupa\n");
+    println!("  {:<28} {}", "comandos aprendidos", s.learned_commands);
+    println!("  {:<28} {}", "com 3+ execucoes", s.learned_mature);
+    println!("  {:<28} {} bytes", "cortaria hoje", s.denoise_savings_bytes);
+    println!("  {:<28} {}", "trechos indexados", s.indexed_chunks);
+    println!("  {:<28} {}", "sessoes", s.sessions);
+    for (kind, n) in &s.journal_events_by_kind {
+        println!("  {:<28} {}", format!("diario: {kind}"), n);
+    }
+    println!("\n  {DIM}em disco: {} bytes{OFF}\n", s.learn_db_bytes + s.index_db_bytes + s.journal_db_bytes + s.sessions_bytes);
+}
+
+fn cmd_doctor() {
+    let checks = ops::doctor();
+    let falhas = checks.iter().filter(|c| !c.ok).count();
+    println!("\n  diagnostico\n");
+    for c in &checks {
+        let marca = if c.ok { "\x1b[32mok\x1b[0m   ".to_string() } else { format!("{WARN}falha{OFF}") };
+        println!("  {marca} {:<30} {DIM}{}{OFF}", c.nome, c.detalhe);
+    }
+    println!(
+        "\n  {}\n",
+        if falhas == 0 { format!("{DIM}tudo no lugar{OFF}") } else { format!("{WARN}{falhas} item(ns) para resolver{OFF}") }
+    );
+}
+
+fn cmd_purge(argv: &[String]) {
+    let alvo = argv.first().map(|s| s.as_str()).unwrap_or("");
+    let confirmado = argv.iter().any(|a| a == "--sim");
+    let what = match alvo {
+        "index" => ops::Purge::Index,
+        "journal" | "diario" => ops::Purge::Journal,
+        "learn" | "historico" => ops::Purge::Learn,
+        "sessions" | "sessoes" => ops::Purge::Sessions,
+        "all" | "tudo" => ops::Purge::All,
+        _ => return eprintln!("  uso: bilro purge <index|journal|learn|sessions|all> [--sim]"),
+    };
+    let r = ops::purge(what, confirmado);
+    println!("\n  {}\n", if confirmado { "apagado" } else { "simulacao, nada foi apagado" });
+    for t in &r.targets {
+        println!("  {:<12} {} linhas, {} bytes", t.name, t.rows, t.bytes);
+    }
+    if !confirmado {
+        println!("\n  {WARN}repita com --sim para apagar de verdade{OFF}");
+    }
+    println!();
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
@@ -868,6 +920,10 @@ fn usage() {
          \x20   bilro style [nivel]    regras de escrita da sessao\n\
          \x20   bilro install          registra os hooks e poe o binario no PATH\n\
          \x20   bilro exec <ling>      roda trecho de codigo (stdin), so o impresso volta\n\
+         \x20   bilro serve [porta]    painel local do que passa pelo bilro\n\
+         \x20   bilro stats            o que ele guarda e quanto poupa\n\
+         \x20   bilro doctor           diagnostico da instalacao\n\
+         \x20   bilro purge <alvo>     apaga dado guardado (--sim confirma)\n\
          \x20   bilro mcp              servidor MCP por stdio\n"
     );
 }
@@ -898,6 +954,10 @@ fn main() {
         Some("mcp") => mcp::serve(),
         Some("exec") => cmd_exec(&rest),
         Some("recall") => cmd_recall(&rest),
+        Some("stats") => cmd_stats(),
+        Some("doctor") => cmd_doctor(),
+        Some("purge") => cmd_purge(&rest),
+        Some("serve") => serve::serve(rest.first().and_then(|p| p.parse().ok()).unwrap_or(7777)),
         Some("fetch") => cmd_fetch(&rest),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),
