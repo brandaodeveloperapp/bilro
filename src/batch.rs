@@ -159,7 +159,7 @@ pub fn mcp_tool_schema() -> serde_json::Value {
                         "required": ["label", "command"]
                     }
                 },
-                "queries": {
+                "find": {
                     "type": "array",
                     "items": { "type": "string" },
                     "description": "termos buscados no indice depois que todos os comandos rodarem"
@@ -221,7 +221,8 @@ pub fn mcp_call(args: &serde_json::Value) -> Result<String, String> {
     let commands = parse_commands(commands_value)?;
 
     let queries: Vec<String> = args
-        .get("queries")
+        .get("find")
+        .or_else(|| args.get("queries"))
         .and_then(|v| v.as_array())
         .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
         .unwrap_or_default();
@@ -231,11 +232,29 @@ pub fn mcp_call(args: &serde_json::Value) -> Result<String, String> {
 
     let result = run(&commands, &queries, concurrency, cwd.as_deref());
 
-    let json = serde_json::json!({
-        "outcomes": result.outcomes.iter().map(outcome_to_json).collect::<Vec<_>>(),
-        "hits": result.hits.iter().map(hit_to_json).collect::<Vec<_>>(),
-    });
-    serde_json::to_string_pretty(&json).map_err(|e| e.to_string())
+    let mut out = String::new();
+    for o in &result.outcomes {
+        out.push_str(&format!(
+            "{} {} — {} bytes em {} trecho(s){}\n",
+            if o.failed { "falhou" } else { "ok" },
+            o.label,
+            o.raw_bytes,
+            o.chunks,
+            if o.timed_out { ", interrompido no timeout" } else { "" }
+        ));
+    }
+    if result.hits.is_empty() {
+        out.push_str(if queries.is_empty() {
+            "\nSaida indexada. Passe find para receber os trechos, ou use bilro_find depois."
+        } else {
+            "\nNenhum trecho casou com o que foi pedido. A saida esta indexada; tente outro termo com bilro_find."
+        });
+    } else {
+        for h in &result.hits {
+            out.push_str(&format!("\n## {} — {}\n{}\n", h.query, h.hit.label, h.hit.body));
+        }
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -260,6 +279,28 @@ mod tests {
         let labels: Vec<&str> = result.outcomes.iter().map(|o| o.label.as_str()).collect();
         assert_eq!(labels, vec!["um", "dois", "tres", "quatro"]);
         assert!(result.outcomes.iter().all(|o| !o.failed));
+    }
+
+    #[test]
+    fn aceita_find_e_o_nome_antigo_queries() {
+        for chave in ["find", "queries"] {
+            let args = serde_json::json!({
+                "commands": [{"label": "eco", "command": "echo termo-raro-xilofone"}],
+                chave: ["xilofone"]
+            });
+            let saida = mcp_call(&args).expect("deveria rodar");
+            assert!(saida.contains("xilofone"), "chave {chave} nao trouxe o trecho: {saida}");
+        }
+    }
+
+    #[test]
+    fn sem_trecho_casando_diz_o_que_fazer_em_vez_de_calar() {
+        let args = serde_json::json!({
+            "commands": [{"label": "eco", "command": "echo alguma coisa"}],
+            "find": ["termo-que-nao-existe-em-lugar-nenhum"]
+        });
+        let saida = mcp_call(&args).unwrap();
+        assert!(saida.contains("bilro_find"), "deveria dizer como continuar: {saida}");
     }
 
     #[test]
@@ -351,15 +392,18 @@ mod tests {
     }
 
     #[test]
-    fn mcp_call_roda_e_devolve_json_valido() {
+    fn mcp_call_relata_cada_comando_em_texto_legivel() {
         let args = serde_json::json!({
-            "commands": [{ "label": "mcp-teste", "command": "echo mcp-ok" }],
-            "concurrency": 1,
+            "commands": [
+                {"label": "primeiro", "command": "echo um"},
+                {"label": "segundo", "command": "exit 3"}
+            ]
         });
-        let saida = mcp_call(&args).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&saida).unwrap();
-        assert_eq!(parsed["outcomes"][0]["label"], "mcp-teste");
-        assert_eq!(parsed["outcomes"][0]["failed"], false);
+        let saida = mcp_call(&args).expect("deveria rodar");
+        assert!(saida.contains("primeiro"), "faltou o primeiro rotulo: {saida}");
+        assert!(saida.contains("segundo"), "faltou o segundo rotulo: {saida}");
+        assert!(saida.contains("falhou"), "deveria marcar o que falhou: {saida}");
+        assert!(saida.contains("ok"), "deveria marcar o que passou: {saida}");
     }
 
     #[test]
