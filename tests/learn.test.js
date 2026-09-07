@@ -142,3 +142,8 @@ test("marcador de falha e reconhecido mesmo cercado de escape ANSI", () => {
     assert.ok(isSevere(linha), `deveria ser severa: ${JSON.stringify(linha)}`);
   assert.ok(!isSevere("\x1b[32m✓\x1b[0m passou"));
 });
+
+test("conjugacao de falha tambem conta como severa", () => {
+  for (const l of ["connection fails", "test fails intermittently", "o modulo falha", "dois testes falham", "build fail"])
+    assert.ok(isSevere(l), `deveria ser severa: ${l}`);
+});

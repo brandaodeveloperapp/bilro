@@ -16,7 +16,7 @@ static NUMERIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+(?:[.,]\d+)?").unwrap
 
 static SEVERE_WORDS: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
-        r"(?i)\b(error|erro|failed|failing|failure|falhou|fatal|panic|exception|traceback|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined is not|segmentation fault|FAIL)\b",
+        r"(?i)\b(error|erro|failed|failing|failure|fails|fail|falha|falham|falhou|fatal|panic|exception|traceback|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined is not|segmentation fault|FAIL)\b",
     )
     .unwrap()
 });
@@ -385,6 +385,13 @@ mod tests {
     fn novidade_lista_so_o_que_nao_existia() {
         let n = novelty("a\nb", "a\nb\nc");
         assert_eq!(n, vec!["c".to_string()]);
+    }
+
+    #[test]
+    fn is_severe_pega_conjugacao_de_falha() {
+        for l in ["connection fails", "test fails intermittently", "o modulo falha", "dois testes falham", "build fail"] {
+            assert!(is_severe(l), "deveria ser severa: {l}");
+        }
     }
 
     #[test]

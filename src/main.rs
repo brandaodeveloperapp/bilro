@@ -1,8 +1,17 @@
+mod exec;
+mod filters;
+mod graph;
 mod grep;
 mod ledger;
 mod learn;
+mod memory;
+mod propose;
 mod read;
+mod ready;
+mod sandbox;
 mod shapes;
+mod style;
+mod weigh;
 
 use shapes::contract::Shape;
 use std::io::Read;
@@ -91,11 +100,27 @@ fn run_filtered(argv: &[String]) {
     if let Ok(mut db) = learn::open(&learn_db()) {
         let _ = learn::observe(&mut db, &command, &raw);
     }
+    if let Some(msg) = suppressed_notice(&raw, &text) {
+        return eprintln!("  \x1b[2m{msg}\x1b[0m");
+    }
     println!("{text}");
     if before > text.len() {
         let pct = 100 - text.len() * 100 / before.max(1);
         eprintln!("\n  \x1b[2m{pct}% menor{}\x1b[0m", if note.is_empty() { String::new() } else { format!(" ({note})") });
     }
+}
+
+/// Says what happened when compression leaves nothing to print. Printing an
+/// empty result would look like the command produced no output at all, which is
+/// the silent loss this tool exists to avoid.
+fn suppressed_notice(raw: &str, text: &str) -> Option<String> {
+    if !text.trim().is_empty() || raw.trim().is_empty() {
+        return None;
+    }
+    let lines = raw.lines().filter(|l| !l.trim().is_empty()).count();
+    Some(format!(
+        "identico ao que este comando ja imprimiu antes: {lines} linhas suprimidas, nenhuma delas relatando falha"
+    ))
 }
 
 fn cmd_read(argv: &[String]) {
@@ -151,5 +176,28 @@ fn main() {
         Some("read") => cmd_read(&rest),
         Some("grep") => cmd_grep(&rest),
         _ => usage(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn saida_vazia_nunca_sai_calada() {
+        let aviso = suppressed_notice("alpha\nbeta\ngamma", "").expect("deveria avisar");
+        assert!(aviso.contains("3 linhas suprimidas"));
+        assert!(aviso.contains("nenhuma delas relatando falha"));
+    }
+
+    #[test]
+    fn saida_com_conteudo_nao_gera_aviso() {
+        assert!(suppressed_notice("alpha\nbeta", "alpha").is_none());
+    }
+
+    #[test]
+    fn comando_que_nao_imprimiu_nada_nao_inventa_aviso() {
+        assert!(suppressed_notice("", "").is_none());
+        assert!(suppressed_notice("   \n  ", "").is_none());
     }
 }
