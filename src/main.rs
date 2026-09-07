@@ -123,6 +123,123 @@ fn suppressed_notice(raw: &str, text: &str) -> Option<String> {
     ))
 }
 
+fn words(text: &str) -> std::collections::HashSet<String> {
+    text.to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
+        .collect::<String>()
+        .split_whitespace()
+        .filter(|w| w.chars().count() > 3)
+        .map(|w| w.to_string())
+        .collect()
+}
+
+fn overlap(a: &std::collections::HashSet<String>, b: &std::collections::HashSet<String>) -> f64 {
+    if a.is_empty() || b.is_empty() {
+        return 0.0;
+    }
+    let hits = a.iter().filter(|w| b.contains(*w)).count();
+    hits as f64 / a.len().min(b.len()) as f64
+}
+
+/// Prices a subagent before it is dispatched. The fixed cost is paid whatever
+/// the agent then does, and a second agent on a subject already covered pays it
+/// twice for one answer.
+fn hook_task(cwd: &Path) {
+    let mut raw = String::new();
+    if std::io::stdin().read_to_string(&mut raw).is_err() {
+        return;
+    }
+    let Ok(data) = serde_json::from_str::<serde_json::Value>(&raw) else { return };
+    let tool = data["tool_name"].as_str().unwrap_or("");
+    if tool != "Task" && tool != "Agent" {
+        return;
+    }
+    let input = &data["tool_input"];
+    let kind = input["subagent_type"].as_str().unwrap_or("general-purpose");
+    let prompt = input["prompt"].as_str().unwrap_or("");
+    let description = input["description"].as_str().unwrap_or("");
+    let session = data["session_id"].as_str().unwrap_or("unknown");
+
+    let claude = home().join(".claude");
+    let agents = weigh::weigh_agents(&[claude.join("agents"), cwd.join(".claude").join("agents")]);
+    let catalogue: i64 = agents.iter().map(|a| a.catalogue_tokens).sum();
+    let inherits = agents.iter().find(|a| a.name == kind).map(|a| a.inherits_everything).unwrap_or(true);
+    let floor = 18000 + catalogue;
+    let prompt_tokens = weigh::tokens_of(prompt);
+
+    let subject = words(&format!("{description} {prompt}").chars().take(600).collect::<String>());
+    let state = ledger::read(session);
+    let near: Vec<String> = state["dispatches"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter(|d| {
+                    let prev: std::collections::HashSet<String> = d["words"]
+                        .as_array()
+                        .map(|w| w.iter().filter_map(|x| x.as_str()).map(|s| s.to_string()).collect())
+                        .unwrap_or_default();
+                    overlap(&subject, &prev) > 0.45
+                })
+                .filter_map(|d| d["type"].as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    println!(
+        "bilro: ~{}k de custo fixo + {prompt_tokens} tok deste prompt, antes de qualquer trabalho.",
+        floor / 1000
+    );
+    if inherits {
+        println!("  {kind} nao declara tools: herda o catalogo inteiro de ferramentas neste despacho.");
+    }
+    if !near.is_empty() {
+        println!(
+            "  {}o agente sobre o mesmo assunto nesta sessao ({}). Da pra medir com ctx_execute?",
+            near.len() + 1,
+            near.join(", ")
+        );
+    }
+    let total = state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
+    if total >= 8 {
+        println!("  {total} agentes ja despachados nesta sessao.");
+    }
+
+    ledger::record(
+        session,
+        "dispatches",
+        serde_json::json!({
+            "type": kind,
+            "words": subject.iter().take(40).collect::<Vec<_>>(),
+            "cost": floor + prompt_tokens,
+            "repeat": !near.is_empty(),
+        }),
+    );
+}
+
+/// The one line a session opens with: what context costs before anything is
+/// asked for. A hook that says more than this spends the budget it is reporting.
+fn hook_session(cwd: &Path) {
+    let claude = home().join(".claude");
+    let slug = cwd.to_string_lossy().replace('/', "-");
+    let fixed: i64 = weigh::weigh_always_on(&claude).iter().map(|a| a.tokens).sum::<i64>()
+        + weigh::weigh_memory(&claude.join("projects")).iter().filter(|m| m.project == slug).map(|m| m.tokens).sum::<i64>()
+        + weigh::weigh_agents(&[claude.join("agents"), cwd.join(".claude").join("agents")])
+            .iter()
+            .map(|a| a.catalogue_tokens)
+            .sum::<i64>();
+    if fixed == 0 {
+        return;
+    }
+    let agents = weigh::weigh_agents(&[claude.join("agents"), cwd.join(".claude").join("agents")]);
+    let herdam = agents.iter().filter(|a| a.inherits_everything).count();
+    print!("bilro: {fixed} tok de custo fixo por request neste projeto.");
+    if herdam > 0 {
+        print!(" {herdam} agentes sem tools: herdam o catalogo inteiro quando despachados.");
+    }
+    println!(" Antes de despachar agente, pergunte se da pra medir com ctx_execute.");
+}
+
 fn cmd_read(argv: &[String]) {
     let outline = argv.iter().any(|a| a == "--outline");
     let Some(file) = argv.iter().find(|a| !a.starts_with("--")) else {
@@ -325,7 +442,12 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let rest = args.get(1..).unwrap_or(&[]).to_vec();
     match args.first().map(|s| s.as_str()) {
-        Some("hook") if rest.first().map(|s| s.as_str()) == Some("shadow") => hook_shadow(),
+        Some("hook") => match rest.first().map(|s| s.as_str()) {
+            Some("shadow") => hook_shadow(),
+            Some("session") => hook_session(&std::env::current_dir().unwrap_or_default()),
+            Some("task") => hook_task(&std::env::current_dir().unwrap_or_default()),
+            _ => {}
+        },
         Some("filter") => run_filtered(&rest),
         Some("read") => cmd_read(&rest),
         Some("grep") => cmd_grep(&rest),
