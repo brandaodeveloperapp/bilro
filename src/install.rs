@@ -9,6 +9,7 @@ const HOOKS: &[(&str, Option<&str>, &str)] = &[
 ];
 
 pub struct Report {
+    pub mcp: Option<&'static str>,
     pub binary: PathBuf,
     pub linked: Option<PathBuf>,
     pub added: Vec<String>,
@@ -26,6 +27,7 @@ fn settings_path(home: &Path) -> PathBuf {
 /// message, so an entry already pointing at this binary is left alone.
 pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::Result<Report> {
     let mut report = Report {
+        mcp: None,
         binary: binary.to_path_buf(),
         linked: None,
         added: Vec::new(),
@@ -115,7 +117,39 @@ pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::
 
     std::fs::create_dir_all(path.parent().unwrap())?;
     std::fs::write(&path, serde_json::to_string_pretty(&settings)?)?;
+    report.mcp = register_mcp(home, binary)?;
     Ok(report)
+}
+
+/// Registers the stdio MCP server so the tools appear in the model's own list.
+/// A capability that has to be remembered is a capability that goes unused.
+fn register_mcp(home: &Path, binary: &Path) -> std::io::Result<Option<&'static str>> {
+    let path = home.join(".claude.json");
+    let mut root: Value = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(|| json!({}));
+    let Some(obj) = root.as_object_mut() else { return Ok(None) };
+    let servers = obj.entry("mcpServers").or_insert_with(|| json!({}));
+    let Some(servers) = servers.as_object_mut() else { return Ok(None) };
+
+    let desired = json!({
+        "type": "stdio",
+        "command": binary.display().to_string(),
+        "args": ["mcp"],
+        "env": {}
+    });
+    let outcome = match servers.get("bilro") {
+        Some(existing) if *existing == desired => Some("ja estava"),
+        Some(_) => Some("caminho atualizado"),
+        None => Some("registrado"),
+    };
+    if servers.get("bilro") == Some(&desired) {
+        return Ok(outcome);
+    }
+    servers.insert("bilro".into(), desired);
+    std::fs::write(&path, serde_json::to_string_pretty(&root)?)?;
+    Ok(outcome)
 }
 
 #[cfg(test)]
@@ -133,6 +167,31 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(d.join(".claude")).unwrap();
         d
+    }
+
+    #[test]
+    fn registra_o_servidor_mcp() {
+        let home = temp();
+        install(&home, Path::new("/opt/bilro"), None).unwrap();
+        let s: Value = serde_json::from_str(&std::fs::read_to_string(home.join(".claude.json")).unwrap()).unwrap();
+        assert_eq!(s["mcpServers"]["bilro"]["command"], "/opt/bilro");
+        assert_eq!(s["mcpServers"]["bilro"]["args"][0], "mcp");
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn nao_apaga_outros_servidores_mcp() {
+        let home = temp();
+        std::fs::write(
+            home.join(".claude.json"),
+            json!({"mcpServers":{"playwright":{"type":"stdio","command":"npx"}}}).to_string(),
+        )
+        .unwrap();
+        install(&home, Path::new("/opt/bilro"), None).unwrap();
+        let s: Value = serde_json::from_str(&std::fs::read_to_string(home.join(".claude.json")).unwrap()).unwrap();
+        assert_eq!(s["mcpServers"]["playwright"]["command"], "npx");
+        assert!(s["mcpServers"]["bilro"].is_object());
+        std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]

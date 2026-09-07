@@ -3,6 +3,7 @@ mod filters;
 mod graph;
 mod grep;
 mod install;
+mod mcp;
 mod ledger;
 mod learn;
 mod memory;
@@ -93,6 +94,27 @@ fn hook_shadow() {
     if let Ok(mut db) = learn::open(&learn_db()) {
         let _ = learn::observe(&mut db, command, clipped);
     }
+}
+
+/// Runs a command and returns its compressed output, the shape that did the
+/// compressing, and how much smaller it got. Shared by the command line and the
+/// MCP tool so both answer identically.
+pub fn filtered(command: &str) -> Result<(String, String, usize), String> {
+    let out = Command::new("sh").arg("-c").arg(command).output().map_err(|e| e.to_string())?;
+    let mut captured = String::from_utf8_lossy(&out.stdout).to_string();
+    captured.push_str(&String::from_utf8_lossy(&out.stderr));
+    let raw = redact::redact(&captured);
+    let before = raw.len();
+    let (text, note) = squeeze(command, &raw);
+    if let Ok(mut db) = learn::open(&learn_db()) {
+        let _ = learn::observe(&mut db, command, &raw);
+    }
+    let saved = if before > text.len() { 100 - text.len() * 100 / before.max(1) } else { 0 };
+    let text = match suppressed_notice(&raw, &text) {
+        Some(msg) => msg,
+        None => text,
+    };
+    Ok((text, note, saved))
 }
 
 fn run_filtered(argv: &[String]) -> i32 {
@@ -608,6 +630,9 @@ fn cmd_install() {
             for a in &r.already {
                 println!("  {DIM}= {a} (ja estava){OFF}");
             }
+            if let Some(m) = r.mcp {
+                println!("  {DIM}mcp       servidor {m}{OFF}");
+            }
             if let Some(b) = &r.backup {
                 println!("\n  {DIM}settings anterior em {}{OFF}", b.display());
             }
@@ -632,7 +657,8 @@ fn usage() {
          \x20   bilro run <cmd>        roda e indexa; so o trecho pedido volta\n\
          \x20   bilro find <termo>     busca no que ja foi indexado\n\
          \x20   bilro style [nivel]    regras de escrita da sessao\n\
-         \x20   bilro install          registra os hooks e poe o binario no PATH\n"
+         \x20   bilro install          registra os hooks e poe o binario no PATH\n\
+         \x20   bilro mcp              servidor MCP por stdio\n"
     );
 }
 
@@ -658,6 +684,7 @@ fn main() {
         Some("bill") => cmd_bill(&std::env::current_dir().unwrap_or_default()),
         Some("sessions") => cmd_sessions(),
         Some("install") => cmd_install(),
+        Some("mcp") => mcp::serve(),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),
         Some("style") => println!("{}", style::ruleset(&rest.first().cloned().unwrap_or_else(style::read_level))),
