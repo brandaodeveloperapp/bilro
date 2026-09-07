@@ -4,7 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { signature, open, observe, denoise, novelty, similarity, rankByInformation, lineHash, exactHash } from "../lib/learn.js";
+import { signature, open, observe, denoise, novelty, similarity, rankByInformation, lineHash, exactHash, isSevere } from "../lib/learn.js";
 
 const db = () => open(join(mkdtempSync(join(tmpdir(), "bilro-l-")), "l.db"));
 
@@ -135,4 +135,15 @@ test("ruido benigno continua sendo cortado", () => {
   const noise = (n) => `> build\nwebpack compiled in ${n}ms\nasset main.js 2.1 MiB`;
   for (let i = 0; i < 10; i++) observe(d, "npm run build", noise(100 + i));
   assert.ok(denoise(d, "npm run build", noise(999)).dropped > 0);
+});
+
+test("marcador de falha e reconhecido mesmo cercado de escape ANSI", () => {
+  for (const linha of ["\x1b[31m✗\x1b[0m auth rejeita token", "  ✗ pedido nao pula estagio", "\x1b[31m✕\x1b[0m render"])
+    assert.ok(isSevere(linha), `deveria ser severa: ${JSON.stringify(linha)}`);
+  assert.ok(!isSevere("\x1b[32m✓\x1b[0m passou"));
+});
+
+test("conjugacao de falha tambem conta como severa", () => {
+  for (const l of ["connection fails", "test fails intermittently", "o modulo falha", "dois testes falham", "build fail"])
+    assert.ok(isSevere(l), `deveria ser severa: ${l}`);
 });

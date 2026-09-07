@@ -1,173 +1,94 @@
 # bilro
 
-**Weigh what your AI context costs before you ask it anything.**
+Token economy for coding agents. Runs your command, keeps what informs, and
+learns what your tools always print so it stops repeating it back to you.
 
-Every request to a coding agent carries a fixed load you never see: instruction
-files, the agent catalogue, project memory, tool schemas. You pay it whether or
-not anything uses it. `bilro` puts that on a scale.
+Named after the bobbins of Ceará lacework: many small threads, one pattern.
 
-```
-$ bilro bill
+## Install
 
-  o que você paga antes de pedir qualquer coisa
-
-    3288 tok  ████████████████████████  catálogo de 50 agentes
-    2468 tok  ██████████████████░░░░░░  CLAUDE.md
-    1442 tok  ███████████░░░░░░░░░░░░░  MEMORY.md (56 entradas)
-     240 tok  ██░░░░░░░░░░░░░░░░░░░░░░  RTK.md
-  ──────────────────────────────────────────────────────────
-    7438 tok  por request, use ou não
-
-  ⚠  4 agentes sem `tools:` herdam o catálogo inteiro
+```sh
+cargo build --release
+./target/release/bilro install
 ```
 
-## Why
+`install` puts the binary on your PATH and registers four hooks with Claude
+Code, keeping a copy of the settings file it changes. Running it twice changes
+nothing.
 
-Tools that track AI spend tell you what you already burned. `bilro` shows the
-weight of the empty container — the tare — so you can see what you are paying
-for before the work starts, and which of it is waste.
-
-## Commands
+## What it does
 
 ```
-bilro bill      what every request costs, ranked by weight
-bilro doctor    agents that inherit the whole catalogue, or cannot reach
-                your sandbox tools
-bilro verify    memories that assert a fact and cannot check themselves
+bilro filter <cmd>     runs the command and returns only what informs
+bilro read <file>      reads a file compressed (--outline for structure only)
+bilro grep <pattern>   search grouped by file, without the repetition
+bilro run <cmd>        runs and indexes; only the passage you ask for comes back
+bilro find <term>      searches what has already been indexed
+bilro ready            can the tools bilro replaces be retired yet?
+bilro bill             what context costs before you ask for anything
+bilro verify [--run]   checks memories that assert a dated fact
+bilro lint             broken links, orphaned memories, most-cited
+bilro propose          memories worth writing, from what you keep running
+bilro sessions         agents dispatched per session
 ```
 
-## Memory that checks itself
+## How the compression works
 
-A memory file can declare how to prove it is still true:
+Two passes, and the order matters.
 
-```yaml
----
-name: ios-ship
-verify: grep -oE '"version": "[0-9.]+"' app.json | head -1
-expect: 1.1.8
----
-```
+**Structure first.** Output has a shape — a columnar table, a diff, a test
+report, a file listing, a diagnostic list, an install log, a JSON dump — and a
+shape can be compressed on a command that has never been seen before. Seven
+shapes cover the output of dozens of tools, including tools nobody wrote a rule
+for, because the shape is what repeats across them, not the program name.
 
-```
-$ bilro verify
-  ✗ ios-ship
-      esperava "1.1.4", veio "version": "1.1.8"
+**History second.** Every run is recorded: how many times a command shape has
+been seen, and in how many of those runs each line appeared. A line present in
+nearly every run carries no information and is dropped. A line never seen
+before is always kept. Below three runs there is no history to judge with, so
+nothing is dropped at all.
 
-  1 memoria afirma fato que envelhece e nao sabe se verificar
-    landing-reformulacao    23d  valor R$250
-```
+Numbers and hashes collapse when deciding what is noise, so a duration or a
+counter does not make every run look new — but they are kept when deciding what
+is *new*, because `module 3 failed` and `module 7 failed` are different events
+that happen to share a shape.
 
-Memories that state a version, an amount or a count and have gone untouched
-are flagged even without a `verify:` — those are the ones that quietly lie.
+## The one rule that outranks compression
 
-## Run a command without paying for its output
+**A line reporting a failure is never dropped.** Not when it repeats, not when
+it appears in every run, not when the output is trimmed to a budget. A build
+that breaks the same way every day is still the answer to what happened, and a
+tool that hides it is worse than no tool.
 
-```
-$ bilro run "npx tsc --noEmit --listFiles" --find "features/references"
+Severity is recognised two ways: by the words and marks a line uses, and by the
+shape every compiler and linter prints — a path, a line, a column. The second
+matters because the first only knows the languages someone listed.
 
-  ok  7 trechos indexados, 11240 tok ficaram fora do contexto
-```
+Where nothing survives compression, bilro says how many lines were suppressed
+rather than printing an empty screen, and it does not claim none of them
+reported a failure. Absence of failure is not provable from a list of words.
 
-The output is chunked into SQLite FTS5 and ranked by BM25 — both built into
-Node, no dependency — so the bytes stay on disk and only what you asked for
-comes back. `bilro find <term>` retrieves the rest whenever you need it.
+## Credentials
 
-## Cut the noise a command makes
+Output is redacted before it is shown and before it is stored, because a secret
+written to the learning database once survives every later run. The value's
+shape is what is inspected, not the name of the field: connection strings,
+query parameters, Authorization headers, bare JWTs, password flags and private
+key blocks all carry secrets under innocent labels.
 
-```
-$ bilro filter "npx jest src/features"
-  ...
-  bilro filter (jest): 1061 tok cortados, 64%
-```
+## Declared checks
 
-Per-tool rules keep the lines you act on and drop the ones that only prove the
-tool ran — jest stack frames through `node_modules`, gradle's `UP-TO-DATE`,
-docker layer chatter, fastlane's compiler warnings. Repeated lines collapse
-with a count. An unknown command still gets the collapse.
+A memory may carry a `verify:` line asserting how to confirm a dated fact.
+Nothing runs without `--run`, no shell is involved, shell syntax is refused,
+and only a short list of read-only programs may be invoked at all. `git` is
+allowed but must name a read-only subcommand, because an alias beginning with
+`!` runs through a shell and `-c` can define one inline.
 
-## The filter that writes itself
+## Requirements
 
-Hand-written rules do not scale — every new tool needs another one. So the
-same command is measured across runs instead:
+Rust 1.75+ to build. Nothing at runtime — the binary is self-contained,
+including SQLite with FTS5.
 
-```
-IDF(line) = log(N / df(line))
-```
-
-A line present in most runs of a command carries no information and goes. A
-line seen for the first time has maximum IDF and is never cut.
-
-Two identities are kept per line. Shape — digits and hashes collapsed — decides
-what is noise, so a duration does not make every run look new. Exact identity
-decides what is an event, so `modulo 7 falhou` is not swallowed by the shape of
-`modulo 3 falhou`. A shape whose value differs on nearly every run is volatile
-and treated as noise regardless. The safety
-property falls out of the math rather than a special case:
-
-```
-run 1   1061 tok cut, 64%   (rule jest)
-run 3   1648 tok cut, 100%  (rule jest + 104 lines with no information)
-        ... code broken ...
-run 4    103 tok cut, 22%   (rule jest + 5 lines with no information)
-```
-
-When nothing changes it cuts everything. The moment something breaks, the cut
-collapses on its own and the failure comes through whole.
-
-Identical output is not repeated at all — just its size. Output that is
-merely *close* to the last run — Jaccard overlap on normalised lines above
-0.9 — comes back as the difference alone.
-
-When a run is long enough to overrun its budget, the lines kept are the ones
-carrying the most information, not the first eighty. Order is preserved, so
-the excerpt still reads in sequence.
-
-Exact set intersection is used rather than MinHash: a command's output is
-thousands of lines, where the intersection is instant and exact. MinHash pays
-for itself on corpora far larger than this, and only by accepting estimation
-error.
-
-## Memory that writes its own first draft
-
-```
-$ bilro propose
-
-  receita    npx jest src/features/references
-     rodado 10 vezes — vale virar receita com `verify:`
-  armadilha  Command failed: npx jest src/naoexiste
-     apareceu em 2 execucoes
-```
-
-A command shape run many times is a recipe someone keeps rediscovering. A
-failure line seen across runs is a trap that will be stepped on again.
-`--write` leaves a draft with frontmatter in the project's memory folder, so
-the note only has to be edited, never started from nothing.
-
-## Where the session went
-
-```
-$ bilro sessions
-
-  09-06 21:30    4 agentes    85k de custo fixo   2 repetidos
-```
-
-Every subagent dispatch is priced and remembered, so a session can be read
-back afterwards: how many agents, what they cost before doing anything, and
-how many asked a question the session had already asked.
-
-## Style
-
-```
-bilro style terse
-```
-
-Re-emits a concision ruleset at every session start, because a rule stated
-once decays in a long conversation. Code, commits, security notes and ordered
-steps are exempt.
-
-## Name
-
-A *bilro* is the wooden bobbin used in the bobbin lace of Ceará, Brazil — the
-tool that places one thread at a time, with nothing left over.
+## Licence
 
 MIT.
