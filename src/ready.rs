@@ -224,23 +224,3 @@ mod tests {
         assert!(!verdicts(&m).iter().find(|v| v.tool == "rtk").unwrap().missing.contains(&"sinal".to_string()));
     }
 }
-
-#[cfg(test)]
-mod temp_manual_ready {
-    use super::*;
-
-    #[test]
-    #[ignore]
-    fn manual_ready_compare() {
-        let m = evaluate_default().unwrap();
-        eprintln!("total={}", m.total);
-        eprintln!("learned={} coverage={:.4}", m.learned, m.coverage);
-        eprintln!("savings={:.4}", m.savings);
-        eprintln!("lost={}", m.lost.len());
-        eprintln!("audits={} criticals={}", m.audits, m.criticals);
-        eprintln!("last_audit={:?}", m.last_audit);
-        for v in verdicts(&m) {
-            eprintln!("{} missing={:?}", v.tool, v.missing);
-        }
-    }
-}

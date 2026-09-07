@@ -36,7 +36,7 @@ pub fn apply(shapes: &[Shape], text: &str) -> Applied {
     let mut best: Option<(&Shape, f64)> = None;
     for s in shapes {
         let c = (s.detect)(&lines);
-        if c >= MIN_CONFIDENCE && best.map_or(true, |(_, b)| c > b) {
+        if c >= MIN_CONFIDENCE && best.is_none_or(|(_, b)| c > b) {
             best = Some((s, c));
         }
     }

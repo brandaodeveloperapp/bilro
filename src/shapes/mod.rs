@@ -7,4 +7,4 @@ pub mod listing;
 pub mod table;
 pub mod test_report;
 
-pub use contract::{apply, Compressed, Shape};
+pub use contract::apply;

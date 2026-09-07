@@ -157,13 +157,167 @@ fn cmd_grep(argv: &[String]) {
     eprintln!("\n  \x1b[2m{} ocorrencias em {} arquivos\x1b[0m", r.hits, r.files);
 }
 
+fn memory_dir(cwd: &Path) -> PathBuf {
+    let slug = cwd.to_string_lossy().replace('/', "-");
+    home().join(".claude").join("projects").join(slug).join("memory")
+}
+
+const DIM: &str = "\x1b[2m";
+const OFF: &str = "\x1b[0m";
+const WARN: &str = "\x1b[33m";
+
+fn cmd_ready() {
+    let Ok(m) = ready::evaluate_default() else { return eprintln!("  sem banco ainda") };
+    let pct = |x: f64| format!("{}%", (x * 100.0).round());
+    let mark = |ok: bool| if ok { "\x1b[32mok\x1b[0m".to_string() } else { format!("{WARN}falta{OFF}") };
+    println!("\n  pode aposentar as ferramentas que o bilro substitui?\n");
+    println!("  historico   {} comandos aprendidos  {}", m.total, mark(m.total >= 40));
+    println!("  cobertura   {} com 3+ execucoes = {}  {}", m.learned, pct(m.coverage), mark(m.coverage >= 0.8));
+    println!("  economia    {} do output cortado  {}", pct(m.savings), mark(m.savings >= 0.5));
+    println!("  sinal       {} linhas de falha perdidas  {}", m.lost.len(), mark(m.lost.is_empty()));
+    println!("  auditoria   {} red-team, {} criticos  {}", m.audits, m.criticals, mark(m.audits >= 2 && m.criticals == 0));
+    println!();
+    for v in ready::verdicts(&m) {
+        if v.missing.is_empty() {
+            println!("  \x1b[32mPODE APOSENTAR\x1b[0m  {}", v.tool);
+        } else {
+            println!("  {DIM}ainda nao{OFF}       {}{DIM}  — falta {}; se errar: {}{OFF}", v.tool, v.missing.join(", "), v.risk);
+        }
+    }
+    println!();
+}
+
+fn cmd_lint(cwd: &Path) {
+    let r = graph::lint(&memory_dir(cwd));
+    println!("\n  {} memorias", r.total);
+    if !r.broken.is_empty() {
+        println!("\n  {WARN}{} links quebrados{OFF}", r.broken.len());
+        for b in r.broken.iter().take(10) {
+            println!("    {} {DIM}aponta para{OFF} {}", b.from, b.to);
+        }
+    }
+    if !r.orphans.is_empty() {
+        println!("\n  {} orfas {DIM}(sem link entrando nem saindo){OFF}", r.orphans.len());
+        for o in r.orphans.iter().take(8) {
+            println!("    {o}");
+        }
+    }
+    if !r.hubs.is_empty() {
+        println!("\n  mais citadas");
+        for h in &r.hubs {
+            println!("    {:<44} {DIM}{} entradas{OFF}", h.name, h.incoming);
+        }
+    }
+    println!();
+}
+
+fn cmd_propose() {
+    let Ok(db) = learn::open(&learn_db()) else { return eprintln!("  sem banco ainda") };
+    let opts = propose::ProposalOptions { min_runs: 5, min_failure_runs: 2 };
+    let Ok(list) = propose::proposals(&db, &opts) else { return };
+    if list.is_empty() {
+        return println!("\n  {DIM}nada a propor ainda{OFF}\n");
+    }
+    println!("\n  {} memorias que valeria escrever\n", list.len());
+    for p in &list {
+        println!("  {:<10} {}", p.kind, p.subject);
+        println!("             {DIM}{}{OFF}", p.why);
+    }
+    println!();
+}
+
+fn cmd_verify(cwd: &Path) {
+    let dir = memory_dir(cwd);
+    let memories = memory::load_memories(&dir);
+    if memories.is_empty() {
+        return println!("\n  {DIM}este projeto nao tem memoria em {}{OFF}\n", dir.display());
+    }
+    let armed = std::env::args().any(|a| a == "--run");
+    let mut refused = Vec::new();
+    let mut checked = 0usize;
+    println!();
+    for m in &memories {
+        let Some(v) = m.verify.as_deref() else { continue };
+        if !exec::is_safe(v) || !exec::is_allowed_program(v) {
+            refused.push((m.name.clone(), exec::program_of(v).unwrap_or_default()));
+            continue;
+        }
+        if !armed {
+            println!("  {DIM}?{OFF} {}  {DIM}{v}{OFF}", m.name);
+            checked += 1;
+            continue;
+        }
+        let r = exec::run_declared(v);
+        let ok = r.ok && m.expect.as_deref().map(|e| r.output.contains(e)).unwrap_or(true);
+        println!("  {} {}", if ok { "\x1b[32mok\x1b[0m" } else { "\x1b[31mfalhou\x1b[0m" }, m.name);
+        checked += 1;
+    }
+    if !refused.is_empty() {
+        println!("\n  {WARN}{} recusadas: so programa permitido roda em verify{OFF}", refused.len());
+        for (name, prog) in &refused {
+            println!("    {name}  {DIM}{prog}{OFF}");
+        }
+    }
+    if !armed && checked > 0 {
+        println!("\n  {DIM}nada foi executado. bilro verify --run executa{OFF}");
+    }
+    println!();
+}
+
+fn cmd_bill(cwd: &Path) {
+    let claude = home().join(".claude");
+    let slug = cwd.to_string_lossy().replace('/', "-");
+    let always = weigh::weigh_always_on(&claude);
+    let mems: Vec<_> = weigh::weigh_memory(&claude.join("projects"))
+        .into_iter()
+        .filter(|m| m.project == slug)
+        .collect();
+    let agents = weigh::weigh_agents(&[claude.join("agents"), cwd.join(".claude").join("agents")]);
+    let mcp = weigh::weigh_mcp(&home());
+    let fixed: i64 = always.iter().map(|a| a.tokens).sum::<i64>()
+        + mems.iter().map(|m| m.tokens).sum::<i64>()
+        + agents.iter().map(|a| a.catalogue_tokens).sum::<i64>();
+    println!("\n  custo fixo por request: {fixed} tokens\n");
+    for a in &always {
+        println!("  {:<34} {:>6}", a.name, a.tokens);
+    }
+    for m in &mems {
+        println!("  {:<34} {:>6} {DIM}({} memorias){OFF}", m.project, m.tokens, m.entries);
+    }
+    println!("  {:<34} {:>6} {DIM}({} agentes){OFF}", "catalogo de agentes", agents.iter().map(|a| a.catalogue_tokens).sum::<i64>(), agents.len());
+    let sem_tools = agents.iter().filter(|a| a.inherits_everything).count();
+    if sem_tools > 0 {
+        println!("\n  {WARN}{sem_tools} agentes sem tools: herdam o catalogo inteiro quando despachados{OFF}");
+    }
+    println!("  {DIM}{} servidores MCP{OFF}\n", mcp.len());
+}
+
+fn cmd_sessions() {
+    let list = ledger::sessions();
+    if list.is_empty() {
+        return println!("\n  {DIM}nenhuma sessao registrada{OFF}\n");
+    }
+    println!("\n  {} sessoes\n", list.len());
+    for s in list.iter().take(12) {
+        let sum = ledger::summarize(&s.id);
+        println!("  {:<40} {DIM}{} agentes, {} repetidos{OFF}", s.id, sum.dispatches, sum.repeats);
+    }
+    println!();
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
          \x20   bilro filter <cmd>     roda comando e devolve so o que informa\n\
          \x20   bilro read <arq>       le arquivo comprimido (--outline so a estrutura)\n\
          \x20   bilro grep <padrao>    busca agrupada por arquivo, sem repeticao\n\
-         \x20   bilro hook shadow      observador silencioso, para PostToolUse\n"
+         \x20   bilro hook shadow      observador silencioso, para PostToolUse\n\
+         \x20   bilro ready            ja da pra aposentar rtk, caveman e context-mode?\n\
+         \x20   bilro bill             custo fixo de contexto por request\n\
+         \x20   bilro verify [--run]   confere memorias que afirmam fato datado\n\
+         \x20   bilro lint             link quebrado, memoria orfa, mais citada\n\
+         \x20   bilro propose          memorias que valeria escrever\n\
+         \x20   bilro sessions         agentes despachados por sessao\n"
     );
 }
 
@@ -175,6 +329,12 @@ fn main() {
         Some("filter") => run_filtered(&rest),
         Some("read") => cmd_read(&rest),
         Some("grep") => cmd_grep(&rest),
+        Some("ready") => cmd_ready(),
+        Some("lint") => cmd_lint(&std::env::current_dir().unwrap_or_default()),
+        Some("verify") => cmd_verify(&std::env::current_dir().unwrap_or_default()),
+        Some("propose") => cmd_propose(),
+        Some("bill") => cmd_bill(&std::env::current_dir().unwrap_or_default()),
+        Some("sessions") => cmd_sessions(),
         _ => usage(),
     }
 }
