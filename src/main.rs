@@ -600,7 +600,7 @@ fn cmd_install() {
                 println!("  no PATH   {}", l.display());
             }
             for a in &r.added {
-                println!("  {}+{} {a}", "\x1b[32m", OFF);
+                println!("  \x1b[32m+{OFF} {a}");
             }
             for a in &r.replaced {
                 println!("  {WARN}~{OFF} {a} {DIM}(caminho atualizado){OFF}");
