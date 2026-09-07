@@ -57,35 +57,64 @@ pub struct ScriptResult {
 
 /// Owns the scratch file for as long as the run needs it and removes it on the
 /// way out, including the paths that return early with an error.
-pub struct Scratch(PathBuf);
+pub struct Scratch {
+    file: PathBuf,
+    dir: PathBuf,
+}
 
 impl Scratch {
+    /// The old name was `bilro-script-<pid>-<counter>` in the shared temp dir:
+    /// predictable enough for anything else on the machine to pre-create it as
+    /// a symlink and have the next run overwrite whatever it pointed at. The
+    /// file is now created inside a private directory, and `create_new` refuses
+    /// to follow a link that is already there.
     pub fn new(extension: &str, code: &str) -> std::io::Result<Scratch> {
-        let path = scratch(extension);
-        let mut f = std::fs::File::create(&path)?;
+        let dir = scratch_dir()?;
+        let file = dir.join(format!("snippet.{extension}"));
+        let mut opts = std::fs::OpenOptions::new();
+        opts.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            opts.mode(0o600);
+        }
+        let mut f = opts.open(&file)?;
         f.write_all(code.as_bytes())?;
-        Ok(Scratch(path))
+        Ok(Scratch { file, dir })
     }
 
     pub fn path(&self) -> &Path {
-        &self.0
+        &self.file
     }
 }
 
 impl Drop for Scratch {
     fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
+        let _ = std::fs::remove_file(&self.file);
+        let _ = std::fs::remove_dir(&self.dir);
     }
 }
 
-fn scratch(extension: &str) -> PathBuf {
+fn scratch_dir() -> std::io::Result<PathBuf> {
     use std::sync::atomic::{AtomicU64, Ordering};
     static N: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!(
-        "bilro-script-{}-{}.{extension}",
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let dir = std::env::temp_dir().join(format!(
+        "bilro-{}-{}-{}",
         std::process::id(),
+        nanos,
         N.fetch_add(1, Ordering::SeqCst)
-    ))
+    ));
+    std::fs::create_dir(&dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+    }
+    Ok(dir)
 }
 
 /// Runs a snippet in its own interpreter and returns what it printed. The code
@@ -108,6 +137,11 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
         cmd.current_dir(dir);
     }
 
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => return Err(format!("could not run {}: {e}", runtime.program)),
@@ -146,6 +180,7 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
             Ok(Some(s)) => break s,
             Ok(None) => {
                 if std::time::Instant::now() >= deadline {
+                    crate::proc::end_the_whole_group(child.id());
                     let _ = child.kill();
                     timed_out = true;
                     break child.wait().map_err(|e| e.to_string())?;
@@ -275,5 +310,44 @@ mod pipe_tests {
         assert!(!r.timed_out, "hung waiting for the pipe to drain");
         assert!(r.output.lines().count() > 199_000, "lost lines: {}", r.output.lines().count());
         assert!(start.elapsed().as_secs() < 15, "took {}s", start.elapsed().as_secs());
+    }
+}
+
+#[cfg(test)]
+mod scratch_tests {
+    use super::*;
+
+    #[test]
+    fn a_planted_symlink_cannot_be_written_through() {
+        let victim = std::env::temp_dir().join(format!("bilro-victim-{}", std::process::id()));
+        std::fs::write(&victim, "original contents").unwrap();
+        let s = Scratch::new("sh", "echo hello").unwrap();
+        let link = s.path().parent().unwrap().join("planted.sh");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&victim, &link).unwrap();
+        assert!(Scratch::new("sh", "echo hello").is_ok());
+        assert_eq!(std::fs::read_to_string(&victim).unwrap(), "original contents");
+        let _ = std::fs::remove_file(&link);
+        let _ = std::fs::remove_file(&victim);
+    }
+
+    #[test]
+    fn a_snippet_that_leaves_a_background_process_still_hits_its_deadline() {
+        let started = std::time::Instant::now();
+        let r = run("shell", "sleep 90 & echo started; sleep 60", None, Some(700)).unwrap();
+        let waited = started.elapsed();
+        assert!(r.timed_out, "the deadline did not fire");
+        assert!(
+            waited < std::time::Duration::from_secs(6),
+            "waited {waited:?} on a 700ms deadline: the grandchild still held the pipe"
+        );
+    }
+
+    #[test]
+    fn two_runs_never_share_a_path() {
+        let a = Scratch::new("sh", "echo a").unwrap();
+        let b = Scratch::new("sh", "echo b").unwrap();
+        assert_ne!(a.path(), b.path());
+        assert!(a.path().exists() && b.path().exists());
     }
 }

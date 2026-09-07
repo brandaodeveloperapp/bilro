@@ -187,10 +187,39 @@ fn respond(stream: &mut TcpStream, status: &str, content_type: &str, body: &str)
     let _ = stream.flush();
 }
 
+/// Binding to loopback stops a remote connection but not a browser: a page can
+/// point a hostname it owns at 127.0.0.1 and read this panel same-origin. The
+/// Host header is what tells those two apart.
+fn host_is_local(host: &str) -> bool {
+    let name = host.trim().rsplit_once(':').map(|(h, _)| h).unwrap_or(host.trim());
+    let name = name.trim_start_matches('[').trim_end_matches(']');
+    name.eq_ignore_ascii_case("localhost") || name == "127.0.0.1" || name == "::1"
+}
+
 fn handle(mut stream: TcpStream) {
+    let mut reader = BufReader::new(&stream);
     let mut line = String::new();
-    if BufReader::new(&stream).read_line(&mut line).is_err() {
+    if reader.read_line(&mut line).is_err() {
         return;
+    }
+    let mut host = String::new();
+    loop {
+        let mut header = String::new();
+        match reader.read_line(&mut header) {
+            Ok(0) => break,
+            Ok(_) => {
+                if header.trim().is_empty() {
+                    break;
+                }
+                if let Some(v) = header.split_once(':').filter(|(k, _)| k.eq_ignore_ascii_case("host")) {
+                    host = v.1.trim().to_string();
+                }
+            }
+            Err(_) => break,
+        }
+    }
+    if !host_is_local(&host) {
+        return respond(&mut stream, "403 Forbidden", "text/plain; charset=utf-8", "not local");
     }
     let route = line.split_whitespace().nth(1).unwrap_or("/");
     match route {
@@ -300,7 +329,9 @@ mod tests {
         let request = |route: &str| -> String {
             use std::io::Read;
             let mut c = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
-            let _ = c.write_all(format!("GET {route} HTTP/1.1\r\nHost: x\r\n\r\n").as_bytes());
+            let _ = c.write_all(
+                format!("GET {route} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n").as_bytes(),
+            );
             let mut buf = String::new();
             let _ = c.read_to_string(&mut buf);
             buf
@@ -310,5 +341,13 @@ mod tests {
         let other = request("/../../etc/passwd");
         assert!(other.contains("404"), "an unknown route should give a 404");
         assert!(!other.contains("<html"), "never serve the page for an unknown route");
+
+        use std::io::Read;
+        let mut c = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+        let _ = c.write_all(b"GET /api/state HTTP/1.1\r\nHost: attacker-rebind.example.com\r\n\r\n");
+        let mut rebind = String::new();
+        let _ = c.read_to_string(&mut rebind);
+        assert!(rebind.contains("403"), "a rebound hostname must not read the journal");
+        assert!(!rebind.contains("\"events\""), "the journal leaked to a rebound origin");
     }
 }

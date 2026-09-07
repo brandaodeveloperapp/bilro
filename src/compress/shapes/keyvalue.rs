@@ -71,6 +71,80 @@ fn truncate_string(value: &str, stats: &mut Stats) -> String {
     format!("{}...(truncated, {} original chars)", head, char_count)
 }
 
+/// Whether one item of a collapsing array is reporting a failure. Only short
+/// string values are asked: a release note that happens to say "fixed an error"
+/// is prose, while `"status": "CrashLoopBackOff"` is the field the array exists
+/// to communicate, and reading the whole item as one blob confuses the two.
+const STATE_KEYS: [&str; 10] =
+    ["fail", "error", "restart", "exit", "ready", "healthy", "success", "status", "state", "ok"];
+const TEXT_KEYS: [&str; 12] = [
+    "status", "state", "message", "detail", "reason", "cause", "error", "failure", "condition",
+    "phase", "result", "output",
+];
+
+/// A field whose name is about health answers with a number or a boolean:
+/// `"restarts": 147`, `"ready": false`, `"exit_code": 1`. None of those carry a
+/// word `is_severe` could recognise, and every one of them is the reason the
+/// item is worth keeping. The same field arrives as a string often enough
+/// (`"status": "errored"`, `"exitCode": "137"`) that reading only numbers and
+/// booleans dropped exactly the process that had died. A zero is only read as
+/// "not healthy" under a field that really is a flag: `status: 0` is the
+/// canonical success of half the JSON APIs in existence and of every exit code.
+fn state_field_is_bad(key: &str, value: &Value) -> bool {
+    let k = key.to_ascii_lowercase();
+    if !STATE_KEYS.iter().any(|w| k.contains(w)) {
+        return false;
+    }
+    let bad_when_present = k.contains("fail") || k.contains("error") || k.contains("restart") || k.contains("exit");
+    let as_flag = |x: f64| if bad_when_present { x != 0.0 } else { x == 0.0 };
+    let reads_as_a_flag = k.contains("ready") || k.contains("healthy") || k.contains("success") || k == "ok";
+    match value {
+        Value::Number(n) => match n.as_f64() {
+            Some(x) if bad_when_present => x != 0.0,
+            Some(x) if reads_as_a_flag && (x == 0.0 || x == 1.0) => as_flag(x),
+            _ => false,
+        },
+        Value::Bool(b) => {
+            if bad_when_present {
+                *b
+            } else {
+                !*b
+            }
+        }
+        Value::String(s) => match s.parse::<f64>() {
+            Ok(x) if reads_as_a_flag => as_flag(x),
+            Ok(_) => false,
+            Err(_) => is_severe(s),
+        },
+        _ => false,
+    }
+}
+
+/// Whether one item of a collapsing array is reporting a failure. A field whose
+/// name says it carries status is read whole; anything else is read only when
+/// it is short, because a release note that happens to say "fixed an error" is
+/// prose and reading it as a failure kills the compression for everyone.
+fn reports_a_failure(value: &Value) -> bool {
+    const PROSE_MIN: usize = 64;
+    match value {
+        Value::String(s) => s.chars().count() <= PROSE_MIN && is_severe(s),
+        Value::Array(items) => items.iter().any(reports_a_failure),
+        Value::Object(map) => map.iter().any(|(k, v)| {
+            if state_field_is_bad(k, v) {
+                return true;
+            }
+            let named = k.to_ascii_lowercase();
+            if TEXT_KEYS.iter().any(|w| named.contains(w)) {
+                if let Value::String(s) = v {
+                    return is_severe(s);
+                }
+            }
+            reports_a_failure(v)
+        }),
+        _ => false,
+    }
+}
+
 fn shrink_value(value: &Value, stats: &mut Stats) -> Value {
     match value {
         Value::Array(arr) => {
@@ -78,13 +152,22 @@ fn shrink_value(value: &Value, stats: &mut Stats) -> Value {
                 let sig = shape_signature(&arr[0]);
                 let homogeneous = arr.iter().all(|v| shape_signature(v) == sig);
                 if homogeneous {
-                    stats.collapsed += arr.len() - 1;
+                    let failures: Vec<Value> = arr
+                        .iter()
+                        .skip(1)
+                        .filter(|v| reports_a_failure(v))
+                        .map(|v| shrink_value(v, stats))
+                        .collect();
+                    stats.collapsed += arr.len() - 1 - failures.len();
                     let mut out = serde_json::Map::new();
                     out.insert(
                         "(summary)".to_string(),
                         Value::String(format!("{} items in the same shape, first one as schema", arr.len())),
                     );
                     out.insert("(example)".to_string(), shrink_value(&arr[0], stats));
+                    if !failures.is_empty() {
+                        out.insert("(failures)".to_string(), Value::Array(failures));
+                    }
                     return Value::Object(out);
                 }
             }
@@ -399,3 +482,75 @@ mod tests {
     }
 }
 
+
+#[cfg(test)]
+mod collapse_regressions {
+
+    #[test]
+    fn a_failure_expressed_as_a_number_or_a_flag_is_still_a_failure() {
+        let raw = r#"{"pods":[
+          {"name":"web-0","restarts":0,"ready":true},
+          {"name":"web-1","restarts":0,"ready":true},
+          {"name":"web-2","restarts":0,"ready":true},
+          {"name":"web-3","restarts":0,"ready":true},
+          {"name":"queue-0","restarts":147,"ready":false}
+        ]}"#;
+        let parsed: Value = serde_json::from_str(raw).unwrap();
+        let (text, _) = compress_json(&parsed);
+        assert!(text.contains("queue-0"), "the broken pod vanished:\n{text}");
+        assert!(text.contains("147"), "the restart count vanished:\n{text}");
+    }
+
+    #[test]
+    fn an_exit_code_is_read_even_though_it_carries_no_word() {
+        let raw = r#"{"jobs":[
+          {"name":"a","exit_code":0},{"name":"b","exit_code":0},
+          {"name":"c","exit_code":0},{"name":"d","exit_code":0},
+          {"name":"migrate","exit_code":1}
+        ]}"#;
+        let parsed: Value = serde_json::from_str(raw).unwrap();
+        let (text, _) = compress_json(&parsed);
+        assert!(text.contains("migrate"), "{text}");
+    }
+
+    #[test]
+    fn a_long_message_under_a_status_field_is_read_whole() {
+        let raw = r#"{"conditions":[
+          {"type":"MemoryPressure","status":"False","message":"kubelet has sufficient memory available"},
+          {"type":"DiskPressure","status":"False","message":"kubelet has no disk pressure"},
+          {"type":"PIDPressure","status":"False","message":"kubelet has sufficient PID available"},
+          {"type":"Init","status":"False","message":"node is initialising as expected right now"},
+          {"type":"Ready","status":"False","message":"container runtime network not ready: cni plugin not initialised"}
+        ]}"#;
+        let parsed: Value = serde_json::from_str(raw).unwrap();
+        let (text, _) = compress_json(&parsed);
+        assert!(text.contains("cni plugin not initialised"), "the NotReady condition vanished:\n{text}");
+    }
+    use super::*;
+
+    const PODS: &str = r#"{"items":[
+      {"name":"web-0","status":"Running","restarts":0},
+      {"name":"web-1","status":"Running","restarts":0},
+      {"name":"web-2","status":"Running","restarts":0},
+      {"name":"web-3","status":"Running","restarts":0},
+      {"name":"api-0","status":"CrashLoopBackOff","restarts":47}
+    ]}"#;
+
+    #[test]
+    fn collapsing_a_homogeneous_array_never_drops_the_broken_item() {
+        let parsed: Value = serde_json::from_str(PODS).unwrap();
+        let (text, _) = compress_json(&parsed);
+        assert!(text.contains("CrashLoopBackOff"), "the failing pod was eaten:\n{text}");
+        assert!(text.contains("api-0"), "the failing pod lost its name:\n{text}");
+        assert!(text.contains("(summary)"), "collapse should still happen:\n{text}");
+    }
+
+    #[test]
+    fn an_array_with_nothing_wrong_still_collapses_whole() {
+        let healthy = PODS.replace("CrashLoopBackOff", "Running").replace("47", "0");
+        let parsed: Value = serde_json::from_str(&healthy).unwrap();
+        let (text, _) = compress_json(&parsed);
+        assert!(!text.contains("(failures)"), "invented a failure:\n{text}");
+        assert!(text.contains("(summary)"));
+    }
+}

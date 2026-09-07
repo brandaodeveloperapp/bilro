@@ -81,9 +81,32 @@ pub fn detect(lines: &[&str]) -> f64 {
 /// that runs until the next mark, and the whole block is dropped unless a
 /// line in it is `is_severe`. A failing mark, a progress line and a summary
 /// line are never touched, so a failure keeps its whole stack and diff.
+/// A run of passing cases ends where the report starts explaining a failure.
+/// Absorbing every plain line after a `PASS` swallowed the whole body of a jest
+/// failure — the case name, the expected value, the stack — none of which
+/// carries a word any severity rule would recognise. A `●` opens a failure
+/// section — except `● Console`, which jest prints for a suite that passed.
+/// Only structural marks count: a stack frame or an `Expected:` line reads the
+/// same in a failure and in the console noise of a suite that went green.
+fn starts_failure_detail(line: &str) -> bool {
+    let t = line.trim();
+    if t.is_empty() {
+        return false;
+    }
+    if let Some(rest) = t.strip_prefix('●') {
+        return !rest.trim_start().starts_with("Console");
+    }
+    t.starts_with('✕') || t.starts_with('✗') || t.starts_with('×') || t.starts_with("E   ")
+}
+
+/// Compresses a test-report style output: a passing case mark opens a block
+/// that runs until the next mark, and the whole block is dropped unless a
+/// line in it is `is_severe`. A failing mark, a progress line and a summary
+/// line are never touched, so a failure keeps its whole stack and diff.
 pub fn compress(lines: &[&str]) -> Compressed {
     let n = lines.len();
     let kinds: Vec<Kind> = lines.iter().map(|l| classify(l)).collect();
+
     let mut out: Vec<&str> = Vec::with_capacity(n);
     let mut dropped = 0usize;
     let mut collapsed_blocks = 0usize;
@@ -92,7 +115,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
         if kinds[i] == Kind::Pass {
             let start = i;
             let mut end = i + 1;
-            while end < n && kinds[end] == Kind::Plain {
+            while end < n && kinds[end] == Kind::Plain && !starts_failure_detail(lines[end]) {
                 end += 1;
             }
             let before = dropped;

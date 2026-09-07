@@ -29,6 +29,41 @@ pub struct Applied {
     pub shape: Option<&'static str>,
     pub dropped: usize,
     pub confidence: f64,
+    pub note: String,
+}
+
+/// The rule every shape declares and one of them broke: a line reporting a
+/// failure is never dropped. Enforcing it once here rather than trusting seven
+/// compressors means the array collapse that deleted three aborted CI jobs
+/// cannot happen again in the eighth. What is re-attached is the input line
+/// whose own failure evidence is nowhere in the output — checking for the whole
+/// line instead would re-attach a JSON document that was faithfully reshaped.
+fn keep_the_failures(lines: &[&str], result: Compressed) -> Compressed {
+    let missing: Vec<&str> = lines
+        .iter()
+        .copied()
+        .filter(|l| {
+            let trimmed = l.trim();
+            if trimmed.is_empty() || result.text.contains(trimmed) {
+                return false;
+            }
+            crate::compress::learn::severe_evidence(l)
+                .is_some_and(|ev| !result.text.contains(ev.as_str()))
+        })
+        .collect();
+    if missing.is_empty() {
+        return result;
+    }
+    let mut text = result.text;
+    if !text.is_empty() && !text.ends_with('\n') {
+        text.push('\n');
+    }
+    for l in &missing {
+        text.push_str(l.trim());
+        text.push('\n');
+    }
+    let note = format!("{}; {} failure line(s) kept back", result.note, missing.len());
+    Compressed { text, dropped: result.dropped.saturating_sub(missing.len()), note }
 }
 
 pub fn apply(shapes: &[Shape], text: &str) -> Applied {
@@ -41,11 +76,11 @@ pub fn apply(shapes: &[Shape], text: &str) -> Applied {
         }
     }
     let Some((shape, confidence)) = best else {
-        return Applied { text: text.to_string(), shape: None, dropped: 0, confidence: 0.0 };
+        return Applied { text: text.to_string(), shape: None, dropped: 0, confidence: 0.0, note: String::new() };
     };
-    let r = (shape.compress)(&lines);
+    let r = keep_the_failures(&lines, (shape.compress)(&lines));
     if r.text.len() >= text.len() {
-        return Applied { text: text.to_string(), shape: None, dropped: 0, confidence: 0.0 };
+        return Applied { text: text.to_string(), shape: None, dropped: 0, confidence: 0.0, note: String::new() };
     }
-    Applied { text: r.text, shape: Some(shape.name), dropped: r.dropped, confidence }
+    Applied { text: r.text, shape: Some(shape.name), dropped: r.dropped, confidence, note: r.note }
 }

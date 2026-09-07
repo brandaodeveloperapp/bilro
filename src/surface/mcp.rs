@@ -130,9 +130,21 @@ fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) ->
         return format!("{head}{output}");
     }
     let Ok(conn) = crate::store::sandbox::open_default() else {
-        return format!("{head}{}", &output[..RETURN_WHOLE_UNDER.min(output.len())]);
+        let cut = output
+            .char_indices()
+            .nth(RETURN_WHOLE_UNDER)
+            .map_or(output.len(), |(i, _)| i);
+        return format!("{head}{}", &output[..cut]);
     };
-    let chunks = crate::store::sandbox::index(&conn, label, output, "script").unwrap_or(0);
+    let chunks = match crate::store::sandbox::index(&conn, label, output, "script") {
+        Ok(n) => n,
+        Err(e) => {
+            return format!(
+                "{head}the output could not be stored ({e}); it is NOT in the index. First lines:\n{}",
+                output.lines().take(40).collect::<Vec<_>>().join("\n")
+            )
+        }
+    };
     let mut out = format!(
         "{head}{} lines of output held in the index across {chunks} chunks, out of context.\n",
         output.lines().count()
@@ -140,7 +152,7 @@ fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) ->
     for q in queries {
         if let Ok(hits) = crate::store::sandbox::search(&conn, q, 3) {
             for h in hits {
-                out.push_str(&format!("\n## {q}\n{}\n", h.body));
+                out.push_str(&format!("\n## {q}\n{}\n", crate::redact::redact(&h.body)));
             }
         }
     }
@@ -183,8 +195,20 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 r.chunks,
                 r.withheld_tokens
             );
+            if r.dropped_bytes > 0 {
+                out.push_str(&format!(
+                    "{} bytes from the middle of this output were too large to index and are not searchable\n",
+                    r.dropped_bytes
+                ));
+            }
             for h in &r.hits {
-                out.push_str(&format!("\n## {}\n{}\n", h.query, crate::redact::redact(&h.hit.body)));
+                let shown = crate::store::sandbox::excerpt(
+                    &crate::redact::redact(&h.hit.body),
+                    &h.query,
+                    40,
+                )
+                .join("\n");
+                out.push_str(&format!("\n## {}\n{}\n", h.query, shown));
             }
             if r.hits.is_empty() && !queries.is_empty() {
                 out.push_str("\nno chunk matched what was asked for");
@@ -310,7 +334,13 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 Ok(hits) => {
                     let mut out = format!("{} chunks\n", hits.len());
                     for h in &hits {
-                        out.push_str(&format!("\n## {}\n{}\n", h.label, crate::redact::redact(&h.body)));
+                        let shown = crate::store::sandbox::excerpt(
+                            &crate::redact::redact(&h.body),
+                            &query,
+                            40,
+                        )
+                        .join("\n");
+                        out.push_str(&format!("\n## {}\n{}\n", crate::redact::redact(&h.label), shown));
                     }
                     text_result(out)
                 }
@@ -322,12 +352,15 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 return error_result("command is required".into());
             }
             let cwd = arg_str(args, "cwd");
-            let full = if cwd.is_empty() { command.clone() } else { format!("cd {cwd} && {command}") };
+            let full = if cwd.is_empty() { command.clone() } else { format!("cd {} && {command}", shell_quote(&cwd)) };
             match crate::compress::pipeline::filtered(&full) {
-                Ok((text, note, saved)) => {
+                Ok((text, note, saved, code)) => {
                     let mut out = text;
                     if saved > 0 {
                         out.push_str(&format!("\n\n[bilro: {saved}% smaller{}]", if note.is_empty() { String::new() } else { format!(", {note}") }));
+                    }
+                    if code != 0 {
+                        return error_result(format!("command exited {code}\n{out}"));
                     }
                     text_result(out)
                 }
@@ -399,6 +432,12 @@ pub fn handle(req: &Value) -> Option<Value> {
         }
     };
     Some(json!({ "jsonrpc": "2.0", "id": id, "result": result }))
+}
+
+/// A directory name is data, not a second command. Quoting it keeps a `cwd` of
+/// `/tmp && touch x` from running anything.
+fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
 }
 
 pub fn serve() {

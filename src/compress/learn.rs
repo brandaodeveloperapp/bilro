@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use std::borrow::Cow;
 use regex::Regex;
 use rusqlite::{params, Connection};
 use sha1::{Digest, Sha1};
@@ -15,22 +16,75 @@ static HEX_RUN: Lazy<Regex> = Lazy::new(|| Regex::new(r"[0-9a-f]{7,}").unwrap())
 static NUMERIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+(?:[.,]\d+)?").unwrap());
 
 static SEVERE_WORDS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(error|errors|failed|failing|failure|fails|fail|fatal|panic|panicked|exception|traceback|stacktrace|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined|undeclared|unresolved|unmet|unexpected|invalid|illegal|missing|abort|aborted|killed|segmentation fault|core dumped|exit status|exit code|rejected|conflict|mismatch|FAIL|ERR)\b").unwrap()
+    Regex::new(r"(?i)\b(error|errors|failed|failing|failure|fails|fail|fatal|panic|panicked|exception|traceback|stacktrace|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined|undeclared|unresolved|unmet|unexpected|invalid|illegal|missing|abort|aborted|killed|segmentation fault|core dumped|exit status|exit code|rejected|conflict|mismatch|crashloopbackoff|imagepullbackoff|errimagepull|oomkilled|evicted|unhealthy|notready|not ok|not ready|not healthy|not running|not initiali[sz]ed|reset by peer|deadline exceeded|caused by|non-zero|errored|packet loss|unable|(?:host|network|destination) unreachable|no route to host|connection reset|broken pipe|erro|falha|falhou|fallo|FAIL|ERR)\b").unwrap()
 });
-static SEVERE_MARKS: Lazy<Regex> = Lazy::new(|| Regex::new("[✕✗✖❌×⨯]").unwrap());
+static SEVERE_MARKS: Lazy<Regex> = Lazy::new(|| Regex::new("[✕✗✖✘❌×⨯]").unwrap());
+
+/// `Exited (0)` is a container that finished, `Exited (137)` is one that was
+/// killed; `dead code` is a compiler warning and `crash reporter disabled` is a
+/// setting. These words only report a failure with the right thing next to them,
+/// so they are asked with their context rather than on their own.
+static AMBIGUOUS: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?i)(?:\bexited\s*\(\s*[1-9]|\bexit(?:ed)?\s+(?:with\s+)?(?:status|code)\s*[:=]?\s*[1-9]|code\s*=\s*exited|status\s*=\s*[1-9]|\(dead\)|\bis\s+dead\b|\bdead\s*$|\bexited\s+(?:abnormally|too\s+quickly|unexpectedly)|\bcrash\s*loop|\bcrashed\b|\b(?:a|the)\s+crash\b|\bcrash\s+in\b|\bcrashing\b|\bcrashes\b|\bcrash\s+(?:detected|dump|report)\b\b|\bresult:\s*exit-code|\bhttp\s*[45]\d\d\b|\b(?:returned|responded\s+with|got|received)\s+[45]\d\d\b|\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b[^\n]{0,200}?\s[45]\d\d\b|\b(?:status|code)\b\D{0,14}\b[45]\d\d\b|\b[45]\d\d\s+(?:error|internal|service|gateway|bad|forbidden|unauthorized|not\s+found)|\bunexpectedly\s+(?:stopped|terminated)|\brestarting\s*\(\d|\bconnection\s+refused|\binsufficient\s+(?:cpu|memory|disk|storage|resources)|\bno\s+space\s+left|\bterminated\s+with\s+(?:signal|error)|\b(?:service|node|pod|host)\s+(?:is\s+)?(?:offline|degraded))",
+    )
+    .unwrap()
+});
 static DIAGNOSTIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\S+:\d+(:\d+)?:\s").unwrap());
+static ANSI: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\x1b(?:\[[0-9;?]*[A-Za-z]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[()][A-Za-z0-9]|[@-Z\\-_])").unwrap()
+});
+static EXCEPTION: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^\s*[A-Z][A-Za-z0-9_.]*(?:Error|Exception)\s*:").unwrap()
+});
+
+/// Colour is decoration, not content. A test runner that writes `FAILED` in
+/// red must read as a failure to every rule below, so the escape codes come
+/// off before any of them look at the line.
+fn strip_ansi(line: &str) -> Cow<'_, str> {
+    if line.contains('\u{1b}') {
+        ANSI.replace_all(line, " ")
+    } else {
+        Cow::Borrowed(line)
+    }
+}
 
 /// A line reporting a failure is never noise, however often it repeats. A build
 /// that breaks the same way every day is still the answer to "what happened".
 pub fn is_severe(line: &str) -> bool {
-    is_severe_text(line) || DIAGNOSTIC.is_match(line)
+    let plain = strip_ansi(line);
+    severe_words(&plain) || DIAGNOSTIC.is_match(&plain)
+}
+
+/// The exact text that made a line read as a failure. A caller checking that a
+/// failure survived compression needs to look for the evidence itself: a whole
+/// JSON document on one line legitimately loses most of its words to a shape,
+/// and what must still be there afterwards is `CrashLoopBackOff`, not the other
+/// thirty pods.
+pub fn severe_evidence(line: &str) -> Option<String> {
+    let plain = strip_ansi(line);
+    for re in [&*SEVERE_WORDS, &*SEVERE_MARKS, &*EXCEPTION, &*AMBIGUOUS, &*DIAGNOSTIC] {
+        if let Some(m) = re.find(&plain) {
+            return Some(m.as_str().to_string());
+        }
+    }
+    None
 }
 
 /// Severity carried by the words or marks a line uses, ignoring the structural
 /// `path:line:col:` shape. A grouping compressor already accounts for that
 /// shape by keeping a count and an example, so it asks this narrower question.
 pub fn is_severe_text(line: &str) -> bool {
-    SEVERE_WORDS.is_match(line) || SEVERE_MARKS.is_match(line)
+    severe_words(&strip_ansi(line))
+}
+
+/// `KeyError: 'user_id'` is the whole answer a traceback exists to deliver and
+/// carries none of the severe words, so the exception name is a rule of its own.
+fn severe_words(plain: &str) -> bool {
+    SEVERE_WORDS.is_match(plain)
+        || SEVERE_MARKS.is_match(plain)
+        || EXCEPTION.is_match(plain)
+        || AMBIGUOUS.is_match(plain)
 }
 
 /// Commands differ by their arguments; what repeats is the program and shape.
@@ -78,11 +132,18 @@ pub fn open(file: &Path) -> rusqlite::Result<Connection> {
         "PRAGMA busy_timeout = 5000;
          PRAGMA journal_mode = WAL;
          PRAGMA synchronous = NORMAL;
-         CREATE TABLE IF NOT EXISTS runs (sig TEXT PRIMARY KEY, n INTEGER NOT NULL, last_hash TEXT);
+         CREATE TABLE IF NOT EXISTS runs (sig TEXT PRIMARY KEY, n INTEGER NOT NULL, last_hash TEXT, bytes INTEGER NOT NULL DEFAULT 0);
          CREATE TABLE IF NOT EXISTS lines (sig TEXT, h TEXT, df INTEGER NOT NULL, PRIMARY KEY (sig, h));
          CREATE TABLE IF NOT EXISTS last (sig TEXT PRIMARY KEY, body TEXT);
          CREATE TABLE IF NOT EXISTS exact (sig TEXT, shape TEXT, h TEXT, PRIMARY KEY (sig, h));",
     )?;
+    let fresh = db.execute_batch("ALTER TABLE runs ADD COLUMN bytes INTEGER NOT NULL DEFAULT 0;");
+    if fresh.is_ok() {
+        let _ = db.execute_batch(
+            "UPDATE runs SET bytes = n * (SELECT length(body) FROM last WHERE last.sig = runs.sig)
+             WHERE bytes = 0 AND EXISTS (SELECT 1 FROM last WHERE last.sig = runs.sig);",
+        );
+    }
     Ok(db)
 }
 
@@ -118,7 +179,7 @@ pub struct Observed {
 /// Records one run: how many times this command shape has been seen, and how
 /// many of those runs each line appeared in.
 pub fn observe(db: &mut Connection, command: &str, output: &str) -> rusqlite::Result<Observed> {
-    let sig = signature(command);
+    let sig = signature(&crate::redact::redact(command));
     let hash = full_digest(output);
     let all: Vec<&str> = output.split('\n').collect();
     let lines: &[&str] = if all.len() > MAX_LINES { &all[..MAX_LINES] } else { &all };
@@ -127,11 +188,12 @@ pub fn observe(db: &mut Connection, command: &str, output: &str) -> rusqlite::Re
     let uniq: HashSet<String> =
         lines.iter().filter(|l| !l.trim().is_empty()).map(|l| line_hash(l)).collect();
 
+    let seen_bytes = output.chars().count() as i64;
     let tx = db.transaction()?;
     tx.execute(
-        "INSERT INTO runs(sig, n, last_hash) VALUES (?, 1, ?)
-         ON CONFLICT(sig) DO UPDATE SET n = n + 1, last_hash = ?",
-        params![sig, hash, hash],
+        "INSERT INTO runs(sig, n, last_hash, bytes) VALUES (?, 1, ?, ?)
+         ON CONFLICT(sig) DO UPDATE SET n = n + 1, last_hash = ?, bytes = bytes + ?",
+        params![sig, hash, seen_bytes, hash, seen_bytes],
     )?;
     {
         let mut bump = tx.prepare(
@@ -428,6 +490,138 @@ mod tests {
         }
         for l in ["compiling", "asset main.js 2.1 MiB", "ok"] {
             assert!(!is_severe(l), "should not be severe: {l}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod severity_regressions {
+
+    #[test]
+    fn a_container_that_died_is_not_routine() {
+        assert!(is_severe("3b7e acme/worker:1.4  Exited (137) 230 minutes ago  worker"));
+        assert!(is_severe("Active: inactive (dead) since Mon"));
+        assert!(is_severe("Caused by: java.sql.SQLException: connection is closed"));
+        assert!(is_severe("Main PID: 1284 (code=exited, status=137/n/a)"));
+        assert!(is_severe("erro: falha ao aplicar migracao"));
+    }
+
+    #[test]
+    fn an_escape_that_is_not_a_colour_code_still_comes_off() {
+        assert!(is_severe("\u{1b}(B\u{1b}[mERROR: db down"));
+        assert!(is_severe("\u{1b}(BFAILED tests/test_pay.py"));
+        assert!(is_severe("\u{1b}]8;;http://x\u{7}ERROR: link\u{1b}]8;;\u{7}"));
+    }
+
+    #[test]
+    fn an_exception_named_in_passing_is_not_a_failure() {
+        assert!(!is_severe("NotFoundException handler ready"));
+        assert!(!is_severe("AuthenticationError handler installed"));
+        assert!(is_severe("NotFoundException: no such user"));
+    }
+    use super::*;
+
+    #[test]
+    fn a_python_exception_message_is_severe_without_the_word_error() {
+        assert!(is_severe("KeyError: 'user_id'"));
+        assert!(is_severe("ZeroDivisionError: division by zero"));
+        assert!(is_severe("AttributeError: 'NoneType' object has no attribute 'x'"));
+        assert!(is_severe("    ValueError: bad literal"));
+        assert!(is_severe("SomeLibraryException: connection dropped"));
+    }
+
+    #[test]
+    fn colour_does_not_hide_a_failure() {
+        assert!(is_severe("\u{1b}[31mERROR\u{1b}[0m: database connection lost"));
+        assert!(is_severe("\u{1b}[1;31mFAILED\u{1b}[0m tests/test_pay.py"));
+        assert!(is_severe("\u{1b}[0;33mwarning\u{1b}[0m: \u{1b}[31merror\u{1b}[0m in module"));
+        assert!(is_severe_text("\u{1b}[31mfatal\u{1b}[0m: not a git repository"));
+    }
+
+    #[test]
+    fn ordinary_lines_stay_ordinary() {
+        assert!(!is_severe("Compiling bilro v0.2.0"));
+        assert!(!is_severe("\u{1b}[32mok\u{1b}[0m 42 passed"));
+        assert!(!is_severe("Downloaded serde v1.0.0"));
+        assert!(!is_severe("HttpClient created"));
+    }
+}
+
+#[cfg(test)]
+mod ambiguous_word_tests {
+    use super::*;
+
+    #[test]
+    fn a_word_only_reports_failure_with_the_right_thing_next_to_it() {
+        assert!(is_severe("3b7e acme/worker:1.4  Exited (137) 230 minutes ago"));
+        assert!(is_severe("Main PID: 1284 (code=exited, status=137/n/a)"));
+        assert!(is_severe("Active: inactive (dead) since Mon"));
+        assert!(is_severe("GET /orders HTTP 503"));
+        assert!(is_severe("1 packets transmitted, 0 packets received, 100.0% packet loss"));
+        assert!(is_severe("E: Unable to locate package foobar"));
+        assert!(is_severe("No space left on device"));
+        assert!(is_severe("0/3 nodes are available: insufficient cpu."));
+    }
+
+    #[test]
+    fn the_same_words_in_a_routine_line_still_compress() {
+        for line in [
+            "warning: dead code",
+            "#[warn(dead_code)]",
+            "crash reporter disabled",
+            "Downloaded crash-handler v0.6.2",
+            "no route needed",
+            "unreachable statement removed by the optimiser",
+            "aa11 acme/cron:2.0  Exited (0) 3 seconds ago",
+            "exiting normally",
+        ] {
+            assert!(!is_severe(line), "routine line read as a failure: {line}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod round_four_vocabulary {
+    use super::*;
+
+    #[test]
+    fn the_common_shapes_of_a_process_dying_are_read_as_failures() {
+        for line in [
+            "MSB3073: The command \"dotnet build\" exited with code 1.",
+            "worker BACKOFF Exited too quickly",
+            "child process exited abnormally",
+            "The process exited with code 1",
+            "Detected a crash in the render process",
+            "app crash detected, uploading minidump",
+            "Active: activating (auto-restart) (Result: exit-code)",
+            "GET /api/orders 503 12ms",
+            "POST /v1/charge 402 88ms",
+            "upstream returned 502",
+            "Response status: 500",
+        ] {
+            assert!(is_severe(line), "a real failure read as routine: {line}");
+        }
+    }
+
+    #[test]
+    fn a_clean_shutdown_log_still_compresses() {
+        for line in [
+            "systemd[1]: Stopped nginx.service.",
+            "systemd[1]: Stopped docker.service.",
+            "Container acme-db-1  Stopped",
+            "Container acme-api-1  Stopped",
+            "Container acme-api-1  Restarting",
+            "warning: insufficient precision",
+            "offline mode enabled",
+            "terminated by the user on purpose",
+            "Downloaded terminated-process v1.2.0",
+            "no space checks skipped in dev mode",
+            "GET /api/orders 200 12ms",
+            "POST /v1/charge 201 88ms",
+            "crash reporter disabled",
+            "Downloaded crash-handler v0.6.2",
+        ] {
+            assert!(!is_severe(line), "routine shutdown line read as a failure: {line}");
         }
     }
 }

@@ -26,10 +26,16 @@ pub fn all_shapes() -> Vec<Shape> {
 
 
 /// Structure first, then history: a shape works on a command never seen before,
-/// while denoise needs several runs before it may judge anything.
+/// while denoise needs several runs before it may judge anything. Both report
+/// what they removed — a shape that collapses forty array items in silence
+/// breaks the same promise a filter that eats an error line breaks.
 pub fn squeeze(command: &str, output: &str) -> (String, String) {
     let shaped = crate::compress::shapes::apply(&all_shapes(), output);
-    let mut note = shaped.shape.map(|s| s.to_string()).unwrap_or_default();
+    let mut note = match (shaped.shape, shaped.note.trim()) {
+        (Some(name), "") => name.to_string(),
+        (Some(_), detail) => detail.to_string(),
+        (None, _) => String::new(),
+    };
     let Ok(db) = crate::compress::learn::open(&learn_db()) else {
         return (shaped.text, note);
     };
@@ -61,11 +67,22 @@ pub fn suppressed_notice(raw: &str, text: &str) -> Option<String> {
 
 
 /// Runs a command and returns its compressed output, the shape that did the
-/// compressing, and how much smaller it got. Shared by the command line and the
-/// MCP tool so both answer identically.
-pub fn filtered(command: &str) -> Result<(String, String, usize), String> {
-    let out = Command::new("sh").arg("-c").arg(command).output().map_err(|e| e.to_string())?;
+/// compressing, how much smaller it got, and the exit code. The code is not
+/// decoration: a caller with no other channel — the MCP tool — would otherwise
+/// read a failed command's silence as success. A command that runs out of time
+/// still hands back everything it printed first: throwing that away to report
+/// only the timeout is the silent loss this whole tool exists to prevent.
+const FILTER_TIMEOUT_MS: u64 = 120_000;
+
+pub fn filtered(command: &str) -> Result<(String, String, usize, i32), String> {
+    let mut sh = Command::new("sh");
+    sh.arg("-c").arg(command);
+    let out = crate::proc::spawn_with_timeout(sh, FILTER_TIMEOUT_MS).map_err(|e| e.to_string())?;
+    let code = if out.timed_out { 124 } else { out.status.and_then(|s| s.code()).unwrap_or(1) };
     let mut captured = String::from_utf8_lossy(&out.stdout).to_string();
+    if !captured.is_empty() && !captured.ends_with('\n') {
+        captured.push('\n');
+    }
     captured.push_str(&String::from_utf8_lossy(&out.stderr));
     let raw = crate::redact::redact(&captured);
     let before = raw.len();
@@ -74,10 +91,55 @@ pub fn filtered(command: &str) -> Result<(String, String, usize), String> {
         let _ = crate::compress::learn::observe(&mut db, command, &raw);
     }
     let saved = if before > text.len() { 100 - text.len() * 100 / before.max(1) } else { 0 };
-    let text = match suppressed_notice(&raw, &text) {
+    let mut text = match suppressed_notice(&raw, &text) {
         Some(msg) => msg,
         None => text,
     };
-    Ok((text, note, saved))
+    if out.timed_out {
+        text.push_str(&format!(
+            "\n[bilro: no answer after {}s, everything printed up to that point is above]",
+            FILTER_TIMEOUT_MS / 1000
+        ));
+    }
+    Ok((text, note, saved, code))
 }
 
+
+#[cfg(test)]
+mod exit_code_tests {
+    use super::*;
+
+    #[test]
+    fn a_failing_command_reports_its_code_even_when_it_printed_nothing() {
+        let (_, _, _, code) = filtered("exit 3").unwrap();
+        assert_eq!(code, 3);
+        let (_, _, _, code) = filtered("false").unwrap();
+        assert_eq!(code, 1);
+    }
+
+    /// `signature()` folds every integer to `N`, so a numeric suffix collides
+    /// across runs and the third one gets denoised away. Letters do not fold.
+    fn unique() -> String {
+        let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        n.to_string().bytes().map(|b| (b'a' + (b - b'0')) as char).collect()
+    }
+
+    #[test]
+    fn a_successful_command_reports_zero() {
+        let (text, _, _, code) = filtered(&format!("echo done-{}", unique())).unwrap();
+        assert_eq!(code, 0);
+        assert!(text.contains("done-"), "{text}");
+    }
+
+    #[test]
+    fn stdout_without_a_final_newline_does_not_swallow_the_first_stderr_line() {
+        let (text, _, _, _) =
+            filtered(&format!("printf 'Building{}'; printf 'ERROR: linker failed\\n' >&2", unique()))
+                .unwrap();
+        assert!(text.contains("Building"), "{text}");
+        assert!(
+            crate::compress::learn::is_severe_text(&text),
+            "the stderr line fused into stdout and stopped reading as a failure: {text}"
+        );
+    }
+}
