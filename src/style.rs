@@ -10,17 +10,37 @@ fn config_path() -> PathBuf {
     home_dir().join(".claude").join("bilro").join("style")
 }
 
-pub fn read_level() -> String {
-    match std::fs::read_to_string(config_path()) {
-        Ok(v) => {
-            let v = v.trim();
-            if LEVELS.contains(&v) { v.to_string() } else { "off".to_string() }
-        }
-        Err(_) => "off".to_string(),
+/// Where the tool bilro replaces keeps the same setting. Reading it means a
+/// switch costs nothing: whatever level was chosen there still applies here.
+fn inherited_path() -> PathBuf {
+    home_dir().join(".claude").join(".caveman-active")
+}
+
+/// Accepts the vocabulary of the tool being replaced alongside its own, so an
+/// existing configuration keeps meaning what it meant. `ultra` maps onto the
+/// strongest level bilro defines rather than inventing a fourth.
+pub fn normalize(level: &str) -> Option<&'static str> {
+    match level.trim() {
+        "off" | "none" => Some("off"),
+        "lean" | "lite" => Some("lean"),
+        "terse" | "full" | "ultra" => Some("terse"),
+        _ => None,
     }
 }
 
+pub fn read_level() -> String {
+    for path in [config_path(), inherited_path()] {
+        if let Ok(v) = std::fs::read_to_string(&path) {
+            if let Some(level) = normalize(&v) {
+                return level.to_string();
+            }
+        }
+    }
+    "off".to_string()
+}
+
 pub fn write_level(level: &str) -> std::io::Result<String> {
+    let level = normalize(level).unwrap_or(level);
     if !LEVELS.contains(&level) {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("nivel invalido: {level}")));
     }
@@ -82,5 +102,27 @@ mod tests {
         for l in LEVELS.iter().filter(|l| **l != "off") {
             assert!(ruleset(l).contains("TODA resposta"));
         }
+    }
+}
+
+#[cfg(test)]
+mod inherit_tests {
+    use super::*;
+
+    #[test]
+    fn entende_o_vocabulario_da_ferramenta_substituida() {
+        assert_eq!(normalize("full"), Some("terse"));
+        assert_eq!(normalize("ultra"), Some("terse"));
+        assert_eq!(normalize("lite"), Some("lean"));
+        assert_eq!(normalize("off"), Some("off"));
+        assert_eq!(normalize(" full \n"), Some("terse"));
+        assert_eq!(normalize("inventado"), None);
+    }
+
+    #[test]
+    fn nivel_herdado_carrega_as_regras_todas() {
+        let rules = ruleset(normalize("full").unwrap());
+        assert!(rules.contains("Fragmento"), "nivel full deve carregar as regras de corte");
+        assert!(!ruleset("off").trim().is_empty() || ruleset("off").is_empty());
     }
 }

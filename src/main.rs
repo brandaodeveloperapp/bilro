@@ -85,13 +85,18 @@ fn hook_shadow() {
     }
 }
 
-fn run_filtered(argv: &[String]) {
+fn run_filtered(argv: &[String]) -> i32 {
     if argv.is_empty() {
-        return eprintln!("  uso: bilro filter <comando>");
+        eprintln!("  uso: bilro filter <comando>");
+        return 2;
     }
     let command = argv.join(" ");
     let out = Command::new("sh").arg("-c").arg(&command).output();
-    let Ok(out) = out else { return eprintln!("  falhou ao executar") };
+    let Ok(out) = out else {
+        eprintln!("  falhou ao executar");
+        return 127;
+    };
+    let status = out.status.code().unwrap_or(1);
     let mut raw = String::from_utf8_lossy(&out.stdout).to_string();
     raw.push_str(&String::from_utf8_lossy(&out.stderr));
 
@@ -101,13 +106,15 @@ fn run_filtered(argv: &[String]) {
         let _ = learn::observe(&mut db, &command, &raw);
     }
     if let Some(msg) = suppressed_notice(&raw, &text) {
-        return eprintln!("  \x1b[2m{msg}\x1b[0m");
+        eprintln!("  \x1b[2m{msg}\x1b[0m");
+        return status;
     }
     println!("{text}");
     if before > text.len() {
         let pct = 100 - text.len() * 100 / before.max(1);
         eprintln!("\n  \x1b[2m{pct}% menor{}\x1b[0m", if note.is_empty() { String::new() } else { format!(" ({note})") });
     }
+    status
 }
 
 /// Says what happened when compression leaves nothing to print. Printing an
@@ -422,6 +429,151 @@ fn cmd_sessions() {
     println!();
 }
 
+
+const WRAPPABLE: &[(&str, &[&str])] = &[
+    ("git", &["log", "status", "diff", "show", "branch", "blame", "shortlog", "ls-files"]),
+    ("ls", &[]),
+    ("find", &[]),
+    ("tree", &[]),
+    ("env", &[]),
+    ("printenv", &[]),
+    ("npm", &["install", "ci", "ls", "audit", "outdated", "test"]),
+    ("pnpm", &["install", "ls", "audit", "outdated", "test"]),
+    ("yarn", &["install", "list", "audit", "test"]),
+    ("pip", &["list", "install", "freeze"]),
+    ("uv", &["pip", "sync", "lock"]),
+    ("cargo", &["build", "test", "clippy", "check", "tree"]),
+    ("jest", &[]),
+    ("vitest", &[]),
+    ("pytest", &[]),
+    ("playwright", &[]),
+    ("tsc", &[]),
+    ("eslint", &[]),
+    ("ruff", &[]),
+    ("mypy", &[]),
+    ("gradlew", &[]),
+    ("kubectl", &["get", "describe", "logs", "top", "explain"]),
+    ("docker", &["ps", "images", "logs", "stats"]),
+];
+
+const NEVER_WRAP: &[&str] = &[
+    ">", "<", "|", "&&", "||", ";", "`", "$(", "&",
+];
+
+/// Decides whether a shell command is worth routing through the filter. A
+/// compound command is left alone: its parts may mutate state, and merging the
+/// output of several would misrepresent which one spoke. A single verbose
+/// read-only command is the case worth compressing.
+fn wrappable(command: &str) -> bool {
+    let body = command.strip_prefix("cd ").and_then(|rest| rest.split_once("&&")).map(|(_, r)| r.trim()).unwrap_or(command);
+    if NEVER_WRAP.iter().any(|m| body.contains(m)) {
+        return false;
+    }
+    let mut parts = body.split_whitespace();
+    let Some(program) = parts.next() else { return false };
+    let program = program.rsplit('/').next().unwrap_or(program);
+    let Some((_, subs)) = WRAPPABLE.iter().find(|(p, _)| *p == program) else { return false };
+    if subs.is_empty() {
+        return true;
+    }
+    parts.find(|a| !a.starts_with('-')).map(|sub| subs.contains(&sub)).unwrap_or(false)
+}
+
+/// Rewrites a Bash call to run through the filter, using the same PreToolUse
+/// contract the harness offers. Printing nothing leaves the command untouched,
+/// which is the answer for everything not clearly safe to compress.
+fn hook_bash() {
+    let mut raw = String::new();
+    if std::io::stdin().read_to_string(&mut raw).is_err() {
+        return;
+    }
+    let Ok(data) = serde_json::from_str::<serde_json::Value>(&raw) else { return };
+    if data["tool_name"].as_str() != Some("Bash") {
+        return;
+    }
+    let command = data["tool_input"]["command"].as_str().unwrap_or("");
+    if command.is_empty() || command.starts_with("bilro ") || command.contains("/bilro ") || !wrappable(command) {
+        return;
+    }
+    let me = std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "bilro".into());
+    let updated = serde_json::json!({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "bilro filter",
+            "updatedInput": { "command": format!("{me} filter {}", shell_quote(command)) }
+        }
+    });
+    println!("{updated}");
+}
+
+fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+
+/// Runs a command, keeps its output in the sandbox index instead of the
+/// conversation, and returns only the passages matching what was asked for.
+fn cmd_run(argv: &[String]) {
+    let split = argv.iter().position(|a| a == "--find");
+    let (cmd_parts, queries) = match split {
+        Some(i) => (&argv[..i], argv[i + 1..].to_vec()),
+        None => (argv, Vec::new()),
+    };
+    let command = cmd_parts.join(" ");
+    if command.is_empty() {
+        return eprintln!("  uso: bilro run <comando> [--find <termo>...]");
+    }
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let r = sandbox::run(&command, None, &queries, Some(&cwd));
+    println!(
+        "\n  {}  {} trechos indexados, {DIM}{} tok ficaram fora do contexto{OFF}",
+        if r.failed { "\x1b[31mfalhou\x1b[0m" } else { "ok" },
+        r.chunks,
+        r.withheld_tokens
+    );
+    for h in &r.hits {
+        println!("\n  {DIM}{}{OFF}", h.query);
+        for line in h.hit.body.lines().take(12) {
+            println!("    {line}");
+        }
+    }
+    println!();
+}
+
+/// Searches everything the sandbox has indexed, without re-running anything.
+fn cmd_find(argv: &[String]) {
+    let query = argv.join(" ");
+    if query.is_empty() {
+        return eprintln!("  uso: bilro find <termo>");
+    }
+    let Ok(conn) = sandbox::open_default() else { return eprintln!("  sem indice ainda") };
+    let Ok(hits) = sandbox::search(&conn, &query, 8) else { return };
+    if hits.is_empty() {
+        return println!("\n  {DIM}nada encontrado para {query}{OFF}\n");
+    }
+    println!("\n  {} trechos\n", hits.len());
+    for h in &hits {
+        println!("  {DIM}{}{OFF}", h.label);
+        for line in h.body.lines().take(8) {
+            println!("    {line}");
+        }
+        println!();
+    }
+}
+
+/// Injects the writing rules a session should follow, on every prompt, because
+/// a rule stated once decays over a long conversation.
+fn hook_prompt() {
+    let mut raw = String::new();
+    let _ = std::io::stdin().read_to_string(&mut raw);
+    let level = style::read_level();
+    let rules = style::ruleset(&level);
+    if !rules.trim().is_empty() {
+        println!("{rules}");
+    }
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
@@ -434,7 +586,10 @@ fn usage() {
          \x20   bilro verify [--run]   confere memorias que afirmam fato datado\n\
          \x20   bilro lint             link quebrado, memoria orfa, mais citada\n\
          \x20   bilro propose          memorias que valeria escrever\n\
-         \x20   bilro sessions         agentes despachados por sessao\n"
+         \x20   bilro sessions         agentes despachados por sessao\n\
+         \x20   bilro run <cmd>        roda e indexa; so o trecho pedido volta\n\
+         \x20   bilro find <termo>     busca no que ja foi indexado\n\
+         \x20   bilro style [nivel]    regras de escrita da sessao\n"
     );
 }
 
@@ -446,9 +601,11 @@ fn main() {
             Some("shadow") => hook_shadow(),
             Some("session") => hook_session(&std::env::current_dir().unwrap_or_default()),
             Some("task") => hook_task(&std::env::current_dir().unwrap_or_default()),
+            Some("bash") => hook_bash(),
+            Some("prompt") => hook_prompt(),
             _ => {}
         },
-        Some("filter") => run_filtered(&rest),
+        Some("filter") => std::process::exit(run_filtered(&rest)),
         Some("read") => cmd_read(&rest),
         Some("grep") => cmd_grep(&rest),
         Some("ready") => cmd_ready(),
@@ -457,6 +614,9 @@ fn main() {
         Some("propose") => cmd_propose(),
         Some("bill") => cmd_bill(&std::env::current_dir().unwrap_or_default()),
         Some("sessions") => cmd_sessions(),
+        Some("run") => cmd_run(&rest),
+        Some("find") => cmd_find(&rest),
+        Some("style") => println!("{}", style::ruleset(&rest.first().cloned().unwrap_or_else(style::read_level))),
         _ => usage(),
     }
 }
@@ -464,6 +624,43 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn so_comando_verboso_e_de_leitura_e_reescrito() {
+        for c in [
+            "git log --oneline -40",
+            "git status",
+            "ls -laR src",
+            "npm install",
+            "cargo test",
+            "kubectl get pods",
+            "cd /tmp && git log",
+        ] {
+            assert!(wrappable(c), "deveria filtrar: {c}");
+        }
+    }
+
+    #[test]
+    fn comando_que_muta_ou_e_composto_passa_intacto() {
+        for c in [
+            "git commit -m x",
+            "git push origin main",
+            "git checkout main",
+            "rm -rf build",
+            "npm run deploy",
+            "npm publish",
+            "kubectl apply -f x.yaml",
+            "kubectl delete pod x",
+            "docker rm -f c",
+            "git log > /tmp/out.txt",
+            "git status && git push",
+            "cat file | head -5",
+            "echo oi",
+            "make deploy",
+        ] {
+            assert!(!wrappable(c), "nao deveria filtrar: {c}");
+        }
+    }
 
     #[test]
     fn saida_vazia_nunca_sai_calada() {

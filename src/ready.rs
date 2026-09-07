@@ -73,6 +73,12 @@ fn default_db() -> rusqlite::Result<Connection> {
 /// act on; the lost-line check is the invariant that matters most — a saver
 /// that eats a failure line is worse than no saver at all.
 pub fn evaluate(db: &Connection) -> rusqlite::Result<Metrics> {
+    evaluate_with(db, &audits())
+}
+
+/// Same measurement against a given audit history, so a test can state the
+/// history it means instead of reading whatever this machine happens to hold.
+pub fn evaluate_with(db: &Connection, history: &[Value]) -> rusqlite::Result<Metrics> {
     let mut stmt = db.prepare("SELECT r.sig, r.n, l.body FROM runs r LEFT JOIN last l ON l.sig = r.sig")?;
     let rows: Vec<(String, i64, Option<String>)> = stmt
         .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
@@ -108,7 +114,7 @@ pub fn evaluate(db: &Connection) -> rusqlite::Result<Metrics> {
         }
     }
 
-    let audits = audits();
+    let audits = history.to_vec();
     let criticals = audits.iter().map(|x| x.get("critical").and_then(|c| c.as_i64()).unwrap_or(0)).sum();
     let last_audit = audits.last().and_then(|x| x.get("at")).and_then(|a| a.as_u64());
 
@@ -194,7 +200,7 @@ mod tests {
 
     #[test]
     fn banco_vazio_nao_libera_nada() {
-        let m = evaluate(&db()).unwrap();
+        let m = evaluate_with(&db(), &[]).unwrap();
         assert_eq!(m.total, 0);
         for v in verdicts(&m) {
             assert!(!v.missing.is_empty(), "{}", v.tool);
