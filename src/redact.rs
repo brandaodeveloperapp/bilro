@@ -11,7 +11,7 @@ static QUERY_SECRET: Lazy<Regex> = Lazy::new(|| {
 });
 
 static BEARER: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?i)\b(bearer|basic|token)\s+([A-Za-z0-9._~+/=-]{12,})").unwrap());
+    Lazy::new(|| Regex::new(r"\b((?i:bearer|basic|token))\s+([A-Za-z0-9._~+/=-]*[0-9_.=/+-][A-Za-z0-9._~+/=-]*|[A-Za-z][a-z0-9._~+/=-]*[A-Z][A-Za-z0-9._~+/=-]*)").unwrap());
 
 static JWT: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\beyJ[A-Za-z0-9_-]{6,}\.eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]+").unwrap());
@@ -24,6 +24,13 @@ static PEM: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?s)(-----BEGIN [A-Z ]*PRIVATE KEY-----).*?(-----END [A-Z ]*PRIVATE KEY-----)").unwrap()
 });
 
+/// A credential carries a digit or a separator; an English word does not. That
+/// is what tells `Bearer eyJ0eXAi...` apart from `Bearer authentication`.
+/// Length is not the test: it let a five-character token through while masking
+/// an ordinary fourteen-letter word. Base64 with no digits is caught by its
+/// other tell — a capital letter somewhere other than the first position, which
+/// a written word does not have.
+///
 /// Removes credentials from text on its way to the context window. The name of
 /// a field says nothing about whether it holds a secret — a connection string,
 /// a query parameter and an Authorization header all carry one under an
@@ -106,6 +113,30 @@ mod tests {
             "invalid foreign key on the orders table",
         ] {
             assert_eq!(redact(benign), benign, "altered benign text: {benign}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod bearer_tests {
+    use super::*;
+
+    #[test]
+    fn a_short_token_is_still_a_token() {
+        for secret in ["LEAK2", "a1b2", "x_9", "pw.1"] {
+            let out = redact(&format!("Authorization: Bearer {secret}"));
+            assert!(!out.contains(secret), "leaked short token {secret}: {out}");
+        }
+    }
+
+    #[test]
+    fn prose_after_the_word_bearer_is_left_alone() {
+        for phrase in [
+            "Bearer authentication is required",
+            "the token expires hourly",
+            "use Basic auth here",
+        ] {
+            assert_eq!(redact(phrase), phrase, "masked ordinary prose: {phrase}");
         }
     }
 }
