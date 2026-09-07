@@ -3,6 +3,7 @@ mod filters;
 mod graph;
 mod grep;
 mod install;
+mod journal;
 mod mcp;
 mod ledger;
 mod learn;
@@ -94,6 +95,21 @@ fn hook_shadow() {
     };
     if let Ok(mut db) = learn::open(&learn_db()) {
         let _ = learn::observe(&mut db, command, clipped);
+    }
+
+    let falhas: Vec<&str> = clipped.lines().filter(|l| learn::is_severe(l)).take(6).collect();
+    if !falhas.is_empty() {
+        let cwd = std::env::current_dir().unwrap_or_default();
+        if let Ok(db) = journal::open_default() {
+            let _ = journal::record(
+                &db,
+                "falha",
+                command,
+                &falhas.join("\n"),
+                data["session_id"].as_str().unwrap_or("desconhecida"),
+                &journal::project_of(&cwd),
+            );
+        }
     }
 }
 
@@ -601,7 +617,23 @@ fn cmd_find(argv: &[String]) {
 fn hook_prompt() {
     let mut raw = String::new();
     let _ = std::io::stdin().read_to_string(&mut raw);
-    let level = style::read_level();
+    if let Ok(data) = serde_json::from_str::<serde_json::Value>(&raw) {
+        let prompt = data["prompt"].as_str().unwrap_or("");
+        if !prompt.trim().is_empty() {
+            let cwd = std::env::current_dir().unwrap_or_default();
+            if let Ok(db) = journal::open_default() {
+                let _ = journal::record(
+                    &db,
+                    "pedido",
+                    prompt,
+                    "",
+                    data["session_id"].as_str().unwrap_or("desconhecida"),
+                    &journal::project_of(&cwd),
+                );
+            }
+        }
+    }
+    let Some(level) = style::own_level() else { return };
     let rules = style::ruleset(&level);
     if !rules.trim().is_empty() {
         println!("{rules}");
@@ -666,6 +698,50 @@ fn cmd_exec(argv: &[String]) {
     }
 }
 
+/// Answers "where were we". With a term it ranks; without one it simply shows
+/// what happened here most recently, which is the question after a break.
+fn cmd_recall(argv: &[String]) {
+    let query = argv.join(" ");
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let project = journal::project_of(&cwd);
+    let Ok(db) = journal::open_default() else { return eprintln!("  sem diario ainda") };
+    let events = if query.trim().is_empty() {
+        journal::timeline(&db, Some(&project), 12)
+    } else {
+        journal::search(&db, &query, Some(&project), 10)
+    };
+    match events {
+        Err(e) => eprintln!("  {e}"),
+        Ok(list) if list.is_empty() => println!(
+            "\n  {DIM}{}{OFF}\n",
+            if query.trim().is_empty() { "nada registrado neste projeto ainda".into() } else { format!("nada sobre {query}") }
+        ),
+        Ok(list) => {
+            println!("\n  {} eventos\n", list.len());
+            for e in &list {
+                let quando = idade(e.at);
+                println!("  {:<8} {DIM}{quando}{OFF}  {}", e.kind, e.subject);
+                for l in e.body.lines().take(3) {
+                    println!("           {DIM}{l}{OFF}");
+                }
+            }
+            println!();
+        }
+    }
+}
+
+fn idade(at: i64) -> String {
+    let agora = ledger::now_ms();
+    let min = (agora - at) / 60_000;
+    if min < 60 {
+        format!("{min}min")
+    } else if min < 1440 {
+        format!("{}h", min / 60)
+    } else {
+        format!("{}d", min / 1440)
+    }
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
@@ -712,6 +788,7 @@ fn main() {
         Some("install") => cmd_install(),
         Some("mcp") => mcp::serve(),
         Some("exec") => cmd_exec(&rest),
+        Some("recall") => cmd_recall(&rest),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),
         Some("style") => println!("{}", style::ruleset(&rest.first().cloned().unwrap_or_else(style::read_level))),

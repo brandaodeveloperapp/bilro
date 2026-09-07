@@ -55,6 +55,29 @@ pub struct ScriptResult {
     pub timed_out: bool,
 }
 
+/// Owns the scratch file for as long as the run needs it and removes it on the
+/// way out, including the paths that return early with an error.
+pub struct Scratch(PathBuf);
+
+impl Scratch {
+    pub fn new(extension: &str, code: &str) -> std::io::Result<Scratch> {
+        let path = scratch(extension);
+        let mut f = std::fs::File::create(&path)?;
+        f.write_all(code.as_bytes())?;
+        Ok(Scratch(path))
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
 fn scratch(extension: &str) -> PathBuf {
     use std::sync::atomic::{AtomicU64, Ordering};
     static N: AtomicU64 = AtomicU64::new(0);
@@ -75,10 +98,9 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
         return Err(format!("{} nao esta instalado nesta maquina", runtime.program));
     }
 
-    let file = scratch(runtime.extension);
-    std::fs::File::create(&file)
-        .and_then(|mut f| f.write_all(code.as_bytes()))
+    let scratch = Scratch::new(runtime.extension, code)
         .map_err(|e| format!("nao consegui escrever o script: {e}"))?;
+    let file = scratch.path().to_path_buf();
 
     let mut cmd = Command::new(runtime.program);
     cmd.args(runtime.args_before_file).arg(&file).stdout(Stdio::piped()).stderr(Stdio::piped());
@@ -88,10 +110,7 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
 
     let mut child = match cmd.spawn() {
         Ok(c) => c,
-        Err(e) => {
-            let _ = std::fs::remove_file(&file);
-            return Err(format!("nao consegui rodar {}: {e}", runtime.program));
-        }
+        Err(e) => return Err(format!("nao consegui rodar {}: {e}", runtime.program)),
     };
 
     let stdout = child.stdout.take();
@@ -133,16 +152,12 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
                 }
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
-            Err(e) => {
-                let _ = std::fs::remove_file(&file);
-                return Err(format!("falhou esperando o processo: {e}"));
-            }
+            Err(e) => return Err(format!("falhou esperando o processo: {e}")),
         }
     };
 
     let stdout_bytes = out_handle.join().unwrap_or_default();
     let stderr_bytes = err_handle.join().unwrap_or_default();
-    let _ = std::fs::remove_file(&file);
 
     let mut text = String::from_utf8_lossy(&stdout_bytes).to_string();
     let err = String::from_utf8_lossy(&stderr_bytes);
@@ -231,15 +246,21 @@ mod tests {
     }
 
     #[test]
-    fn nao_deixa_arquivo_temporario_para_tras() {
-        let antes = std::fs::read_dir(std::env::temp_dir()).unwrap().filter(|e| {
-            e.as_ref().map(|e| e.file_name().to_string_lossy().starts_with("bilro-script-")).unwrap_or(false)
-        }).count();
-        run("shell", "echo x", None, None).unwrap();
-        let depois = std::fs::read_dir(std::env::temp_dir()).unwrap().filter(|e| {
-            e.as_ref().map(|e| e.file_name().to_string_lossy().starts_with("bilro-script-")).unwrap_or(false)
-        }).count();
-        assert!(depois <= antes, "sobrou script em /tmp");
+    fn arquivo_temporario_some_mesmo_quando_a_execucao_falha() {
+        let caminho;
+        {
+            let s = Scratch::new("sh", "echo x").unwrap();
+            caminho = s.path().to_path_buf();
+            assert!(caminho.exists(), "deveria existir enquanto esta em uso");
+        }
+        assert!(!caminho.exists(), "sobrou {}", caminho.display());
+    }
+
+    #[test]
+    fn cada_execucao_usa_um_arquivo_proprio() {
+        let a = Scratch::new("sh", "echo a").unwrap();
+        let b = Scratch::new("sh", "echo b").unwrap();
+        assert_ne!(a.path(), b.path());
     }
 }
 

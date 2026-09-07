@@ -6,6 +6,7 @@ const HOOKS: &[(&str, Option<&str>, &str)] = &[
     ("PreToolUse", Some("Task"), "hook task"),
     ("PostToolUse", Some("Bash"), "hook shadow"),
     ("SessionStart", None, "hook session"),
+    ("UserPromptSubmit", None, "hook prompt"),
 ];
 
 pub struct Report {
@@ -198,7 +199,7 @@ mod tests {
     fn registra_os_quatro_hooks_num_ambiente_limpo() {
         let home = temp();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
-        assert_eq!(r.added.len(), 4, "adicionados: {:?}", r.added);
+        assert_eq!(r.added.len(), 5, "adicionados: {:?}", r.added);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         assert!(s["hooks"]["PreToolUse"].as_array().unwrap().len() >= 2);
         std::fs::remove_dir_all(&home).ok();
@@ -210,7 +211,7 @@ mod tests {
         install(&home, Path::new("/opt/bilro"), None).unwrap();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
         assert!(r.added.is_empty(), "nao pode adicionar de novo: {:?}", r.added);
-        assert_eq!(r.already.len(), 4);
+        assert_eq!(r.already.len(), 5);
         std::fs::remove_dir_all(&home).ok();
     }
 
@@ -219,7 +220,7 @@ mod tests {
         let home = temp();
         install(&home, Path::new("/caminho/antigo/bilro"), None).unwrap();
         let r = install(&home, Path::new("/caminho/novo/bilro"), None).unwrap();
-        assert_eq!(r.replaced.len(), 4, "deveria substituir: {:?}", r.replaced);
+        assert_eq!(r.replaced.len(), 5, "deveria substituir: {:?}", r.replaced);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         let txt = s.to_string();
         assert!(!txt.contains("/caminho/antigo/"), "sobrou o caminho antigo");

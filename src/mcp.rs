@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const PROTOCOL: &str = "2024-11-05";
 
@@ -32,6 +32,19 @@ fn tools() -> Value {
                     "timeout_ms": { "type": "integer" }
                 },
                 "required": ["language", "code"]
+            }
+        },
+        {
+            "name": "bilro_recall",
+            "description": "Recalls what already happened in this project: what was asked for, and which commands failed. Use it when resuming or after the conversation has been compacted, BEFORE asking the user to repeat themselves. With no query it returns the most recent events.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Omit to get the timeline" },
+                    "cwd": { "type": "string", "description": "Project directory. Defaults to the current one." },
+                    "limit": { "type": "integer" }
+                },
+                "required": []
             }
         },
         {
@@ -172,6 +185,35 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 }
             }
         }
+        "bilro_recall" => {
+            let Ok(db) = crate::journal::open_default() else {
+                return error_result("sem diario ainda".into());
+            };
+            let cwd = arg_str(args, "cwd");
+            let dir = if cwd.is_empty() { std::env::current_dir().unwrap_or_default() } else { PathBuf::from(cwd) };
+            let project = crate::journal::project_of(&dir);
+            let query = arg_str(args, "query");
+            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(12) as usize;
+            let events = if query.trim().is_empty() {
+                crate::journal::timeline(&db, Some(&project), limit)
+            } else {
+                crate::journal::search(&db, &query, Some(&project), limit)
+            };
+            match events {
+                Err(e) => error_result(format!("recall falhou: {e}")),
+                Ok(list) if list.is_empty() => text_result("nada registrado para este projeto ainda".into()),
+                Ok(list) => {
+                    let mut out = format!("{} eventos\n", list.len());
+                    for e in &list {
+                        out.push_str(&format!("\n[{}] {}\n", e.kind, e.subject));
+                        if !e.body.trim().is_empty() {
+                            out.push_str(&format!("{}\n", e.body));
+                        }
+                    }
+                    text_result(out)
+                }
+            }
+        }
         "bilro_find" => {
             let query = arg_str(args, "query");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(8) as usize;
@@ -309,10 +351,10 @@ mod tests {
     }
 
     #[test]
-    fn tools_list_traz_as_cinco_com_schema() {
+    fn tools_list_traz_todas_com_schema_bem_formado() {
         let r = handle(&json!({"jsonrpc":"2.0","id":2,"method":"tools/list"})).unwrap();
         let t = r["result"]["tools"].as_array().unwrap();
-        assert_eq!(t.len(), 6);
+        assert_eq!(t.len(), 7);
         for tool in t {
             assert!(tool["name"].as_str().unwrap().starts_with("bilro_"));
             assert!(!tool["description"].as_str().unwrap().is_empty());
@@ -376,6 +418,14 @@ mod tests {
             "name":"bilro_script","arguments":{"language":"shell"}
         }})).unwrap();
         assert_eq!(r["result"]["isError"], true);
+    }
+
+    #[test]
+    fn recall_sem_termo_nao_e_erro_mesmo_vazio() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":11,"method":"tools/call","params":{
+            "name":"bilro_recall","arguments":{"cwd":"/caminho/que/nao/existe/em/lugar/nenhum"}
+        }})).unwrap();
+        assert!(r["result"]["isError"].as_bool() != Some(true), "recall vazio nao deveria ser erro");
     }
 
     #[test]

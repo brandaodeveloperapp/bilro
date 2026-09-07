@@ -28,6 +28,13 @@ pub fn normalize(level: &str) -> Option<&'static str> {
     }
 }
 
+/// The level chosen for bilro itself, as opposed to one inherited from the
+/// tool it replaces. A hook uses this to stay quiet while the other tool is
+/// still speaking, instead of both saying the same thing every turn.
+pub fn own_level() -> Option<String> {
+    std::fs::read_to_string(config_path()).ok().and_then(|v| normalize(&v).map(String::from))
+}
+
 pub fn read_level() -> String {
     for path in [config_path(), inherited_path()] {
         if let Ok(v) = std::fs::read_to_string(&path) {
@@ -124,5 +131,22 @@ mod inherit_tests {
         let rules = ruleset(normalize("full").unwrap());
         assert!(rules.contains("Fragmento"), "nivel full deve carregar as regras de corte");
         assert!(!ruleset("off").trim().is_empty() || ruleset("off").is_empty());
+    }
+}
+
+#[cfg(test)]
+mod own_tests {
+    use super::*;
+
+    #[test]
+    fn nivel_proprio_e_diferente_de_nivel_herdado() {
+        let herdado = read_level();
+        assert!(!herdado.is_empty(), "sempre resolve algum nivel");
+        if own_level().is_none() {
+            assert!(
+                std::fs::read_to_string(config_path()).is_err(),
+                "sem escolha propria, o arquivo do bilro nao deve existir"
+            );
+        }
     }
 }
