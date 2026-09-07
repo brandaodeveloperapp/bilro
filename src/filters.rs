@@ -206,42 +206,42 @@ mod tests {
     use super::*;
 
     #[test]
-    fn escolhe_a_regra_pelo_comando() {
+    fn picks_the_rule_by_command() {
         assert_eq!(rule_for("npx jest src/"), Some("jest"));
         assert_eq!(rule_for("git status"), Some("git-status"));
-        assert_eq!(rule_for("echo oi"), None);
+        assert_eq!(rule_for("echo hi"), None);
     }
 
     #[test]
-    fn corta_stack_de_node_modules_mas_mantem_a_falha() {
+    fn cuts_the_node_modules_stack_but_keeps_the_failure() {
         let out = [
-            "● teste falhou",
+            "● test failed",
             "    at Object.<anonymous>",
             "  node_modules/jest/x.js:1",
             "Expected: 3",
         ]
         .join("\n");
         let r = filter("npx jest", &out);
-        assert!(r.text.contains("teste falhou"));
+        assert!(r.text.contains("test failed"));
         assert!(r.text.contains("Expected: 3"));
         assert!(!r.text.contains("node_modules"));
     }
 
     #[test]
-    fn colapsa_linha_repetida_com_contagem() {
+    fn collapses_a_repeated_line_with_a_count() {
         let lines: Vec<String> = ["a", "a", "a", "b"].iter().map(|s| s.to_string()).collect();
         assert_eq!(collapse_repeats(&lines), vec!["a   (×3)".to_string(), "b".to_string()]);
     }
 
     #[test]
-    fn nunca_devolve_vazio_quando_havia_saida() {
+    fn never_returns_empty_when_there_was_output() {
         let r = filter("npx jest", "  \n  \n");
         assert!(r.text.len() < usize::MAX);
     }
 
     #[test]
-    fn comando_desconhecido_ainda_colapsa_repeticao() {
-        let r = filter("comando-estranho", "x\nx\nx");
+    fn unknown_command_still_collapses_repetition() {
+        let r = filter("weird-command", "x\nx\nx");
         assert_eq!(r.rule, None);
         assert!(r.text.contains("×3"));
     }

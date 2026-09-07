@@ -217,14 +217,14 @@ mod tests {
     }
 
     #[test]
-    fn sessao_nova_comeca_vazia_e_nao_quebra() {
+    fn new_session_starts_empty_and_does_not_break() {
         let s = read(&unique_id());
         assert_eq!(s.get("dispatches").unwrap(), &json!([]));
         assert_eq!(s.get("withheld").unwrap(), &json!([]));
     }
 
     #[test]
-    fn soma_custo_e_conta_repeticao() {
+    fn sums_cost_and_counts_repeats() {
         let id = unique_id();
         write(
             &id,
@@ -246,7 +246,7 @@ mod tests {
     }
 
     #[test]
-    fn record_acrescenta_sem_perder_o_que_ja_existia() {
+    fn record_appends_without_losing_what_already_existed() {
         let id = unique_id();
         record(&id, "dispatches", json!({"cost": 1}));
         let s = record(&id, "dispatches", json!({"cost": 2}));
@@ -261,7 +261,7 @@ mod concurrency_tests {
     use serde_json::json;
 
     #[test]
-    fn append_concorrente_nao_perde_atualizacao() {
+    fn concurrent_append_does_not_lose_an_update() {
         let sess = format!("conc-{}-{}", std::process::id(), now_ms());
         let n = 10;
         let handles: Vec<_> = (0..n)
@@ -278,7 +278,7 @@ mod concurrency_tests {
         let state = read(&sess);
         let got = state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
         let _ = fs::remove_file(file(&sess));
-        assert_eq!(got, n, "perdeu {} de {} atualizacoes", n - got, n);
+        assert_eq!(got, n, "lost {} of {} updates", n - got, n);
     }
 }
 
@@ -288,16 +288,16 @@ mod lock_tests {
     use serde_json::json;
 
     #[test]
-    fn lock_preso_faz_record_desistir_em_vez_de_escrever_sem_lock() {
+    fn held_lock_makes_record_give_up_instead_of_writing_without_the_lock() {
         let sess = format!("held-{}-{}", std::process::id(), now_ms());
         record(&sess, "dispatches", json!({ "id": 0 }));
         let lock = PathBuf::from(format!("{}.lock", file(&sess).display()));
         fs::write(&lock, "").unwrap();
-        let antes = read(&sess)["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
-        let depois_state = record(&sess, "dispatches", json!({ "id": 1 }));
-        let depois = depois_state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
+        let before = read(&sess)["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
+        let after_state = record(&sess, "dispatches", json!({ "id": 1 }));
+        let after = after_state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
         let _ = fs::remove_file(&lock);
         let _ = fs::remove_file(file(&sess));
-        assert_eq!(antes, depois, "nao pode escrever sem segurar o lock");
+        assert_eq!(before, after, "must not write without holding the lock");
     }
 }

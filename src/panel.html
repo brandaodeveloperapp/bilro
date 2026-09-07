@@ -1,192 +1,192 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>bilro</title>
 <style>
   :root {
-    --fundo: #16151a;
-    --painel: #1d1c22;
-    --elevado: #24232b;
-    --tinta: #dcd9e3;
-    --fraco: #837e91;
-    --linha: #2e2c37;
-    --destaque: #b98adf;
-    --destaque-fraco: #6a4d8c;
-    --bom: #7bc496;
-    --ruim: #e08b78;
-    --aviso: #dfc07a;
+    --bg: #16151a;
+    --panel: #1d1c22;
+    --raised: #24232b;
+    --ink: #dcd9e3;
+    --muted: #837e91;
+    --line: #2e2c37;
+    --accent: #b98adf;
+    --accent-weak: #6a4d8c;
+    --good: #7bc496;
+    --bad: #e08b78;
+    --warn: #dfc07a;
   }
   @media (prefers-color-scheme: light) {
     :root {
-      --fundo: #faf9fb; --painel: #ffffff; --elevado: #f2f0f5;
-      --tinta: #23212b; --fraco: #726d80; --linha: #e4e1ea;
-      --destaque: #7a4fae; --destaque-fraco: #c3a8dd;
-      --bom: #2f7d54; --ruim: #b04a30; --aviso: #9a7a1c;
+      --bg: #faf9fb; --panel: #ffffff; --raised: #f2f0f5;
+      --ink: #23212b; --muted: #726d80; --line: #e4e1ea;
+      --accent: #7a4fae; --accent-weak: #c3a8dd;
+      --good: #2f7d54; --bad: #b04a30; --warn: #9a7a1c;
     }
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: var(--fundo); color: var(--tinta); overflow: hidden;
+    margin: 0; background: var(--bg); color: var(--ink); overflow: hidden;
     font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   .app { display: grid; grid-template-columns: 232px 1fr; height: 100%; }
 
-  aside { background: var(--painel); border-right: 1px solid var(--linha); display: flex; flex-direction: column; overflow-y: auto; }
-  .marca { padding: 18px 18px 14px; display: flex; align-items: baseline; gap: 8px; }
-  .marca b { font-size: 16px; letter-spacing: -0.01em; }
-  .marca span { font-size: 11px; color: var(--fraco); }
+  aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow-y: auto; }
+  .brand { padding: 18px 18px 14px; display: flex; align-items: baseline; gap: 8px; }
+  .brand b { font-size: 16px; letter-spacing: -0.01em; }
+  .brand span { font-size: 11px; color: var(--muted); }
   nav { padding: 0 10px; }
   nav button {
     display: flex; width: 100%; align-items: center; gap: 9px; background: none; border: 0;
-    color: var(--fraco); font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 6px;
+    color: var(--muted); font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 6px;
     cursor: pointer; text-align: left;
   }
-  nav button:hover { background: var(--elevado); color: var(--tinta); }
-  nav button[aria-current="true"] { background: var(--elevado); color: var(--tinta); font-weight: 500; }
-  nav button i { width: 14px; height: 14px; border-radius: 3px; background: var(--destaque-fraco); flex: none; font-style: normal; }
-  nav button[aria-current="true"] i { background: var(--destaque); }
+  nav button:hover { background: var(--raised); color: var(--ink); }
+  nav button[aria-current="true"] { background: var(--raised); color: var(--ink); font-weight: 500; }
+  nav button i { width: 14px; height: 14px; border-radius: 3px; background: var(--accent-weak); flex: none; font-style: normal; }
+  nav button[aria-current="true"] i { background: var(--accent); }
 
-  .atalhos { padding: 14px 18px; }
-  .atalhos h5 { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--fraco); margin: 0 0 8px; font-weight: 600; }
-  .atalhos button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--tinta); font: inherit; font-size: 12px; padding: 4px 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .atalhos button:hover { color: var(--destaque); }
-  .atalhos button small { color: var(--fraco); font-size: 11px; }
-  .resumo { margin-top: auto; padding: 14px 18px 18px; border-top: 1px solid var(--linha); }
-  .metrica { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 12px; }
-  .metrica span { color: var(--fraco); }
-  .metrica b { font-variant-numeric: tabular-nums; font-weight: 600; }
-  .pulso { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--fraco); margin-top: 10px; }
-  .pulso i { width: 6px; height: 6px; border-radius: 50%; background: var(--bom); }
-  .pulso.parado i { background: var(--ruim); }
+  .shortcuts { padding: 14px 18px; }
+  .shortcuts h5 { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+  .shortcuts button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ink); font: inherit; font-size: 12px; padding: 4px 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shortcuts button:hover { color: var(--accent); }
+  .shortcuts button small { color: var(--muted); font-size: 11px; }
+  .summary { margin-top: auto; padding: 14px 18px 18px; border-top: 1px solid var(--line); }
+  .metric { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 12px; }
+  .metric span { color: var(--muted); }
+  .metric b { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .pulse { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .pulse i { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+  .pulse.stopped i { background: var(--bad); }
 
   main { position: relative; overflow: hidden; }
-  .vista { position: absolute; inset: 0; display: none; }
-  .vista[data-ativa] { display: block; }
+  .view { position: absolute; inset: 0; display: none; }
+  .view[data-active] { display: block; }
 
-  #tela { width: 100%; height: 100%; display: block; cursor: grab; }
-  #tela:active { cursor: grabbing; }
-  .legenda {
-    position: absolute; left: 16px; bottom: 16px; background: var(--painel); border: 1px solid var(--linha);
-    border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--fraco); display: flex; gap: 14px;
+  #canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+  #canvas:active { cursor: grabbing; }
+  .legend {
+    position: absolute; left: 16px; bottom: 16px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--muted); display: flex; gap: 14px;
   }
-  .legenda em { font-style: normal; display: flex; align-items: center; gap: 6px; }
-  .legenda i { width: 8px; height: 8px; border-radius: 50%; }
-  .dica { position: absolute; right: 16px; top: 16px; font-size: 11px; color: var(--fraco); }
+  .legend em { font-style: normal; display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 8px; height: 8px; border-radius: 50%; }
+  .hint { position: absolute; right: 16px; top: 16px; font-size: 11px; color: var(--muted); }
 
-  .gaveta {
-    position: absolute; right: 0; top: 0; bottom: 0; width: 330px; background: var(--painel);
-    border-left: 1px solid var(--linha); padding: 20px; overflow-y: auto; transform: translateX(100%);
+  .drawer {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 330px; background: var(--panel);
+    border-left: 1px solid var(--line); padding: 20px; overflow-y: auto; transform: translateX(100%);
     transition: transform .18s ease;
   }
-  .gaveta[data-aberta] { transform: none; }
-  .gaveta h3 { margin: 0 0 4px; font-size: 15px; word-break: break-word; }
-  .cru { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--fraco); }
-  .selo { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--linha); color: var(--fraco); margin: 8px 8px 0 0; }
-  .gaveta p { color: var(--fraco); font-size: 13px; margin: 14px 0; }
-  .gaveta h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); margin: 18px 0 6px; }
-  .gaveta ul { margin: 0; padding: 0; list-style: none; }
-  .gaveta li { padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--linha); }
-  .gaveta li button { background: none; border: 0; color: var(--destaque); font: inherit; cursor: pointer; padding: 0; text-align: left; }
-  .fechar { position: absolute; right: 14px; top: 14px; background: none; border: 0; color: var(--fraco); cursor: pointer; font-size: 18px; line-height: 1; }
+  .drawer[data-open] { transform: none; }
+  .drawer h3 { margin: 0 0 4px; font-size: 15px; word-break: break-word; }
+  .raw { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); margin: 8px 8px 0 0; }
+  .drawer p { color: var(--muted); font-size: 13px; margin: 14px 0; }
+  .drawer h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; }
+  .drawer ul { margin: 0; padding: 0; list-style: none; }
+  .drawer li { padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--line); }
+  .drawer li button { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; padding: 0; text-align: left; }
+  .close { position: absolute; right: 14px; top: 14px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
 
-  .rolar { position: absolute; inset: 0; overflow-y: auto; padding: 24px 28px 40px; }
-  .cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: 9px; padding: 14px 16px; }
-  .rotulo { font-size: 11px; color: var(--fraco); }
-  .numero { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
-  .nota { font-size: 11px; color: var(--fraco); margin-top: 2px; }
-  .barra { height: 4px; background: var(--linha); border-radius: 3px; overflow: hidden; margin-top: 9px; }
-  .barra i { display: block; height: 100%; background: var(--destaque); }
+  .scroll { position: absolute; inset: 0; overflow-y: auto; padding: 24px 28px 40px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 14px 16px; }
+  .label { font-size: 11px; color: var(--muted); }
+  .number { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .bar { height: 4px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 9px; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
 
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); margin: 0 0 10px; }
-  .bloco { background: var(--painel); border: 1px solid var(--linha); border-radius: 9px; padding: 16px 18px; margin-bottom: 14px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .block { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 16px 18px; margin-bottom: 14px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  td { padding: 6px 0; border-bottom: 1px solid var(--linha); }
+  td { padding: 6px 0; border-bottom: 1px solid var(--line); }
   tr:last-child td { border-bottom: 0; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; word-break: break-all; }
-  .num { text-align: right; color: var(--fraco); white-space: nowrap; padding-left: 12px; font-variant-numeric: tabular-nums; }
-  .evento { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linha); }
-  .evento:last-child { border-bottom: 0; }
-  .tipo { font-size: 10px; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--linha); color: var(--fraco); white-space: nowrap; height: fit-content; text-transform: uppercase; letter-spacing: .04em; }
-  .tipo[data-t="falha"], .tipo[data-t="erro-tool"] { color: var(--ruim); border-color: var(--ruim); }
-  .tipo[data-t="restricao"], .tipo[data-t="decisao"], .tipo[data-t="descartado"] { color: var(--aviso); border-color: var(--aviso); }
-  .corpo { flex: 1; min-width: 0; }
-  .corpo b { font-weight: 500; display: block; }
-  .corpo span { color: var(--fraco); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .idade { color: var(--fraco); font-size: 11px; white-space: nowrap; }
-  .vazio { color: var(--fraco); font-size: 13px; padding: 8px 0; }
+  .num { text-align: right; color: var(--muted); white-space: nowrap; padding-left: 12px; font-variant-numeric: tabular-nums; }
+  .event { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .event:last-child { border-bottom: 0; }
+  .kind { font-size: 10px; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; height: fit-content; text-transform: uppercase; letter-spacing: .04em; }
+  .kind[data-kind="falha"], .kind[data-kind="failure"], .kind[data-kind="erro-tool"], .kind[data-kind="tool-error"] { color: var(--bad); border-color: var(--bad); }
+  .kind[data-kind="restricao"], .kind[data-kind="constraint"], .kind[data-kind="decisao"], .kind[data-kind="decision"], .kind[data-kind="descartado"], .kind[data-kind="rejected"] { color: var(--warn); border-color: var(--warn); }
+  .body { flex: 1; min-width: 0; }
+  .body b { font-weight: 500; display: block; }
+  .body span { color: var(--muted); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .age { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
 </style>
 </head>
 <body>
 <div class="app">
   <aside>
-    <div class="marca"><b>bilro</b><span id="projeto"></span></div>
+    <div class="brand"><b>bilro</b><span id="project"></span></div>
     <nav>
-      <button data-vista="grafo" aria-current="true"><i></i>Grafo</button>
-      <button data-vista="atividade"><i></i>Atividade</button>
-      <button data-vista="metricas"><i></i>Metricas</button>
+      <button data-view="graph" aria-current="true"><i></i>Graph</button>
+      <button data-view="activity"><i></i>Activity</button>
+      <button data-view="metrics"><i></i>Metrics</button>
     </nav>
-    <div class="atalhos">
-      <h5>mais citadas</h5>
-      <div id="atalhos"></div>
+    <div class="shortcuts">
+      <h5>most cited</h5>
+      <div id="shortcuts"></div>
     </div>
-    <div class="resumo">
-      <div class="metrica"><span>economia</span><b id="m-economia">—</b></div>
-      <div class="metrica"><span>cobertura</span><b id="m-cobertura">—</b></div>
-      <div class="metrica"><span>memorias</span><b id="m-memorias">—</b></div>
-      <div class="metrica"><span>links quebrados</span><b id="m-quebrados">—</b></div>
-      <div class="pulso" id="pulso"><i></i><span id="atualizado">carregando</span></div>
+    <div class="summary">
+      <div class="metric"><span>savings</span><b id="m-savings">—</b></div>
+      <div class="metric"><span>coverage</span><b id="m-coverage">—</b></div>
+      <div class="metric"><span>memories</span><b id="m-memories">—</b></div>
+      <div class="metric"><span>broken links</span><b id="m-broken">—</b></div>
+      <div class="pulse" id="pulse"><i></i><span id="updated">loading</span></div>
     </div>
   </aside>
 
   <main>
-    <section class="vista" data-vista="grafo" data-ativa>
-      <canvas id="tela"></canvas>
-      <div class="dica">arraste um no · role para aproximar · clique para abrir</div>
-      <div class="legenda">
-        <em><i style="background:var(--destaque)"></i>memoria</em>
-        <em><i style="background:var(--fraco)"></i>orfa</em>
-        <em><i style="background:var(--ruim)"></i>citada e nunca escrita</em>
+    <section class="view" data-view="graph" data-active>
+      <canvas id="canvas"></canvas>
+      <div class="hint">drag a node · scroll to zoom · click to open</div>
+      <div class="legend">
+        <em><i style="background:var(--accent)"></i>memory</em>
+        <em><i style="background:var(--muted)"></i>orphan</em>
+        <em><i style="background:var(--bad)"></i>cited and never written</em>
       </div>
-      <div class="gaveta" id="gaveta">
-        <button class="fechar" id="fechar">×</button>
-        <h3 id="g-nome"></h3>
-        <div class="cru" id="g-tipo"></div>
-        <div id="g-selos"></div>
-        <p id="g-resumo"></p>
-        <h4>aponta para</h4>
-        <ul id="g-saindo"></ul>
-        <h4>citada por</h4>
-        <ul id="g-entrando"></ul>
-      </div>
-    </section>
-
-    <section class="vista" data-vista="atividade">
-      <div class="rolar">
-        <h2>o que passou por aqui</h2>
-        <div class="bloco"><div id="eventos"></div><div class="vazio" id="eventos-vazio" hidden>nada registrado neste projeto ainda.</div></div>
+      <div class="drawer" id="drawer">
+        <button class="close" id="close">×</button>
+        <h3 id="d-name"></h3>
+        <div class="raw" id="d-kind"></div>
+        <div id="d-badges"></div>
+        <p id="d-summary"></p>
+        <h4>points to</h4>
+        <ul id="d-outgoing"></ul>
+        <h4>cited by</h4>
+        <ul id="d-incoming"></ul>
       </div>
     </section>
 
-    <section class="vista" data-vista="metricas">
-      <div class="rolar">
-        <div class="cartoes">
-          <div class="cartao">
-            <div class="rotulo">economia medida</div><div class="numero" id="c-economia">—</div>
-            <div class="barra"><i id="b-economia"></i></div><div class="nota" id="n-economia"></div>
+    <section class="view" data-view="activity">
+      <div class="scroll">
+        <h2>what happened here</h2>
+        <div class="block"><div id="events"></div><div class="empty" id="events-empty" hidden>nothing recorded for this project yet.</div></div>
+      </div>
+    </section>
+
+    <section class="view" data-view="metrics">
+      <div class="scroll">
+        <div class="cards">
+          <div class="card">
+            <div class="label">measured savings</div><div class="number" id="c-savings">—</div>
+            <div class="bar"><i id="b-savings"></i></div><div class="note" id="n-savings"></div>
           </div>
-          <div class="cartao">
-            <div class="rotulo">cobertura</div><div class="numero" id="c-cobertura">—</div>
-            <div class="barra"><i id="b-cobertura"></i></div><div class="nota" id="n-cobertura"></div>
+          <div class="card">
+            <div class="label">coverage</div><div class="number" id="c-coverage">—</div>
+            <div class="bar"><i id="b-coverage"></i></div><div class="note" id="n-coverage"></div>
           </div>
-          <div class="cartao"><div class="rotulo">comandos aprendidos</div><div class="numero" id="c-aprendidos">—</div><div class="nota" id="n-sessoes"></div></div>
-          <div class="cartao"><div class="rotulo">em disco</div><div class="numero" id="c-disco">—</div><div class="nota" id="n-disco"></div></div>
+          <div class="card"><div class="label">commands learned</div><div class="number" id="c-learned">—</div><div class="note" id="n-sessions"></div></div>
+          <div class="card"><div class="label">on disk</div><div class="number" id="c-disk">—</div><div class="note" id="n-disk"></div></div>
         </div>
-        <h2>o que mais se repete</h2>
-        <div class="bloco"><table id="barulhentos"></table><div class="vazio" id="barulhentos-vazio" hidden>nenhum comando repetiu o bastante. O denoise precisa de tres execucoes antes de julgar.</div></div>
+        <h2>what repeats most</h2>
+        <div class="block"><table id="noisy"></table><div class="empty" id="noisy-empty" hidden>no command has repeated enough yet. Denoise needs three runs before it may judge.</div></div>
       </div>
     </section>
   </main>
@@ -196,80 +196,80 @@
 const $ = (id) => document.getElementById(id);
 const pct = (x) => `${Math.round(x * 100)}%`;
 const bytes = (n) => n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : n > 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
-const idade = (ms, agora) => {
-  const min = Math.max(0, Math.round((agora - ms) / 60000));
-  if (min < 1) return "agora";
+const age = (ms, now) => {
+  const min = Math.max(0, Math.round((now - ms) / 60000));
+  if (min < 1) return "now";
   if (min < 60) return `${min}min`;
   if (min < 1440) return `${Math.round(min / 60)}h`;
   return `${Math.round(min / 1440)}d`;
 };
-const cor = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 for (const b of document.querySelectorAll("nav button")) {
   b.onclick = () => {
     for (const o of document.querySelectorAll("nav button")) o.setAttribute("aria-current", String(o === b));
-    for (const v of document.querySelectorAll(".vista")) v.toggleAttribute("data-ativa", v.dataset.vista === b.dataset.vista);
-    if (b.dataset.vista === "grafo") dimensionar();
+    for (const v of document.querySelectorAll(".view")) v.toggleAttribute("data-active", v.dataset.view === b.dataset.view);
+    if (b.dataset.view === "graph") resize();
   };
 }
 
-const tela = $("tela");
-const ctx = tela.getContext("2d");
-let nos = [], arestas = [], porNome = new Map();
+const canvas = $("canvas");
+const ctx = canvas.getContext("2d");
+let nodes = [], edges = [], byId = new Map();
 let camera = { x: 0, y: 0, z: 1 };
-let dirMemorias = "";
-let arrastando = null, panorama = null, sobre = null, escolhido = null;
+let memoriesDir = "";
+let dragging = null, pan = null, hovered = null, selected = null;
 
-function dimensionar() {
-  const r = tela.getBoundingClientRect();
+function resize() {
+  const r = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  tela.width = r.width * dpr;
-  tela.height = r.height * dpr;
+  canvas.width = r.width * dpr;
+  canvas.height = r.height * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
-window.addEventListener("resize", dimensionar);
+window.addEventListener("resize", resize);
 
-function montarGrafo(d) {
-  dirMemorias = d.dir || "";
-  const antes = new Map(nos.map((n) => [n.id, n]));
-  const r = tela.getBoundingClientRect();
-  nos = d.nos.map((n, i) => {
-    const velho = antes.get(n.id);
-    const angulo = (i / Math.max(1, d.nos.length)) * Math.PI * 2;
+function buildGraph(d) {
+  memoriesDir = d.dir || "";
+  const before = new Map(nodes.map((n) => [n.id, n]));
+  const r = canvas.getBoundingClientRect();
+  nodes = d.nodes.map((n, i) => {
+    const previous = before.get(n.id);
+    const angle = (i / Math.max(1, d.nodes.length)) * Math.PI * 2;
     return {
       ...n,
-      x: velho ? velho.x : Math.cos(angulo) * 180 + (r.width / 2 || 400),
-      y: velho ? velho.y : Math.sin(angulo) * 180 + (r.height / 2 || 300),
+      x: previous ? previous.x : Math.cos(angle) * 180 + (r.width / 2 || 400),
+      y: previous ? previous.y : Math.sin(angle) * 180 + (r.height / 2 || 300),
       vx: 0, vy: 0,
-      raio: 5 + Math.min(14, Math.sqrt(n.entrando) * 4),
+      radius: 5 + Math.min(14, Math.sqrt(n.incoming) * 4),
     };
   });
-  porNome = new Map(nos.map((n) => [n.id, n]));
-  arestas = d.arestas.filter((a) => porNome.has(a.de) && porNome.has(a.para));
-  $("m-memorias").textContent = d.nos.filter((n) => !n.fantasma).length;
-  const atalhos = $("atalhos");
-  atalhos.replaceChildren();
-  for (const n of [...nos].sort((a, b) => b.entrando - a.entrando).slice(0, 6)) {
-    if (!n.entrando) continue;
+  byId = new Map(nodes.map((n) => [n.id, n]));
+  edges = d.edges.filter((a) => byId.has(a.from) && byId.has(a.to));
+  $("m-memories").textContent = d.nodes.filter((n) => !n.ghost).length;
+  const shortcuts = $("shortcuts");
+  shortcuts.replaceChildren();
+  for (const n of [...nodes].sort((a, b) => b.incoming - a.incoming).slice(0, 6)) {
+    if (!n.incoming) continue;
     const b = document.createElement("button");
     b.title = n.id;
     b.textContent = n.id;
     const s = document.createElement("small");
-    s.textContent = `  ${n.entrando}`;
+    s.textContent = `  ${n.incoming}`;
     b.append(s);
-    b.onclick = () => { escolhido = n; abrir(n); centralizar(n); };
-    atalhos.append(b);
+    b.onclick = () => { selected = n; open(n); center(n); };
+    shortcuts.append(b);
   }
-  $("m-quebrados").textContent = d.arestas.filter((a) => a.quebrada).length;
+  $("m-broken").textContent = d.edges.filter((a) => a.broken).length;
 }
 
-function passo() {
-  const r = tela.getBoundingClientRect();
+function step() {
+  const r = canvas.getBoundingClientRect();
   const cx = r.width / 2, cy = r.height / 2;
-  for (let i = 0; i < nos.length; i++) {
-    const a = nos[i];
-    for (let j = i + 1; j < nos.length; j++) {
-      const b = nos[j];
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
       let dx = b.x - a.x, dy = b.y - a.y;
       let d2 = dx * dx + dy * dy || 0.01;
       if (d2 > 250000) continue;
@@ -280,8 +280,8 @@ function passo() {
       b.vx += ux * f; b.vy += uy * f;
     }
   }
-  for (const e of arestas) {
-    const a = porNome.get(e.de), b = porNome.get(e.para);
+  for (const e of edges) {
+    const a = byId.get(e.from), b = byId.get(e.to);
     const dx = b.x - a.x, dy = b.y - a.y;
     const d = Math.hypot(dx, dy) || 0.01;
     const f = (d - 150) * 0.0018;
@@ -289,258 +289,258 @@ function passo() {
     a.vx += ux * f * d * 0.06; a.vy += uy * f * d * 0.06;
     b.vx -= ux * f * d * 0.06; b.vy -= uy * f * d * 0.06;
   }
-  for (let i = 0; i < nos.length; i++) {
-    const a = nos[i];
-    for (let j = i + 1; j < nos.length; j++) {
-      const b = nos[j];
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
       const dx = b.x - a.x, dy = b.y - a.y;
-      const min = a.raio + b.raio + 26;
+      const min = a.radius + b.radius + 26;
       const d = Math.hypot(dx, dy) || 0.01;
       if (d >= min) continue;
-      const empurra = (min - d) / d * 0.5;
-      a.x -= dx * empurra; a.y -= dy * empurra;
-      b.x += dx * empurra; b.y += dy * empurra;
+      const push = (min - d) / d * 0.5;
+      a.x -= dx * push; a.y -= dy * push;
+      b.x += dx * push; b.y += dy * push;
     }
   }
-  for (const n of nos) {
+  for (const n of nodes) {
     n.vx += (cx - n.x) * 0.0006;
     n.vy += (cy - n.y) * 0.0006;
-    if (n === arrastando) continue;
+    if (n === dragging) continue;
     n.vx *= 0.82; n.vy *= 0.82;
     n.x += n.vx; n.y += n.vy;
   }
 }
 
-function paraTela(n) { return { x: (n.x - camera.x) * camera.z, y: (n.y - camera.y) * camera.z }; }
+function toScreen(n) { return { x: (n.x - camera.x) * camera.z, y: (n.y - camera.y) * camera.z }; }
 
-function desenhar() {
-  const r = tela.getBoundingClientRect();
+function draw() {
+  const r = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, r.width, r.height);
-  if (!nos.length) {
-    ctx.fillStyle = cor("--fraco");
+  if (!nodes.length) {
+    ctx.fillStyle = cssVar("--muted");
     ctx.textAlign = "center";
     ctx.font = "13px ui-sans-serif, system-ui, sans-serif";
-    ctx.fillText("este projeto ainda nao tem memorias", r.width / 2, r.height / 2 - 8);
+    ctx.fillText("this project has no memories yet", r.width / 2, r.height / 2 - 8);
     ctx.font = "12px ui-monospace, Menlo, monospace";
-    ctx.fillText(dirMemorias || "", r.width / 2, r.height / 2 + 14);
+    ctx.fillText(memoriesDir || "", r.width / 2, r.height / 2 + 14);
     return;
   }
-  const vizinhos = new Set();
-  const foco = sobre || escolhido;
-  if (foco) {
-    vizinhos.add(foco.id);
-    for (const e of arestas) {
-      if (e.de === foco.id) vizinhos.add(e.para);
-      if (e.para === foco.id) vizinhos.add(e.de);
+  const neighbors = new Set();
+  const focus = hovered || selected;
+  if (focus) {
+    neighbors.add(focus.id);
+    for (const e of edges) {
+      if (e.from === focus.id) neighbors.add(e.to);
+      if (e.to === focus.id) neighbors.add(e.from);
     }
   }
-  for (const e of arestas) {
-    const a = paraTela(porNome.get(e.de)), b = paraTela(porNome.get(e.para));
-    const relevante = !foco || (vizinhos.has(e.de) && vizinhos.has(e.para));
+  for (const e of edges) {
+    const a = toScreen(byId.get(e.from)), b = toScreen(byId.get(e.to));
+    const relevant = !focus || (neighbors.has(e.from) && neighbors.has(e.to));
     ctx.beginPath();
     ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-    ctx.strokeStyle = e.quebrada ? cor("--ruim") : cor("--linha");
-    ctx.globalAlpha = relevante ? (e.quebrada ? 0.75 : 0.55) : 0.12;
-    ctx.lineWidth = e.quebrada ? 1.3 : 1;
-    if (e.quebrada) ctx.setLineDash([3, 3]); else ctx.setLineDash([]);
+    ctx.strokeStyle = e.broken ? cssVar("--bad") : cssVar("--line");
+    ctx.globalAlpha = relevant ? (e.broken ? 0.75 : 0.55) : 0.12;
+    ctx.lineWidth = e.broken ? 1.3 : 1;
+    if (e.broken) ctx.setLineDash([3, 3]); else ctx.setLineDash([]);
     ctx.stroke();
   }
   ctx.setLineDash([]);
   ctx.globalAlpha = 1;
-  for (const n of nos) {
-    const p = paraTela(n);
-    const relevante = !foco || vizinhos.has(n.id);
-    ctx.globalAlpha = relevante ? 1 : 0.2;
+  for (const n of nodes) {
+    const p = toScreen(n);
+    const relevant = !focus || neighbors.has(n.id);
+    ctx.globalAlpha = relevant ? 1 : 0.2;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, n.raio * camera.z, 0, Math.PI * 2);
-    ctx.fillStyle = n.fantasma ? cor("--ruim") : n.orfa ? cor("--fraco") : cor("--destaque");
+    ctx.arc(p.x, p.y, n.radius * camera.z, 0, Math.PI * 2);
+    ctx.fillStyle = n.ghost ? cssVar("--bad") : n.orphan ? cssVar("--muted") : cssVar("--accent");
     ctx.fill();
-    if (n === escolhido) {
-      ctx.lineWidth = 2; ctx.strokeStyle = cor("--tinta"); ctx.stroke();
+    if (n === selected) {
+      ctx.lineWidth = 2; ctx.strokeStyle = cssVar("--ink"); ctx.stroke();
     }
-    const mostrarRotulo = foco ? relevante : n.entrando >= 3;
-    if (camera.z > 0.55 && mostrarRotulo) {
+    const showLabel = focus ? relevant : n.incoming >= 3;
+    if (camera.z > 0.55 && showLabel) {
       ctx.font = "11px ui-sans-serif, system-ui, sans-serif";
       ctx.textAlign = "center";
-      const rotulo = n.id.length > 26 ? n.id.slice(0, 25) + "…" : n.id;
-      const larg = ctx.measureText(rotulo).width;
-      const ty = p.y + n.raio * camera.z + 14;
-      ctx.fillStyle = cor("--fundo");
-      ctx.globalAlpha = (relevante ? 1 : 0.2) * 0.82;
-      ctx.fillRect(p.x - larg / 2 - 3, ty - 9, larg + 6, 13);
-      ctx.globalAlpha = relevante ? 1 : 0.2;
-      ctx.fillStyle = cor("--tinta");
-      ctx.fillText(rotulo, p.x, ty);
+      const label = n.id.length > 26 ? n.id.slice(0, 25) + "…" : n.id;
+      const textWidth = ctx.measureText(label).width;
+      const labelY = p.y + n.radius * camera.z + 14;
+      ctx.fillStyle = cssVar("--bg");
+      ctx.globalAlpha = (relevant ? 1 : 0.2) * 0.82;
+      ctx.fillRect(p.x - textWidth / 2 - 3, labelY - 9, textWidth + 6, 13);
+      ctx.globalAlpha = relevant ? 1 : 0.2;
+      ctx.fillStyle = cssVar("--ink");
+      ctx.fillText(label, p.x, labelY);
     }
   }
   ctx.globalAlpha = 1;
 }
 
-function centralizar(n) {
-  const r = tela.getBoundingClientRect();
+function center(n) {
+  const r = canvas.getBoundingClientRect();
   camera.x = n.x - r.width / (2 * camera.z);
   camera.y = n.y - r.height / (2 * camera.z);
 }
 
-function laco() { passo(); desenhar(); requestAnimationFrame(laco); }
+function tick() { step(); draw(); requestAnimationFrame(tick); }
 
-function noEm(ex, ey) {
-  for (const n of nos) {
-    const p = paraTela(n);
-    if (Math.hypot(p.x - ex, p.y - ey) <= n.raio * camera.z + 5) return n;
+function nodeAt(ex, ey) {
+  for (const n of nodes) {
+    const p = toScreen(n);
+    if (Math.hypot(p.x - ex, p.y - ey) <= n.radius * camera.z + 5) return n;
   }
   return null;
 }
 
-tela.addEventListener("mousedown", (ev) => {
-  const r = tela.getBoundingClientRect();
+canvas.addEventListener("mousedown", (ev) => {
+  const r = canvas.getBoundingClientRect();
   const ex = ev.clientX - r.left, ey = ev.clientY - r.top;
-  const alvo = noEm(ex, ey);
-  if (alvo) { arrastando = alvo; } else { panorama = { x: ev.clientX, y: ev.clientY, cx: camera.x, cy: camera.y }; }
+  const target = nodeAt(ex, ey);
+  if (target) { dragging = target; } else { pan = { x: ev.clientX, y: ev.clientY, cx: camera.x, cy: camera.y }; }
 });
 window.addEventListener("mousemove", (ev) => {
-  const r = tela.getBoundingClientRect();
+  const r = canvas.getBoundingClientRect();
   const ex = ev.clientX - r.left, ey = ev.clientY - r.top;
-  if (arrastando) {
-    arrastando.x = ex / camera.z + camera.x;
-    arrastando.y = ey / camera.z + camera.y;
-    arrastando.vx = 0; arrastando.vy = 0;
-  } else if (panorama) {
-    camera.x = panorama.cx - (ev.clientX - panorama.x) / camera.z;
-    camera.y = panorama.cy - (ev.clientY - panorama.y) / camera.z;
+  if (dragging) {
+    dragging.x = ex / camera.z + camera.x;
+    dragging.y = ey / camera.z + camera.y;
+    dragging.vx = 0; dragging.vy = 0;
+  } else if (pan) {
+    camera.x = pan.cx - (ev.clientX - pan.x) / camera.z;
+    camera.y = pan.cy - (ev.clientY - pan.y) / camera.z;
   } else {
-    sobre = noEm(ex, ey);
-    tela.style.cursor = sobre ? "pointer" : "grab";
+    hovered = nodeAt(ex, ey);
+    canvas.style.cursor = hovered ? "pointer" : "grab";
   }
 });
 window.addEventListener("mouseup", (ev) => {
-  const r = tela.getBoundingClientRect();
-  const alvo = noEm(ev.clientX - r.left, ev.clientY - r.top);
-  if (arrastando && alvo === arrastando) abrir(arrastando);
-  else if (!arrastando && !panorama && alvo) abrir(alvo);
-  arrastando = null; panorama = null;
+  const r = canvas.getBoundingClientRect();
+  const target = nodeAt(ev.clientX - r.left, ev.clientY - r.top);
+  if (dragging && target === dragging) open(dragging);
+  else if (!dragging && !pan && target) open(target);
+  dragging = null; pan = null;
 });
-tela.addEventListener("wheel", (ev) => {
+canvas.addEventListener("wheel", (ev) => {
   ev.preventDefault();
-  const r = tela.getBoundingClientRect();
+  const r = canvas.getBoundingClientRect();
   const ex = ev.clientX - r.left, ey = ev.clientY - r.top;
-  const antes = { x: ex / camera.z + camera.x, y: ey / camera.z + camera.y };
+  const before = { x: ex / camera.z + camera.x, y: ey / camera.z + camera.y };
   camera.z = Math.min(3, Math.max(0.25, camera.z * (ev.deltaY < 0 ? 1.12 : 0.89)));
-  camera.x = antes.x - ex / camera.z;
-  camera.y = antes.y - ey / camera.z;
+  camera.x = before.x - ex / camera.z;
+  camera.y = before.y - ey / camera.z;
 }, { passive: false });
 
-function lista(el, nomes) {
+function renderList(el, names) {
   el.replaceChildren();
-  if (!nomes.length) {
+  if (!names.length) {
     const li = document.createElement("li");
-    li.className = "vazio";
-    li.textContent = "nenhuma";
+    li.className = "empty";
+    li.textContent = "none";
     el.append(li);
     return;
   }
-  for (const nome of nomes) {
+  for (const name of names) {
     const li = document.createElement("li");
     const b = document.createElement("button");
-    b.textContent = nome;
-    b.onclick = () => { const alvo = porNome.get(nome); if (alvo) abrir(alvo); };
+    b.textContent = name;
+    b.onclick = () => { const target = byId.get(name); if (target) open(target); };
     li.append(b);
     el.append(li);
   }
 }
 
-function abrir(n) {
-  escolhido = n;
-  $("g-nome").textContent = n.id;
-  $("g-tipo").textContent = n.fantasma ? "citada, nunca escrita" : n.tipo;
-  const selos = $("g-selos");
-  selos.replaceChildren();
-  const marcas = [`${n.entrando} citacoes`, `${n.saindo} links`];
-  if (n.verificavel) marcas.push("tem verify:");
-  if (n.orfa) marcas.push("orfa");
-  for (const m of marcas) {
+function open(n) {
+  selected = n;
+  $("d-name").textContent = n.id;
+  $("d-kind").textContent = n.ghost ? "cited, never written" : n.kind;
+  const badges = $("d-badges");
+  badges.replaceChildren();
+  const marks = [`${n.incoming} citations`, `${n.outgoing} links`];
+  if (n.verifiable) marks.push("has verify:");
+  if (n.orphan) marks.push("orphan");
+  for (const m of marks) {
     const s = document.createElement("span");
-    s.className = "selo";
+    s.className = "badge";
     s.textContent = m;
-    selos.append(s);
+    badges.append(s);
   }
-  $("g-resumo").textContent = n.resumo || "";
-  lista($("g-saindo"), arestas.filter((a) => a.de === n.id).map((a) => a.para));
-  lista($("g-entrando"), arestas.filter((a) => a.para === n.id).map((a) => a.de));
-  $("gaveta").setAttribute("data-aberta", "");
+  $("d-summary").textContent = n.summary || "";
+  renderList($("d-outgoing"), edges.filter((a) => a.from === n.id).map((a) => a.to));
+  renderList($("d-incoming"), edges.filter((a) => a.to === n.id).map((a) => a.from));
+  $("drawer").setAttribute("data-open", "");
 }
-$("fechar").onclick = () => { $("gaveta").removeAttribute("data-aberta"); escolhido = null; };
+$("close").onclick = () => { $("drawer").removeAttribute("data-open"); selected = null; };
 
-function pintarEstado(d) {
-  $("projeto").textContent = (d.projeto || "").split("-").slice(-1)[0] || "";
-  $("m-economia").textContent = pct(d.economia);
-  $("m-cobertura").textContent = pct(d.cobertura);
+function renderState(d) {
+  $("project").textContent = (d.project || "").split("-").slice(-1)[0] || "";
+  $("m-savings").textContent = pct(d.savings);
+  $("m-coverage").textContent = pct(d.coverage);
 
-  $("c-economia").textContent = pct(d.economia);
-  $("b-economia").style.width = pct(d.economia);
-  $("n-economia").textContent = d.bytes_antes ? `${bytes(d.bytes_antes - d.bytes_depois)} de ${bytes(d.bytes_antes)}` : "sem historico ainda";
-  $("c-cobertura").textContent = pct(d.cobertura);
-  $("b-cobertura").style.width = pct(d.cobertura);
-  $("n-cobertura").textContent = `${d.com_historico} de ${d.aprendidos} com 3+ execucoes`;
-  $("c-aprendidos").textContent = d.aprendidos;
-  $("n-sessoes").textContent = `${d.despachos} agentes despachados`;
-  const total = Object.values(d.discos).reduce((a, b) => a + b, 0);
-  $("c-disco").textContent = bytes(total);
-  $("n-disco").textContent = Object.entries(d.discos).map(([k, v]) => `${k.replace(".db", "")} ${bytes(v)}`).join(" · ");
+  $("c-savings").textContent = pct(d.savings);
+  $("b-savings").style.width = pct(d.savings);
+  $("n-savings").textContent = d.bytes_before ? `${bytes(d.bytes_before - d.bytes_after)} of ${bytes(d.bytes_before)}` : "no history yet";
+  $("c-coverage").textContent = pct(d.coverage);
+  $("b-coverage").style.width = pct(d.coverage);
+  $("n-coverage").textContent = `${d.with_history} of ${d.learned} with 3+ runs`;
+  $("c-learned").textContent = d.learned;
+  $("n-sessions").textContent = `${d.dispatches} agents dispatched`;
+  const total = Object.values(d.disks).reduce((a, b) => a + b, 0);
+  $("c-disk").textContent = bytes(total);
+  $("n-disk").textContent = Object.entries(d.disks).map(([k, v]) => `${k.replace(".db", "")} ${bytes(v)}`).join(" · ");
 
-  const t = $("barulhentos");
+  const t = $("noisy");
   t.replaceChildren();
-  $("barulhentos-vazio").hidden = d.barulhentos.length > 0;
-  for (const b of d.barulhentos) {
+  $("noisy-empty").hidden = d.noisy.length > 0;
+  for (const b of d.noisy) {
     const tr = document.createElement("tr");
     const c1 = document.createElement("td");
-    c1.className = "mono"; c1.textContent = b.comando;
+    c1.className = "mono"; c1.textContent = b.command;
     const c2 = document.createElement("td");
-    c2.className = "num"; c2.textContent = `${b.execucoes}x · ${bytes(b.cortado)}`;
+    c2.className = "num"; c2.textContent = `${b.runs}x · ${bytes(b.trimmed)}`;
     tr.append(c1, c2); t.append(tr);
   }
 
-  const lista = $("eventos");
-  lista.replaceChildren();
-  $("eventos-vazio").hidden = d.eventos.length > 0;
-  for (const e of d.eventos) {
+  const eventsList = $("events");
+  eventsList.replaceChildren();
+  $("events-empty").hidden = d.events.length > 0;
+  for (const e of d.events) {
     const div = document.createElement("div");
-    div.className = "evento";
-    const tipo = document.createElement("span");
-    tipo.className = "tipo"; tipo.dataset.t = e.tipo; tipo.textContent = e.tipo;
-    const corpo = document.createElement("div");
-    corpo.className = "corpo";
-    const b = document.createElement("b"); b.textContent = e.assunto;
-    const s = document.createElement("span"); s.textContent = e.corpo || "";
-    corpo.append(b, s);
+    div.className = "event";
+    const kind = document.createElement("span");
+    kind.className = "kind"; kind.dataset.kind = e.kind; kind.textContent = e.kind;
+    const body = document.createElement("div");
+    body.className = "body";
+    const b = document.createElement("b"); b.textContent = e.subject;
+    const s = document.createElement("span"); s.textContent = e.body || "";
+    body.append(b, s);
     const q = document.createElement("span");
-    q.className = "idade"; q.textContent = idade(e.quando, d.agora);
-    div.append(tipo, corpo, q);
-    lista.append(div);
+    q.className = "age"; q.textContent = age(e.at, d.now);
+    div.append(kind, body, q);
+    eventsList.append(div);
   }
 }
 
-async function atualizar() {
-  const pulso = $("pulso");
+async function refresh() {
+  const pulse = $("pulse");
   try {
-    const [estado, grafo] = await Promise.all([
-      fetch("/api/estado").then((r) => r.json()),
-      fetch("/api/grafo").then((r) => r.json()),
+    const [state, graph] = await Promise.all([
+      fetch("/api/state").then((r) => r.json()),
+      fetch("/api/graph").then((r) => r.json()),
     ]);
-    pintarEstado(estado);
-    montarGrafo(grafo);
-    pulso.classList.remove("parado");
-    $("atualizado").textContent = new Date().toLocaleTimeString("pt-BR");
+    renderState(state);
+    buildGraph(graph);
+    pulse.classList.remove("stopped");
+    $("updated").textContent = new Date().toLocaleTimeString("en-US");
   } catch (e) {
-    pulso.classList.add("parado");
-    $("atualizado").textContent = "sem contato";
+    pulse.classList.add("stopped");
+    $("updated").textContent = "no contact";
   }
 }
 
-dimensionar();
-laco();
-atualizar();
-setInterval(atualizar, 5000);
+resize();
+tick();
+refresh();
+setInterval(refresh, 5000);
 </script>
 </body>
 </html>

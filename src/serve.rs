@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 const PAGE: &str = include_str!("panel.html");
 
-const ICONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="9" r="4" fill="#b98adf"/><circle cx="9" cy="23" r="3" fill="#b98adf"/><circle cx="23" cy="23" r="3" fill="#b98adf"/><path d="M16 9L9 23M16 9l7 14M9 23h14" stroke="#6a4d8c" stroke-width="1.5" fill="none"/></svg>"##;
+const ICON: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="9" r="4" fill="#b98adf"/><circle cx="9" cy="23" r="3" fill="#b98adf"/><circle cx="23" cy="23" r="3" fill="#b98adf"/><path d="M16 9L9 23M16 9l7 14M9 23h14" stroke="#6a4d8c" stroke-width="1.5" fill="none"/></svg>"##;
 
 fn home() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()))
@@ -21,11 +21,11 @@ fn file_size(name: &str) -> u64 {
 /// Everything the panel shows, measured rather than estimated: the savings are
 /// produced by replaying denoise over the output each command last printed.
 fn snapshot() -> serde_json::Value {
-    let mut aprendidos = 0i64;
-    let mut com_historico = 0i64;
-    let mut bytes_antes = 0i64;
-    let mut bytes_depois = 0i64;
-    let mut barulhentos: Vec<serde_json::Value> = Vec::new();
+    let mut learned = 0i64;
+    let mut with_history = 0i64;
+    let mut bytes_before = 0i64;
+    let mut bytes_after = 0i64;
+    let mut noisy: Vec<serde_json::Value> = Vec::new();
 
     if let Ok(db) = crate::learn::open(&bilro_dir().join("learn.db")) {
         if let Ok(mut st) = db.prepare("SELECT r.sig, r.n, l.body FROM runs r LEFT JOIN last l ON l.sig = r.sig") {
@@ -35,68 +35,68 @@ fn snapshot() -> serde_json::Value {
             if let Ok(rows) = rows {
                 for row in rows.flatten() {
                     let (sig, n, body) = row;
-                    aprendidos += 1;
+                    learned += 1;
                     if n >= 3 {
-                        com_historico += 1;
+                        with_history += 1;
                     }
                     let Some(body) = body else { continue };
                     if body.is_empty() {
                         continue;
                     }
-                    let antes = body.chars().count() as i64;
-                    let depois = crate::learn::denoise(&db, &sig, &body, 3, 0.8)
+                    let before = body.chars().count() as i64;
+                    let after = crate::learn::denoise(&db, &sig, &body, 3, 0.8)
                         .map(|d| d.text.chars().count() as i64)
-                        .unwrap_or(antes);
-                    bytes_antes += antes;
-                    bytes_depois += depois;
-                    if antes - depois > 0 {
-                        barulhentos.push(serde_json::json!({
-                            "comando": sig.chars().take(70).collect::<String>(),
-                            "execucoes": n,
-                            "cortado": antes - depois
+                        .unwrap_or(before);
+                    bytes_before += before;
+                    bytes_after += after;
+                    if before - after > 0 {
+                        noisy.push(serde_json::json!({
+                            "command": sig.chars().take(70).collect::<String>(),
+                            "runs": n,
+                            "trimmed": before - after
                         }));
                     }
                 }
             }
         }
     }
-    barulhentos.sort_by_key(|b| -(b["cortado"].as_i64().unwrap_or(0)));
-    barulhentos.truncate(8);
+    noisy.sort_by_key(|b| -(b["trimmed"].as_i64().unwrap_or(0)));
+    noisy.truncate(8);
 
     let cwd = std::env::current_dir().unwrap_or_default();
-    let projeto = crate::journal::project_of(&cwd);
-    let eventos: Vec<serde_json::Value> = crate::journal::open_default()
+    let project = crate::journal::project_of(&cwd);
+    let events: Vec<serde_json::Value> = crate::journal::open_default()
         .ok()
-        .and_then(|db| crate::journal::timeline(&db, Some(&projeto), 25).ok())
+        .and_then(|db| crate::journal::timeline(&db, Some(&project), 25).ok())
         .unwrap_or_default()
         .iter()
         .map(|e| {
             serde_json::json!({
-                "tipo": e.kind,
-                "assunto": e.subject,
-                "corpo": e.body.lines().take(2).collect::<Vec<_>>().join(" "),
-                "quando": e.at
+                "kind": e.kind,
+                "subject": e.subject,
+                "body": e.body.lines().take(2).collect::<Vec<_>>().join(" "),
+                "at": e.at
             })
         })
         .collect();
 
-    let sessoes = crate::ledger::sessions();
-    let despachos: usize = sessoes.iter().map(|s| crate::ledger::summarize(&s.id).dispatches).sum();
+    let sessions = crate::ledger::sessions();
+    let dispatches: usize = sessions.iter().map(|s| crate::ledger::summarize(&s.id).dispatches).sum();
 
     serde_json::json!({
-        "agora": crate::ledger::now_ms(),
-        "projeto": projeto,
-        "aprendidos": aprendidos,
-        "com_historico": com_historico,
-        "cobertura": if aprendidos > 0 { com_historico as f64 / aprendidos as f64 } else { 0.0 },
-        "bytes_antes": bytes_antes,
-        "bytes_depois": bytes_depois,
-        "economia": if bytes_antes > 0 { 1.0 - bytes_depois as f64 / bytes_antes as f64 } else { 0.0 },
-        "barulhentos": barulhentos,
-        "eventos": eventos,
-        "sessoes": sessoes.len(),
-        "despachos": despachos,
-        "discos": {
+        "now": crate::ledger::now_ms(),
+        "project": project,
+        "learned": learned,
+        "with_history": with_history,
+        "coverage": if learned > 0 { with_history as f64 / learned as f64 } else { 0.0 },
+        "bytes_before": bytes_before,
+        "bytes_after": bytes_after,
+        "savings": if bytes_before > 0 { 1.0 - bytes_after as f64 / bytes_before as f64 } else { 0.0 },
+        "noisy": noisy,
+        "events": events,
+        "sessions": sessions.len(),
+        "dispatches": dispatches,
+        "disks": {
             "learn.db": file_size("learn.db"),
             "journal.db": file_size("journal.db"),
             "index.db": file_size("index.db"),
@@ -108,7 +108,7 @@ fn snapshot() -> serde_json::Value {
 /// notes point at it, which is what makes a hub visible at a glance; an edge
 /// pointing at a name nobody wrote is marked rather than dropped, because a
 /// broken link is the interesting kind.
-fn grafo() -> serde_json::Value {
+fn graph() -> serde_json::Value {
     let cwd = std::env::current_dir().unwrap_or_default();
     let dir = home()
         .join(".claude")
@@ -117,16 +117,16 @@ fn grafo() -> serde_json::Value {
         .join("memory");
     let g = crate::graph::build(&dir);
 
-    let entrando = |nome: &str| g.back.get(nome).map(|v| v.len()).unwrap_or(0);
-    let saindo = |nome: &str| g.out.get(nome).map(|v| v.len()).unwrap_or(0);
+    let incoming = |name: &str| g.back.get(name).map(|v| v.len()).unwrap_or(0);
+    let outgoing = |name: &str| g.out.get(name).map(|v| v.len()).unwrap_or(0);
 
-    let nos: Vec<serde_json::Value> = g
+    let nodes: Vec<serde_json::Value> = g
         .memories
         .iter()
         .map(|m| {
-            let dentro = entrando(&m.name);
-            let fora = saindo(&m.name);
-            let primeira = m
+            let inn = incoming(&m.name);
+            let out = outgoing(&m.name);
+            let first = m
                 .body
                 .lines()
                 .find(|l| !l.trim().is_empty() && !l.starts_with('#'))
@@ -136,50 +136,50 @@ fn grafo() -> serde_json::Value {
                 .collect::<String>();
             serde_json::json!({
                 "id": m.name,
-                "tipo": m.kind.clone().unwrap_or_else(|| "sem tipo".into()),
-                "entrando": dentro,
-                "saindo": fora,
-                "orfa": dentro == 0 && fora == 0,
-                "resumo": crate::redact::redact(&primeira),
-                "verificavel": m.verify.is_some(),
+                "kind": m.kind.clone().unwrap_or_else(|| "no type".into()),
+                "incoming": inn,
+                "outgoing": out,
+                "orphan": inn == 0 && out == 0,
+                "summary": crate::redact::redact(&first),
+                "verifiable": m.verify.is_some(),
             })
         })
         .collect();
 
-    let mut arestas = Vec::new();
-    for (de, alvos) in &g.out {
-        for para in alvos {
-            arestas.push(serde_json::json!({
-                "de": de,
-                "para": para,
-                "quebrada": !g.names.contains(para),
+    let mut edges = Vec::new();
+    for (from, targets) in &g.out {
+        for to in targets {
+            edges.push(serde_json::json!({
+                "from": from,
+                "to": to,
+                "broken": !g.names.contains(to),
             }));
         }
     }
 
-    let fantasmas: Vec<serde_json::Value> = arestas
+    let ghosts: Vec<serde_json::Value> = edges
         .iter()
-        .filter(|a| a["quebrada"] == true)
-        .filter_map(|a| a["para"].as_str().map(String::from))
+        .filter(|a| a["broken"] == true)
+        .filter_map(|a| a["to"].as_str().map(String::from))
         .collect::<std::collections::BTreeSet<String>>()
         .into_iter()
-        .map(|nome| {
+        .map(|name| {
             serde_json::json!({
-                "id": nome, "tipo": "nao existe", "entrando": 0, "saindo": 0,
-                "orfa": false, "resumo": "esta memoria e citada mas nunca foi escrita",
-                "verificavel": false, "fantasma": true
+                "id": name, "kind": "does not exist", "incoming": 0, "outgoing": 0,
+                "orphan": false, "summary": "this memory is cited but was never written",
+                "verifiable": false, "ghost": true
             })
         })
         .collect();
 
-    let todos: Vec<serde_json::Value> = nos.into_iter().chain(fantasmas).collect();
-    let caminho = dir.display().to_string();
-    serde_json::json!({ "nos": todos, "arestas": arestas, "dir": caminho })
+    let all: Vec<serde_json::Value> = nodes.into_iter().chain(ghosts).collect();
+    let path = dir.display().to_string();
+    serde_json::json!({ "nodes": all, "edges": edges, "dir": path })
 }
 
-fn respond(stream: &mut TcpStream, status: &str, tipo: &str, body: &str) {
+fn respond(stream: &mut TcpStream, status: &str, content_type: &str, body: &str) {
     let head = format!(
-        "HTTP/1.1 {status}\r\nContent-Type: {tipo}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
         body.len()
     );
     let _ = stream.write_all(head.as_bytes());
@@ -188,17 +188,17 @@ fn respond(stream: &mut TcpStream, status: &str, tipo: &str, body: &str) {
 }
 
 fn handle(mut stream: TcpStream) {
-    let mut linha = String::new();
-    if BufReader::new(&stream).read_line(&mut linha).is_err() {
+    let mut line = String::new();
+    if BufReader::new(&stream).read_line(&mut line).is_err() {
         return;
     }
-    let rota = linha.split_whitespace().nth(1).unwrap_or("/");
-    match rota {
-        "/api/grafo" => respond(&mut stream, "200 OK", "application/json; charset=utf-8", &grafo().to_string()),
-        "/api/estado" => respond(&mut stream, "200 OK", "application/json; charset=utf-8", &snapshot().to_string()),
-        "/favicon.ico" => respond(&mut stream, "200 OK", "image/svg+xml", ICONE),
+    let route = line.split_whitespace().nth(1).unwrap_or("/");
+    match route {
+        "/api/graph" => respond(&mut stream, "200 OK", "application/json; charset=utf-8", &graph().to_string()),
+        "/api/state" => respond(&mut stream, "200 OK", "application/json; charset=utf-8", &snapshot().to_string()),
+        "/favicon.ico" => respond(&mut stream, "200 OK", "image/svg+xml", ICON),
         "/" | "/index.html" => respond(&mut stream, "200 OK", "text/html; charset=utf-8", PAGE),
-        _ => respond(&mut stream, "404 Not Found", "text/plain; charset=utf-8", "nao existe"),
+        _ => respond(&mut stream, "404 Not Found", "text/plain; charset=utf-8", "not found"),
     }
 }
 
@@ -213,10 +213,10 @@ pub fn bind(port: u16) -> std::io::Result<TcpListener> {
 pub fn serve(port: u16) {
     let listener = match bind(port) {
         Ok(l) => l,
-        Err(e) => return eprintln!("  nao consegui abrir a porta {port}: {e}"),
+        Err(e) => return eprintln!("  could not open port {port}: {e}"),
     };
     let addr = listener.local_addr().map(|a| a.to_string()).unwrap_or_default();
-    println!("\n  painel do bilro em http://{addr}\n  ctrl-c para parar\n");
+    println!("\n  bilro panel at http://{addr}\n  ctrl-c to stop\n");
     for stream in listener.incoming().flatten() {
         std::thread::spawn(move || handle(stream));
     }
@@ -227,88 +227,88 @@ mod tests {
     use super::*;
 
     #[test]
-    fn estado_e_json_com_os_campos_que_a_pagina_espera() {
+    fn state_is_json_with_the_fields_the_page_expects() {
         let s = snapshot();
-        for campo in ["aprendidos", "cobertura", "economia", "eventos", "barulhentos", "discos", "projeto"] {
-            assert!(s.get(campo).is_some(), "faltou {campo}");
+        for field in ["learned", "coverage", "savings", "events", "noisy", "disks", "project"] {
+            assert!(s.get(field).is_some(), "missing {field}");
         }
-        assert!(s["cobertura"].as_f64().unwrap() >= 0.0);
-        assert!(s["economia"].as_f64().unwrap() <= 1.0);
+        assert!(s["coverage"].as_f64().unwrap() >= 0.0);
+        assert!(s["savings"].as_f64().unwrap() <= 1.0);
     }
 
     #[test]
-    fn favicon_e_servido_para_nao_sujar_o_console() {
-        assert!(ICONE.contains("<svg"), "icone invalido");
+    fn favicon_is_served_to_keep_the_console_quiet() {
+        assert!(ICON.contains("<svg"), "invalid icon");
     }
 
     #[test]
-    fn grafo_tem_nos_arestas_e_marca_link_quebrado() {
-        let g = grafo();
-        assert!(g["nos"].is_array(), "faltou nos");
-        assert!(g["arestas"].is_array(), "faltou arestas");
-        for a in g["arestas"].as_array().unwrap() {
-            assert!(a["quebrada"].is_boolean(), "aresta sem marca de quebrada");
+    fn graph_has_nodes_edges_and_marks_broken_links() {
+        let g = graph();
+        assert!(g["nodes"].is_array(), "missing nodes");
+        assert!(g["edges"].is_array(), "missing edges");
+        for a in g["edges"].as_array().unwrap() {
+            assert!(a["broken"].is_boolean(), "edge without a broken flag");
         }
-        for n in g["nos"].as_array().unwrap() {
+        for n in g["nodes"].as_array().unwrap() {
             assert!(n["id"].is_string() && !n["id"].as_str().unwrap().is_empty());
-            assert!(n["entrando"].is_number() && n["saindo"].is_number());
+            assert!(n["incoming"].is_number() && n["outgoing"].is_number());
         }
     }
 
     #[test]
-    fn memoria_citada_e_nunca_escrita_vira_no_fantasma() {
-        let g = grafo();
-        let nos = g["nos"].as_array().unwrap();
-        let quebradas: Vec<&str> = g["arestas"]
+    fn memory_cited_but_never_written_becomes_a_ghost_node() {
+        let g = graph();
+        let nodes = g["nodes"].as_array().unwrap();
+        let broken: Vec<&str> = g["edges"]
             .as_array()
             .unwrap()
             .iter()
-            .filter(|a| a["quebrada"] == true)
-            .map(|a| a["para"].as_str().unwrap())
+            .filter(|a| a["broken"] == true)
+            .map(|a| a["to"].as_str().unwrap())
             .collect();
-        for alvo in quebradas {
+        for target in broken {
             assert!(
-                nos.iter().any(|n| n["id"] == alvo),
-                "aresta quebrada aponta para {alvo}, que nao virou no"
+                nodes.iter().any(|n| n["id"] == target),
+                "broken edge points to {target}, which did not become a node"
             );
         }
     }
 
     #[test]
-    fn pagina_embutida_no_binario_nao_esta_vazia() {
-        assert!(PAGE.contains("<html") || PAGE.contains("<!DOCTYPE"), "pagina invalida");
-        assert!(PAGE.contains("/api/estado"), "a pagina precisa buscar o estado");
+    fn page_embedded_in_the_binary_is_not_empty() {
+        assert!(PAGE.contains("<html") || PAGE.contains("<!DOCTYPE"), "invalid page");
+        assert!(PAGE.contains("/api/state"), "the page needs to fetch the state");
     }
 
     #[test]
-    fn so_escuta_no_loopback() {
-        let l = bind(0).expect("deveria conseguir abrir uma porta livre");
+    fn only_listens_on_loopback() {
+        let l = bind(0).expect("should be able to open a free port");
         let addr = l.local_addr().unwrap();
-        assert!(addr.ip().is_loopback(), "escutando em {addr}, que nao e loopback");
-        assert!(!addr.ip().is_unspecified(), "escutando em todas as interfaces");
+        assert!(addr.ip().is_loopback(), "listening on {addr}, which is not loopback");
+        assert!(!addr.ip().is_unspecified(), "listening on every interface");
     }
 
     #[test]
-    fn rota_desconhecida_nao_serve_a_pagina() {
+    fn unknown_route_does_not_serve_the_page() {
         let l = bind(0).unwrap();
-        let porta = l.local_addr().unwrap().port();
+        let port = l.local_addr().unwrap().port();
         std::thread::spawn(move || {
             for stream in l.incoming().flatten() {
                 handle(stream);
             }
         });
-        let pedir = |rota: &str| -> String {
+        let request = |route: &str| -> String {
             use std::io::Read;
-            let mut c = std::net::TcpStream::connect(("127.0.0.1", porta)).unwrap();
-            let _ = c.write_all(format!("GET {rota} HTTP/1.1\r\nHost: x\r\n\r\n").as_bytes());
+            let mut c = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+            let _ = c.write_all(format!("GET {route} HTTP/1.1\r\nHost: x\r\n\r\n").as_bytes());
             let mut buf = String::new();
             let _ = c.read_to_string(&mut buf);
             buf
         };
-        assert!(pedir("/").contains("200 OK"), "a raiz deveria servir a pagina");
-        assert!(pedir("/api/estado").contains("application/json"), "a api deveria devolver json");
-        let outra = pedir("/../../etc/passwd");
-        assert!(outra.contains("404"), "rota desconhecida deveria dar 404");
-        assert!(!outra.contains("<html"), "nunca servir a pagina para rota desconhecida");
+        assert!(request("/").contains("200 OK"), "the root should serve the page");
+        assert!(request("/api/state").contains("application/json"), "the api should return json");
+        let other = request("/../../etc/passwd");
+        assert!(other.contains("404"), "an unknown route should give a 404");
+        assert!(!other.contains("<html"), "never serve the page for an unknown route");
     }
 }

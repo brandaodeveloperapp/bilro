@@ -1,13 +1,13 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-pub const MASK: &str = "***MASCARADO***";
+pub const MASK: &str = "***REDACTED***";
 
 static URL_CREDENTIAL: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"([a-z][a-z0-9+.-]*://)([^\s:@/]*):([^\s@/]+)@").unwrap());
 
 static QUERY_SECRET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)([?&](?:api[_-]?key|access[_-]?token|auth|token|secret|password|passwd|senha|sig|signature|key)=)([^&\s\x22']+)").unwrap()
+    Regex::new(r"(?i)([?&](?:api[_-]?key|access[_-]?token|auth|token|secret|password|passwd|sig|signature|key)=)([^&\s\x22']+)").unwrap()
 });
 
 static BEARER: Lazy<Regex> =
@@ -17,7 +17,7 @@ static JWT: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\beyJ[A-Za-z0-9_-]{6,}\.eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]+").unwrap());
 
 static FLAG_SECRET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)(--?(?:password|passwd|senha|token|api[_-]?key|secret|auth)[= ])([^\s\x22']+)").unwrap()
+    Regex::new(r"(?i)(--?(?:password|passwd|token|api[_-]?key|secret|auth)[= ])([^\s\x22']+)").unwrap()
 });
 
 static PEM: Lazy<Regex> = Lazy::new(|| {
@@ -44,68 +44,68 @@ pub fn redact(text: &str) -> String {
 mod tests {
     use super::*;
 
-    fn vazou(saida: &str, segredo: &str) -> bool {
-        saida.contains(segredo)
+    fn leaked(output: &str, secret: &str) -> bool {
+        output.contains(secret)
     }
 
     #[test]
-    fn segredo_em_query_string_nao_passa() {
-        let out = redact("GET https://api.exemplo.com/v1/pedidos?apikey=SEGREDOabc123&page=2");
-        assert!(!vazou(&out, "SEGREDOabc123"));
-        assert!(out.contains("page=2"), "o que nao e segredo continua legivel");
-        assert!(out.contains("api.exemplo.com"));
+    fn secret_in_query_string_does_not_pass() {
+        let out = redact("GET https://api.example.com/v1/orders?apikey=SECRETabc123&page=2");
+        assert!(!leaked(&out, "SECRETabc123"));
+        assert!(out.contains("page=2"), "what is not a secret should stay readable");
+        assert!(out.contains("api.example.com"));
     }
 
     #[test]
-    fn cabecalho_de_autorizacao_nao_passa() {
-        let out = redact("authorization: Bearer abcDEF123456ghiJKL\nx-api: Basic dXNlcjpzZW5oYQ==");
-        assert!(!vazou(&out, "abcDEF123456ghiJKL"));
-        assert!(!vazou(&out, "dXNlcjpzZW5oYQ=="));
-        assert!(out.contains("Bearer"), "o formato continua visivel, so o valor some");
+    fn authorization_header_does_not_pass() {
+        let out = redact("authorization: Bearer abcDEF123456ghiJKL\nx-api: Basic dXNlcjpwYXNz");
+        assert!(!leaked(&out, "abcDEF123456ghiJKL"));
+        assert!(!leaked(&out, "dXNlcjpwYXNz"));
+        assert!(out.contains("Bearer"), "the format stays visible, only the value disappears");
     }
 
     #[test]
-    fn jwt_solto_no_meio_do_texto_nao_passa() {
+    fn bare_jwt_in_the_middle_of_text_does_not_pass() {
         let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-        let out = redact(&format!("cookie de sessao: {jwt} (expira em 1h)"));
-        assert!(!vazou(&out, jwt));
-        assert!(out.contains("expira em 1h"));
+        let out = redact(&format!("session cookie: {jwt} (expires in 1h)"));
+        assert!(!leaked(&out, jwt));
+        assert!(out.contains("expires in 1h"));
     }
 
     #[test]
-    fn senha_em_linha_de_comando_nao_passa() {
-        let out = redact("psql --password=S3nh4Sup3r --host=db.local\nmysql -u root --senha S3nh4Outra");
-        assert!(!vazou(&out, "S3nh4Sup3r"));
-        assert!(!vazou(&out, "S3nh4Outra"));
+    fn password_on_command_line_does_not_pass() {
+        let out = redact("psql --password=S3cr3tPa55 --host=db.local\nmysql -u root --password S3cr3tOther");
+        assert!(!leaked(&out, "S3cr3tPa55"));
+        assert!(!leaked(&out, "S3cr3tOther"));
         assert!(out.contains("db.local"));
     }
 
     #[test]
-    fn chave_privada_pem_nao_passa() {
-        let pem = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA7Xk\nsegredoLongoAqui\n-----END RSA PRIVATE KEY-----";
+    fn private_key_pem_does_not_pass() {
+        let pem = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA7Xk\nsomeLongSecretHere\n-----END RSA PRIVATE KEY-----";
         let out = redact(pem);
-        assert!(!vazou(&out, "segredoLongoAqui"));
+        assert!(!leaked(&out, "someLongSecretHere"));
         assert!(out.contains("BEGIN RSA PRIVATE KEY"));
     }
 
     #[test]
-    fn string_de_conexao_continua_coberta() {
-        let out = redact("DATABASE_URL=postgres://user:s3nh4@db:5432/prod\nREDIS=redis://:pw123456@cache:6379");
-        assert!(!vazou(&out, "s3nh4"));
-        assert!(!vazou(&out, "pw123456"));
+    fn connection_string_stays_covered() {
+        let out = redact("DATABASE_URL=postgres://user:s3cr3t@db:5432/prod\nREDIS=redis://:pw123456@cache:6379");
+        assert!(!leaked(&out, "s3cr3t"));
+        assert!(!leaked(&out, "pw123456"));
         assert!(out.contains("db:5432/prod"));
     }
 
     #[test]
-    fn texto_comum_passa_intacto() {
-        for benigno in [
+    fn ordinary_text_passes_through_untouched() {
+        for benign in [
             "web-1 1/1 Running 0 5d",
-            "compilou em 150ms",
-            "https://exemplo.com/docs?page=2&sort=desc",
+            "compiled in 150ms",
+            "https://example.com/docs?page=2&sort=desc",
             "git log --oneline -40",
-            "chave estrangeira invalida na tabela pedidos",
+            "invalid foreign key on the orders table",
         ] {
-            assert_eq!(redact(benigno), benigno, "alterou texto benigno: {benigno}");
+            assert_eq!(redact(benign), benign, "altered benign text: {benign}");
         }
     }
 }

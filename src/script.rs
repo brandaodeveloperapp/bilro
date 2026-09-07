@@ -93,13 +93,13 @@ fn scratch(extension: &str) -> PathBuf {
 /// never has to survive a shell that is not involved in the first place.
 pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u64>) -> Result<ScriptResult, String> {
     let runtime = runtime_for(language)
-        .ok_or_else(|| format!("linguagem nao suportada: {language}. Disponiveis: {}", languages().join(", ")))?;
+        .ok_or_else(|| format!("unsupported language: {language}. Available: {}", languages().join(", ")))?;
     if !available(runtime) {
-        return Err(format!("{} nao esta instalado nesta maquina", runtime.program));
+        return Err(format!("{} is not installed on this machine", runtime.program));
     }
 
     let scratch = Scratch::new(runtime.extension, code)
-        .map_err(|e| format!("nao consegui escrever o script: {e}"))?;
+        .map_err(|e| format!("could not write the script: {e}"))?;
     let file = scratch.path().to_path_buf();
 
     let mut cmd = Command::new(runtime.program);
@@ -110,7 +110,7 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
 
     let mut child = match cmd.spawn() {
         Ok(c) => c,
-        Err(e) => return Err(format!("nao consegui rodar {}: {e}", runtime.program)),
+        Err(e) => return Err(format!("could not run {}: {e}", runtime.program)),
     };
 
     let stdout = child.stdout.take();
@@ -152,7 +152,7 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
                 }
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
-            Err(e) => return Err(format!("falhou esperando o processo: {e}")),
+            Err(e) => return Err(format!("failed waiting for the process: {e}")),
         }
     };
 
@@ -168,7 +168,7 @@ pub fn run(language: &str, code: &str, cwd: Option<&Path>, timeout_ms: Option<u6
         text.push_str(&err);
     }
     if timed_out {
-        text.push_str(&format!("\n[bilro: interrompido em {}ms]", timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS)));
+        text.push_str(&format!("\n[bilro: interrupted after {}ms]", timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS)));
     }
     Ok(ScriptResult { output: crate::redact::redact(&text), failed: !status.success() || timed_out, timed_out })
 }
@@ -178,7 +178,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn apelido_de_linguagem_resolve() {
+    fn language_alias_resolves() {
         assert_eq!(runtime_for("js").unwrap().language, "javascript");
         assert_eq!(runtime_for("py").unwrap().language, "python");
         assert_eq!(runtime_for("bash").unwrap().language, "shell");
@@ -186,78 +186,78 @@ mod tests {
     }
 
     #[test]
-    fn shell_sempre_roda() {
+    fn shell_always_runs() {
         let r = run("shell", "echo bilro", None, None).unwrap();
         assert!(r.output.contains("bilro"));
         assert!(!r.failed);
     }
 
     #[test]
-    fn javascript_roda_quando_node_existe() {
+    fn javascript_runs_when_node_exists() {
         let rt = runtime_for("javascript").unwrap();
         if !available(rt) {
             return;
         }
         let r = run("javascript", "console.log(6*7)", None, None).unwrap();
-        assert!(r.output.contains("42"), "veio: {}", r.output);
+        assert!(r.output.contains("42"), "got: {}", r.output);
     }
 
     #[test]
-    fn python_roda_quando_instalado() {
+    fn python_runs_when_installed() {
         let rt = runtime_for("python").unwrap();
         if !available(rt) {
             return;
         }
         let r = run("python", "print(6*7)", None, None).unwrap();
-        assert!(r.output.contains("42"), "veio: {}", r.output);
+        assert!(r.output.contains("42"), "got: {}", r.output);
     }
 
     #[test]
-    fn erro_do_script_volta_com_a_mensagem_e_marcado_como_falha() {
-        let r = run("shell", "echo antes; nao_existe_esse_comando", None, None).unwrap();
-        assert!(r.output.contains("antes"), "stdout tem que sobreviver");
+    fn script_error_comes_back_with_the_message_and_marked_as_failed() {
+        let r = run("shell", "echo before; this_command_does_not_exist", None, None).unwrap();
+        assert!(r.output.contains("before"), "stdout has to survive");
         assert!(r.failed);
     }
 
     #[test]
-    fn laco_infinito_e_interrompido_em_vez_de_pendurar() {
-        let inicio = std::time::Instant::now();
+    fn infinite_loop_is_interrupted_instead_of_hanging() {
+        let start = std::time::Instant::now();
         let r = run("shell", "while true; do :; done", None, Some(300)).unwrap();
         assert!(r.timed_out);
-        assert!(inicio.elapsed().as_secs() < 10, "demorou demais para interromper");
+        assert!(start.elapsed().as_secs() < 10, "took too long to interrupt");
     }
 
     #[test]
-    fn codigo_com_aspas_nao_precisa_sobreviver_a_shell() {
-        let r = run("shell", "printf '%s\\n' \"aspas \\\"duplas\\\" e 'simples'\"", None, None).unwrap();
-        assert!(r.output.contains("duplas"), "veio: {}", r.output);
+    fn code_with_quotes_does_not_need_to_survive_a_shell() {
+        let r = run("shell", "printf '%s\\n' \"double \\\"quotes\\\" and 'single'\"", None, None).unwrap();
+        assert!(r.output.contains("quotes"), "got: {}", r.output);
     }
 
     #[test]
-    fn linguagem_desconhecida_lista_as_disponiveis() {
+    fn unknown_language_lists_the_available_ones() {
         let e = run("cobol", "DISPLAY 1", None, None).unwrap_err();
-        assert!(e.contains("shell") && e.contains("python"), "veio: {e}");
+        assert!(e.contains("shell") && e.contains("python"), "got: {e}");
     }
 
     #[test]
-    fn segredo_no_que_o_script_imprime_e_mascarado() {
-        let r = run("shell", "echo 'DB=postgres://u:S3GR3DO@h:5432/d'", None, None).unwrap();
-        assert!(!r.output.contains("S3GR3DO"), "vazou: {}", r.output);
+    fn secret_in_what_the_script_prints_is_masked() {
+        let r = run("shell", "echo 'DB=postgres://u:S3CR3T@h:5432/d'", None, None).unwrap();
+        assert!(!r.output.contains("S3CR3T"), "leaked: {}", r.output);
     }
 
     #[test]
-    fn arquivo_temporario_some_mesmo_quando_a_execucao_falha() {
-        let caminho;
+    fn temp_file_is_removed_even_when_the_run_fails() {
+        let path;
         {
             let s = Scratch::new("sh", "echo x").unwrap();
-            caminho = s.path().to_path_buf();
-            assert!(caminho.exists(), "deveria existir enquanto esta em uso");
+            path = s.path().to_path_buf();
+            assert!(path.exists(), "should exist while in use");
         }
-        assert!(!caminho.exists(), "sobrou {}", caminho.display());
+        assert!(!path.exists(), "left behind {}", path.display());
     }
 
     #[test]
-    fn cada_execucao_usa_um_arquivo_proprio() {
+    fn each_run_uses_its_own_file() {
         let a = Scratch::new("sh", "echo a").unwrap();
         let b = Scratch::new("sh", "echo b").unwrap();
         assert_ne!(a.path(), b.path());
@@ -269,11 +269,11 @@ mod pipe_tests {
     use super::*;
 
     #[test]
-    fn saida_maior_que_o_buffer_do_pipe_nao_trava() {
-        let inicio = std::time::Instant::now();
+    fn output_larger_than_the_pipe_buffer_does_not_hang() {
+        let start = std::time::Instant::now();
         let r = run("shell", "seq 1 200000", None, Some(30_000)).unwrap();
-        assert!(!r.timed_out, "travou esperando o pipe esvaziar");
-        assert!(r.output.lines().count() > 199_000, "perdeu linhas: {}", r.output.lines().count());
-        assert!(inicio.elapsed().as_secs() < 15, "demorou {}s", inicio.elapsed().as_secs());
+        assert!(!r.timed_out, "hung waiting for the pipe to drain");
+        assert!(r.output.lines().count() > 199_000, "lost lines: {}", r.output.lines().count());
+        assert!(start.elapsed().as_secs() < 15, "took {}s", start.elapsed().as_secs());
     }
 }

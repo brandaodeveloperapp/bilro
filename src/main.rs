@@ -26,33 +26,33 @@ fn hook_outcome() {
         .as_str()
         .map(String::from)
         .unwrap_or_else(|| serde_json::to_string(response).unwrap_or_default());
-    let session = data["session_id"].as_str().unwrap_or("desconhecida");
+    let session = data["session_id"].as_str().unwrap_or("unknown");
     let cwd = std::env::current_dir().unwrap_or_default();
     let project = journal::project_of(&cwd);
 
     let (kind, subject) = if tool == "Task" || tool == "Agent" {
-        let desc = data["tool_input"]["description"].as_str().unwrap_or("agente");
-        ("agente", desc.to_string())
+        let desc = data["tool_input"]["description"].as_str().unwrap_or("agent");
+        ("agent", desc.to_string())
     } else {
-        let falhou = body.lines().any(learn::is_severe);
-        if !falhou {
+        let failed = body.lines().any(learn::is_severe);
+        if !failed {
             return;
         }
-        let alvo = data["tool_input"]["file_path"]
+        let target = data["tool_input"]["file_path"]
             .as_str()
             .or_else(|| data["tool_input"]["pattern"].as_str())
             .unwrap_or("");
-        ("erro-tool", format!("{tool} {alvo}").trim().to_string())
+        ("tool-error", format!("{tool} {target}").trim().to_string())
     };
 
-    let resumo: String = body
+    let summary: String = body
         .lines()
-        .filter(|l| learn::is_severe(l) || kind == "agente")
+        .filter(|l| learn::is_severe(l) || kind == "agent")
         .take(8)
         .collect::<Vec<_>>()
         .join("\n");
     if let Ok(db) = journal::open_default() {
-        let _ = journal::record(&db, kind, &subject, &resumo, session, &project);
+        let _ = journal::record(&db, kind, &subject, &summary, session, &project);
     }
 }
 
@@ -90,16 +90,16 @@ fn hook_shadow() {
         let _ = learn::observe(&mut db, command, clipped);
     }
 
-    let falhas: Vec<&str> = clipped.lines().filter(|l| learn::is_severe(l)).take(6).collect();
-    if !falhas.is_empty() {
+    let failures: Vec<&str> = clipped.lines().filter(|l| learn::is_severe(l)).take(6).collect();
+    if !failures.is_empty() {
         let cwd = std::env::current_dir().unwrap_or_default();
         if let Ok(db) = journal::open_default() {
             let _ = journal::record(
                 &db,
-                "falha",
+                "failure",
                 command,
-                &falhas.join("\n"),
-                data["session_id"].as_str().unwrap_or("desconhecida"),
+                &failures.join("\n"),
+                data["session_id"].as_str().unwrap_or("unknown"),
                 &journal::project_of(&cwd),
             );
         }
@@ -108,13 +108,13 @@ fn hook_shadow() {
 
 fn run_filtered(argv: &[String]) -> i32 {
     if argv.is_empty() {
-        eprintln!("  uso: bilro filter <comando>");
+        eprintln!("  usage: bilro filter <command>");
         return 2;
     }
     let command = argv.join(" ");
     let out = Command::new("sh").arg("-c").arg(&command).output();
     let Ok(out) = out else {
-        eprintln!("  falhou ao executar");
+        eprintln!("  failed to run");
         return 127;
     };
     let status = out.status.code().unwrap_or(1);
@@ -134,7 +134,7 @@ fn run_filtered(argv: &[String]) -> i32 {
     println!("{text}");
     if before > text.len() {
         let pct = 100 - text.len() * 100 / before.max(1);
-        eprintln!("\n  \x1b[2m{pct}% menor{}\x1b[0m", if note.is_empty() { String::new() } else { format!(" ({note})") });
+        eprintln!("\n  \x1b[2m{pct}% smaller{}\x1b[0m", if note.is_empty() { String::new() } else { format!(" ({note})") });
     }
     status
 }
@@ -203,22 +203,22 @@ fn hook_task(cwd: &Path) {
         .unwrap_or_default();
 
     println!(
-        "bilro: ~{}k de custo fixo + {prompt_tokens} tok deste prompt, antes de qualquer trabalho.",
+        "bilro: ~{}k fixed cost + {prompt_tokens} tok for this prompt, before any work happens.",
         floor / 1000
     );
     if inherits {
-        println!("  {kind} nao declara tools: herda o catalogo inteiro de ferramentas neste despacho.");
+        println!("  {kind} declares no tools: inherits the entire tool catalogue on this dispatch.");
     }
     if !near.is_empty() {
         println!(
-            "  {}o agente sobre o mesmo assunto nesta sessao ({}). Da pra medir com ctx_execute?",
+            "  agent #{} on the same subject this session ({}). Worth measuring with ctx_execute?",
             near.len() + 1,
             near.join(", ")
         );
     }
     let total = state["dispatches"].as_array().map(|a| a.len()).unwrap_or(0);
     if total >= 8 {
-        println!("  {total} agentes ja despachados nesta sessao.");
+        println!("  {total} agents already dispatched this session.");
     }
 
     ledger::record(
@@ -248,25 +248,25 @@ fn hook_session(cwd: &Path) {
         return;
     }
     let agents = weigh::weigh_agents(&[claude.join("agents"), cwd.join(".claude").join("agents")]);
-    let herdam = agents.iter().filter(|a| a.inherits_everything).count();
-    print!("bilro: {fixed} tok de custo fixo por request neste projeto.");
-    if herdam > 0 {
-        print!(" {herdam} agentes sem tools: herdam o catalogo inteiro quando despachados.");
+    let inherit_all = agents.iter().filter(|a| a.inherits_everything).count();
+    print!("bilro: {fixed} tok fixed cost per request on this project.");
+    if inherit_all > 0 {
+        print!(" {inherit_all} agents with no tools: inherit the entire catalogue when dispatched.");
     }
-    println!(" Antes de despachar agente, pergunte se da pra medir com ctx_execute.");
+    println!(" Before dispatching an agent, ask whether it can be measured with ctx_execute.");
 }
 
 fn cmd_read(argv: &[String]) {
     let outline = argv.iter().any(|a| a == "--outline");
     let Some(file) = argv.iter().find(|a| !a.starts_with("--")) else {
-        return eprintln!("  uso: bilro read <arquivo> [--outline]");
+        return eprintln!("  usage: bilro read <file> [--outline]");
     };
     match read::read(Path::new(file), if outline { "outline" } else { "safe" }) {
         Ok(r) => {
             println!("{}", redact::redact(&r.text));
             if r.lossy {
                 eprintln!(
-                    "\n  \x1b[33mesboco: corpo de funcao elidido, faixa de linha marcada. Nao use para editar.\x1b[0m \x1b[2m{}% menor\x1b[0m",
+                    "\n  \x1b[33moutline: function bodies elided, line ranges marked. Do not edit from this.\x1b[0m \x1b[2m{}% smaller\x1b[0m",
                     (r.saved * 100.0).round()
                 );
             }
@@ -277,17 +277,17 @@ fn cmd_read(argv: &[String]) {
 
 fn cmd_grep(argv: &[String]) {
     if argv.is_empty() {
-        return eprintln!("  uso: bilro grep <padrao> [caminho...]");
+        return eprintln!("  usage: bilro grep <pattern> [path...]");
     }
     let out = Command::new("grep").arg("-rn").args(argv).output();
-    let Ok(out) = out else { return eprintln!("  grep nao disponivel") };
+    let Ok(out) = out else { return eprintln!("  grep not available") };
     let raw = String::from_utf8_lossy(&out.stdout).to_string();
     if raw.trim().is_empty() {
-        return eprintln!("  \x1b[2msem resultado\x1b[0m");
+        return eprintln!("  \x1b[2mno results\x1b[0m");
     }
     let r = grep::compress(&redact::redact(&raw));
     println!("{}", r.text);
-    eprintln!("\n  \x1b[2m{} ocorrencias em {} arquivos\x1b[0m", r.hits, r.files);
+    eprintln!("\n  \x1b[2m{} matches across {} files\x1b[0m", r.hits, r.files);
 }
 
 fn memory_dir(cwd: &Path) -> PathBuf {
@@ -300,21 +300,21 @@ const OFF: &str = "\x1b[0m";
 const WARN: &str = "\x1b[33m";
 
 fn cmd_ready() {
-    let Ok(m) = ready::evaluate_default() else { return eprintln!("  sem banco ainda") };
+    let Ok(m) = ready::evaluate_default() else { return eprintln!("  no database yet") };
     let pct = |x: f64| format!("{}%", (x * 100.0).round());
-    let mark = |ok: bool| if ok { "\x1b[32mok\x1b[0m".to_string() } else { format!("{WARN}falta{OFF}") };
-    println!("\n  pode aposentar as ferramentas que o bilro substitui?\n");
-    println!("  historico   {} comandos aprendidos  {}", m.total, mark(m.total >= 40));
-    println!("  cobertura   {} com 3+ execucoes = {}  {}", m.learned, pct(m.coverage), mark(m.coverage >= 0.8));
-    println!("  economia    {} do output cortado  {}", pct(m.savings), mark(m.savings >= 0.5));
-    println!("  sinal       {} linhas de falha perdidas  {}", m.lost.len(), mark(m.lost.is_empty()));
-    println!("  auditoria   {} red-team, {} criticos  {}", m.audits, m.criticals, mark(m.audits >= 2 && m.criticals == 0));
+    let mark = |ok: bool| if ok { "\x1b[32mok\x1b[0m".to_string() } else { format!("{WARN}missing{OFF}") };
+    println!("\n  can the tools bilro replaces be retired yet?\n");
+    println!("  history     {} commands learned  {}", m.total, mark(m.total >= 40));
+    println!("  coverage    {} with 3+ runs = {}  {}", m.learned, pct(m.coverage), mark(m.coverage >= 0.8));
+    println!("  savings     {} of output trimmed  {}", pct(m.savings), mark(m.savings >= 0.5));
+    println!("  signal      {} failure lines lost  {}", m.lost.len(), mark(m.lost.is_empty()));
+    println!("  audit       {} red-team, {} critical  {}", m.audits, m.criticals, mark(m.audits >= 2 && m.criticals == 0));
     println!();
     for v in ready::verdicts(&m) {
         if v.missing.is_empty() {
-            println!("  \x1b[32mPODE APOSENTAR\x1b[0m  {}", v.tool);
+            println!("  \x1b[32mCAN RETIRE\x1b[0m  {}", v.tool);
         } else {
-            println!("  {DIM}ainda nao{OFF}       {}{DIM}  — falta {}; se errar: {}{OFF}", v.tool, v.missing.join(", "), v.risk);
+            println!("  {DIM}not yet{OFF}       {}{DIM}  — missing {}; if wrong: {}{OFF}", v.tool, v.missing.join(", "), v.risk);
         }
     }
     println!();
@@ -322,36 +322,36 @@ fn cmd_ready() {
 
 fn cmd_lint(cwd: &Path) {
     let r = graph::lint(&memory_dir(cwd));
-    println!("\n  {} memorias", r.total);
+    println!("\n  {} memories", r.total);
     if !r.broken.is_empty() {
-        println!("\n  {WARN}{} links quebrados{OFF}", r.broken.len());
+        println!("\n  {WARN}{} broken links{OFF}", r.broken.len());
         for b in r.broken.iter().take(10) {
-            println!("    {} {DIM}aponta para{OFF} {}", b.from, b.to);
+            println!("    {} {DIM}points to{OFF} {}", b.from, b.to);
         }
     }
     if !r.orphans.is_empty() {
-        println!("\n  {} orfas {DIM}(sem link entrando nem saindo){OFF}", r.orphans.len());
+        println!("\n  {} orphaned {DIM}(no incoming or outgoing links){OFF}", r.orphans.len());
         for o in r.orphans.iter().take(8) {
             println!("    {o}");
         }
     }
     if !r.hubs.is_empty() {
-        println!("\n  mais citadas");
+        println!("\n  most referenced");
         for h in &r.hubs {
-            println!("    {:<44} {DIM}{} entradas{OFF}", h.name, h.incoming);
+            println!("    {:<44} {DIM}{} incoming{OFF}", h.name, h.incoming);
         }
     }
     println!();
 }
 
 fn cmd_propose() {
-    let Ok(db) = learn::open(&learn_db()) else { return eprintln!("  sem banco ainda") };
+    let Ok(db) = learn::open(&learn_db()) else { return eprintln!("  no database yet") };
     let opts = propose::ProposalOptions { min_runs: 5, min_failure_runs: 2 };
     let Ok(list) = propose::proposals(&db, &opts) else { return };
     if list.is_empty() {
-        return println!("\n  {DIM}nada a propor ainda{OFF}\n");
+        return println!("\n  {DIM}nothing to propose yet{OFF}\n");
     }
-    println!("\n  {} memorias que valeria escrever\n", list.len());
+    println!("\n  {} memories worth writing\n", list.len());
     for p in &list {
         println!("  {:<10} {}", p.kind, p.subject);
         println!("             {DIM}{}{OFF}", p.why);
@@ -363,7 +363,7 @@ fn cmd_verify(cwd: &Path) {
     let dir = memory_dir(cwd);
     let memories = memory::load_memories(&dir);
     if memories.is_empty() {
-        return println!("\n  {DIM}este projeto nao tem memoria em {}{OFF}\n", dir.display());
+        return println!("\n  {DIM}this project has no memory in {}{OFF}\n", dir.display());
     }
     let armed = std::env::args().any(|a| a == "--run");
     let mut refused = Vec::new();
@@ -382,17 +382,17 @@ fn cmd_verify(cwd: &Path) {
         }
         let r = exec::run_declared(v);
         let ok = r.ok && m.expect.as_deref().map(|e| r.output.contains(e)).unwrap_or(true);
-        println!("  {} {}", if ok { "\x1b[32mok\x1b[0m" } else { "\x1b[31mfalhou\x1b[0m" }, m.name);
+        println!("  {} {}", if ok { "\x1b[32mok\x1b[0m" } else { "\x1b[31mfailed\x1b[0m" }, m.name);
         checked += 1;
     }
     if !refused.is_empty() {
-        println!("\n  {WARN}{} recusadas: so programa permitido roda em verify{OFF}", refused.len());
+        println!("\n  {WARN}{} refused: verify only runs an allowed program{OFF}", refused.len());
         for (name, prog) in &refused {
             println!("    {name}  {DIM}{prog}{OFF}");
         }
     }
     if !armed && checked > 0 {
-        println!("\n  {DIM}nada foi executado. bilro verify --run executa{OFF}");
+        println!("\n  {DIM}nothing ran. bilro verify --run executes{OFF}");
     }
     println!();
 }
@@ -410,30 +410,30 @@ fn cmd_bill(cwd: &Path) {
     let fixed: i64 = always.iter().map(|a| a.tokens).sum::<i64>()
         + mems.iter().map(|m| m.tokens).sum::<i64>()
         + agents.iter().map(|a| a.catalogue_tokens).sum::<i64>();
-    println!("\n  custo fixo por request: {fixed} tokens\n");
+    println!("\n  fixed cost per request: {fixed} tokens\n");
     for a in &always {
         println!("  {:<34} {:>6}", a.name, a.tokens);
     }
     for m in &mems {
-        println!("  {:<34} {:>6} {DIM}({} memorias){OFF}", m.project, m.tokens, m.entries);
+        println!("  {:<34} {:>6} {DIM}({} memories){OFF}", m.project, m.tokens, m.entries);
     }
-    println!("  {:<34} {:>6} {DIM}({} agentes){OFF}", "catalogo de agentes", agents.iter().map(|a| a.catalogue_tokens).sum::<i64>(), agents.len());
-    let sem_tools = agents.iter().filter(|a| a.inherits_everything).count();
-    if sem_tools > 0 {
-        println!("\n  {WARN}{sem_tools} agentes sem tools: herdam o catalogo inteiro quando despachados{OFF}");
+    println!("  {:<34} {:>6} {DIM}({} agents){OFF}", "agent catalogue", agents.iter().map(|a| a.catalogue_tokens).sum::<i64>(), agents.len());
+    let no_tools = agents.iter().filter(|a| a.inherits_everything).count();
+    if no_tools > 0 {
+        println!("\n  {WARN}{no_tools} agents with no tools: inherit the entire catalogue when dispatched{OFF}");
     }
-    println!("  {DIM}{} servidores MCP{OFF}\n", mcp.len());
+    println!("  {DIM}{} MCP servers{OFF}\n", mcp.len());
 }
 
 fn cmd_sessions() {
     let list = ledger::sessions();
     if list.is_empty() {
-        return println!("\n  {DIM}nenhuma sessao registrada{OFF}\n");
+        return println!("\n  {DIM}no sessions recorded{OFF}\n");
     }
-    println!("\n  {} sessoes\n", list.len());
+    println!("\n  {} sessions\n", list.len());
     for s in list.iter().take(12) {
         let sum = ledger::summarize(&s.id);
-        println!("  {:<40} {DIM}{} agentes, {} repetidos{OFF}", s.id, sum.dispatches, sum.repeats);
+        println!("  {:<40} {DIM}{} agents, {} repeats{OFF}", s.id, sum.dispatches, sum.repeats);
     }
     println!();
 }
@@ -531,13 +531,13 @@ fn cmd_run(argv: &[String]) {
     };
     let command = cmd_parts.join(" ");
     if command.is_empty() {
-        return eprintln!("  uso: bilro run <comando> [--find <termo>...]");
+        return eprintln!("  usage: bilro run <command> [--find <term>...]");
     }
     let cwd = std::env::current_dir().unwrap_or_default();
     let r = sandbox::run(&command, None, &queries, Some(&cwd));
     println!(
-        "\n  {}  {} trechos indexados, {DIM}{} tok ficaram fora do contexto{OFF}",
-        if r.failed { "\x1b[31mfalhou\x1b[0m" } else { "ok" },
+        "\n  {}  {} chunks indexed, {DIM}{} tok stayed out of context{OFF}",
+        if r.failed { "\x1b[31mfailed\x1b[0m" } else { "ok" },
         r.chunks,
         r.withheld_tokens
     );
@@ -554,14 +554,14 @@ fn cmd_run(argv: &[String]) {
 fn cmd_find(argv: &[String]) {
     let query = argv.join(" ");
     if query.is_empty() {
-        return eprintln!("  uso: bilro find <termo>");
+        return eprintln!("  usage: bilro find <term>");
     }
-    let Ok(conn) = sandbox::open_default() else { return eprintln!("  sem indice ainda") };
+    let Ok(conn) = sandbox::open_default() else { return eprintln!("  no index yet") };
     let Ok(hits) = sandbox::search(&conn, &query, 8) else { return };
     if hits.is_empty() {
-        return println!("\n  {DIM}nada encontrado para {query}{OFF}\n");
+        return println!("\n  {DIM}nothing found for {query}{OFF}\n");
     }
-    println!("\n  {} trechos\n", hits.len());
+    println!("\n  {} chunks\n", hits.len());
     for h in &hits {
         println!("  {DIM}{}{OFF}", h.label);
         for line in h.body.lines().take(8) {
@@ -583,10 +583,10 @@ fn hook_prompt() {
             if let Ok(db) = journal::open_default() {
                 let _ = journal::record(
                     &db,
-                    "pedido",
+                    "request",
                     prompt,
                     "",
-                    data["session_id"].as_str().unwrap_or("desconhecida"),
+                    data["session_id"].as_str().unwrap_or("unknown"),
                     &journal::project_of(&cwd),
                 );
             }
@@ -602,31 +602,31 @@ fn hook_prompt() {
 fn cmd_install() {
     let binary = match std::env::current_exe() {
         Ok(p) => p,
-        Err(e) => return eprintln!("  nao achei o proprio binario: {e}"),
+        Err(e) => return eprintln!("  could not find own binary: {e}"),
     };
     let link_dir = home().join(".local").join("bin");
     match install::install(&home(), &binary, Some(&link_dir)) {
-        Err(e) => eprintln!("  falhou: {e}"),
+        Err(e) => eprintln!("  failed: {e}"),
         Ok(r) => {
-            println!("\n  bilro instalado\n");
-            println!("  binario   {}", r.binary.display());
+            println!("\n  bilro installed\n");
+            println!("  binary    {}", r.binary.display());
             if let Some(l) = &r.linked {
-                println!("  no PATH   {}", l.display());
+                println!("  on PATH   {}", l.display());
             }
             for a in &r.added {
                 println!("  \x1b[32m+{OFF} {a}");
             }
             for a in &r.replaced {
-                println!("  {WARN}~{OFF} {a} {DIM}(caminho atualizado){OFF}");
+                println!("  {WARN}~{OFF} {a} {DIM}(path updated){OFF}");
             }
             for a in &r.already {
-                println!("  {DIM}= {a} (ja estava){OFF}");
+                println!("  {DIM}= {a} (already there){OFF}");
             }
             if let Some(m) = r.mcp {
-                println!("  {DIM}mcp       servidor {m}{OFF}");
+                println!("  {DIM}mcp       server {m}{OFF}");
             }
             if let Some(b) = &r.backup {
-                println!("\n  {DIM}settings anterior em {}{OFF}", b.display());
+                println!("\n  {DIM}previous settings at {}{OFF}", b.display());
             }
             println!();
         }
@@ -638,11 +638,11 @@ fn cmd_install() {
 fn cmd_exec(argv: &[String]) {
     let lang = argv.first().cloned().unwrap_or_else(|| "shell".into());
     if script::runtime_for(&lang).is_none() {
-        return eprintln!("  linguagem nao suportada: {lang}. Disponiveis: {}", script::languages().join(", "));
+        return eprintln!("  unsupported language: {lang}. Available: {}", script::languages().join(", "));
     }
     let mut code = String::new();
     if std::io::stdin().read_to_string(&mut code).is_err() || code.trim().is_empty() {
-        return eprintln!("  uso: echo '<codigo>' | bilro exec <linguagem>");
+        return eprintln!("  usage: echo '<code>' | bilro exec <language>");
     }
     let cwd = std::env::current_dir().unwrap_or_default();
     match script::run(&lang, &code, Some(&cwd), None) {
@@ -650,7 +650,7 @@ fn cmd_exec(argv: &[String]) {
         Ok(r) => {
             print!("{}", r.output);
             if r.failed {
-                eprintln!("\n  {WARN}o script terminou com erro{OFF}");
+                eprintln!("\n  {WARN}the script exited with an error{OFF}");
                 std::process::exit(1);
             }
         }
@@ -663,7 +663,7 @@ fn cmd_recall(argv: &[String]) {
     let query = argv.join(" ");
     let cwd = std::env::current_dir().unwrap_or_default();
     let project = journal::project_of(&cwd);
-    let Ok(db) = journal::open_default() else { return eprintln!("  sem diario ainda") };
+    let Ok(db) = journal::open_default() else { return eprintln!("  no journal yet") };
     let events = if query.trim().is_empty() {
         journal::timeline(&db, Some(&project), 12)
     } else {
@@ -673,13 +673,13 @@ fn cmd_recall(argv: &[String]) {
         Err(e) => eprintln!("  {e}"),
         Ok(list) if list.is_empty() => println!(
             "\n  {DIM}{}{OFF}\n",
-            if query.trim().is_empty() { "nada registrado neste projeto ainda".into() } else { format!("nada sobre {query}") }
+            if query.trim().is_empty() { "nothing recorded in this project yet".into() } else { format!("nothing about {query}") }
         ),
         Ok(list) => {
-            println!("\n  {} eventos\n", list.len());
+            println!("\n  {} events\n", list.len());
             for e in &list {
-                let quando = idade(e.at);
-                println!("  {:<8} {DIM}{quando}{OFF}  {}", e.kind, e.subject);
+                let elapsed = age(e.at);
+                println!("  {:<8} {DIM}{elapsed}{OFF}  {}", e.kind, e.subject);
                 for l in e.body.lines().take(3) {
                     println!("           {DIM}{l}{OFF}");
                 }
@@ -689,9 +689,9 @@ fn cmd_recall(argv: &[String]) {
     }
 }
 
-fn idade(at: i64) -> String {
-    let agora = ledger::now_ms();
-    let min = (agora - at) / 60_000;
+fn age(at: i64) -> String {
+    let now = ledger::now_ms();
+    let min = (now - at) / 60_000;
     if min < 60 {
         format!("{min}min")
     } else if min < 1440 {
@@ -710,13 +710,13 @@ fn cmd_fetch(argv: &[String]) {
         None => Vec::new(),
     };
     if url.is_empty() {
-        return eprintln!("  uso: bilro fetch <url> [--find <termo>...]");
+        return eprintln!("  usage: bilro fetch <url> [--find <term>...]");
     }
     match web::fetch(&url) {
         Err(e) => eprintln!("  {e}"),
         Ok(page) => {
             println!(
-                "\n  {}\n  {DIM}{} bytes de pagina viraram {} de texto{OFF}\n",
+                "\n  {}\n  {DIM}{} bytes of page became {} of text{OFF}\n",
                 page.title.clone().unwrap_or_else(|| page.url.clone()),
                 page.bytes,
                 page.text.len()
@@ -728,18 +728,18 @@ fn cmd_fetch(argv: &[String]) {
                 return;
             }
             let Ok(conn) = sandbox::open_default() else {
-                return eprintln!("  {WARN}sem indice: mostrando so o cabecalho{OFF}");
+                return eprintln!("  {WARN}no index: showing header only{OFF}");
             };
             let label = page.title.clone().unwrap_or_else(|| page.url.clone());
             let chunks = sandbox::index(&conn, &label, &page.text, "web").unwrap_or(0);
-            let mut achou = 0;
+            let mut found = 0;
             for q in &queries {
                 let hits = sandbox::search(&conn, q, 3).unwrap_or_default();
                 if hits.is_empty() {
-                    println!("  {DIM}{q}: nada nesta pagina{OFF}");
+                    println!("  {DIM}{q}: nothing on this page{OFF}");
                     continue;
                 }
-                achou += hits.len();
+                found += hits.len();
                 println!("  {DIM}{q}{OFF}");
                 for h in hits {
                     for l in h.body.lines().take(10) {
@@ -747,9 +747,9 @@ fn cmd_fetch(argv: &[String]) {
                     }
                 }
             }
-            if achou == 0 {
+            if found == 0 {
                 println!(
-                    "\n  {DIM}pagina guardada em {chunks} trechos. bilro find <outro termo> busca nela{OFF}"
+                    "\n  {DIM}page stored in {chunks} chunks. bilro find <another term> searches it{OFF}"
                 );
             }
         }
@@ -758,50 +758,50 @@ fn cmd_fetch(argv: &[String]) {
 
 fn cmd_stats() {
     let s = ops::stats();
-    println!("\n  o que o bilro guarda e quanto poupa\n");
-    println!("  {:<28} {}", "comandos aprendidos", s.learned_commands);
-    println!("  {:<28} {}", "com 3+ execucoes", s.learned_mature);
-    println!("  {:<28} {} bytes", "cortaria hoje", s.denoise_savings_bytes);
-    println!("  {:<28} {}", "trechos indexados", s.indexed_chunks);
-    println!("  {:<28} {}", "sessoes", s.sessions);
+    println!("\n  what bilro keeps and how much it saves\n");
+    println!("  {:<28} {}", "commands learned", s.learned_commands);
+    println!("  {:<28} {}", "with 3+ runs", s.learned_mature);
+    println!("  {:<28} {} bytes", "would trim today", s.denoise_savings_bytes);
+    println!("  {:<28} {}", "chunks indexed", s.indexed_chunks);
+    println!("  {:<28} {}", "sessions", s.sessions);
     for (kind, n) in &s.journal_events_by_kind {
-        println!("  {:<28} {}", format!("diario: {kind}"), n);
+        println!("  {:<28} {}", format!("journal: {kind}"), n);
     }
-    println!("\n  {DIM}em disco: {} bytes{OFF}\n", s.learn_db_bytes + s.index_db_bytes + s.journal_db_bytes + s.sessions_bytes);
+    println!("\n  {DIM}on disk: {} bytes{OFF}\n", s.learn_db_bytes + s.index_db_bytes + s.journal_db_bytes + s.sessions_bytes);
 }
 
 fn cmd_doctor() {
     let checks = ops::doctor();
-    let falhas = checks.iter().filter(|c| !c.ok).count();
-    println!("\n  diagnostico\n");
+    let failures = checks.iter().filter(|c| !c.ok).count();
+    println!("\n  diagnosis\n");
     for c in &checks {
-        let marca = if c.ok { "\x1b[32mok\x1b[0m   ".to_string() } else { format!("{WARN}falha{OFF}") };
-        println!("  {marca} {:<30} {DIM}{}{OFF}", c.nome, c.detalhe);
+        let mark = if c.ok { "\x1b[32mok\x1b[0m   ".to_string() } else { format!("{WARN}fail{OFF}") };
+        println!("  {mark} {:<30} {DIM}{}{OFF}", c.name, c.detail);
     }
     println!(
         "\n  {}\n",
-        if falhas == 0 { format!("{DIM}tudo no lugar{OFF}") } else { format!("{WARN}{falhas} item(ns) para resolver{OFF}") }
+        if failures == 0 { format!("{DIM}everything in place{OFF}") } else { format!("{WARN}{failures} item(s) to fix{OFF}") }
     );
 }
 
 fn cmd_purge(argv: &[String]) {
-    let alvo = argv.first().map(|s| s.as_str()).unwrap_or("");
-    let confirmado = argv.iter().any(|a| a == "--sim");
-    let what = match alvo {
+    let target = argv.first().map(|s| s.as_str()).unwrap_or("");
+    let confirmed = argv.iter().any(|a| a == "--confirm");
+    let what = match target {
         "index" => ops::Purge::Index,
-        "journal" | "diario" => ops::Purge::Journal,
-        "learn" | "historico" => ops::Purge::Learn,
-        "sessions" | "sessoes" => ops::Purge::Sessions,
-        "all" | "tudo" => ops::Purge::All,
-        _ => return eprintln!("  uso: bilro purge <index|journal|learn|sessions|all> [--sim]"),
+        "journal" => ops::Purge::Journal,
+        "learn" => ops::Purge::Learn,
+        "sessions" => ops::Purge::Sessions,
+        "all" => ops::Purge::All,
+        _ => return eprintln!("  usage: bilro purge <index|journal|learn|sessions|all> [--confirm]"),
     };
-    let r = ops::purge(what, confirmado);
-    println!("\n  {}\n", if confirmado { "apagado" } else { "simulacao, nada foi apagado" });
+    let r = ops::purge(what, confirmed);
+    println!("\n  {}\n", if confirmed { "erased" } else { "dry run, nothing was erased" });
     for t in &r.targets {
-        println!("  {:<12} {} linhas, {} bytes", t.name, t.rows, t.bytes);
+        println!("  {:<12} {} rows, {} bytes", t.name, t.rows, t.bytes);
     }
-    if !confirmado {
-        println!("\n  {WARN}repita com --sim para apagar de verdade{OFF}");
+    if !confirmed {
+        println!("\n  {WARN}repeat with --confirm to actually erase{OFF}");
     }
     println!();
 }
@@ -809,26 +809,26 @@ fn cmd_purge(argv: &[String]) {
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
-         \x20   bilro filter <cmd>     roda comando e devolve so o que informa\n\
-         \x20   bilro read <arq>       le arquivo comprimido (--outline so a estrutura)\n\
-         \x20   bilro grep <padrao>    busca agrupada por arquivo, sem repeticao\n\
-         \x20   bilro hook shadow      observador silencioso, para PostToolUse\n\
-         \x20   bilro ready            ja da pra aposentar rtk, caveman e context-mode?\n\
-         \x20   bilro bill             custo fixo de contexto por request\n\
-         \x20   bilro verify [--run]   confere memorias que afirmam fato datado\n\
-         \x20   bilro lint             link quebrado, memoria orfa, mais citada\n\
-         \x20   bilro propose          memorias que valeria escrever\n\
-         \x20   bilro sessions         agentes despachados por sessao\n\
-         \x20   bilro run <cmd>        roda e indexa; so o trecho pedido volta\n\
-         \x20   bilro find <termo>     busca no que ja foi indexado\n\
-         \x20   bilro style [nivel]    regras de escrita da sessao\n\
-         \x20   bilro install          registra os hooks e poe o binario no PATH\n\
-         \x20   bilro exec <ling>      roda trecho de codigo (stdin), so o impresso volta\n\
-         \x20   bilro serve [porta]    painel local do que passa pelo bilro\n\
-         \x20   bilro stats            o que ele guarda e quanto poupa\n\
-         \x20   bilro doctor           diagnostico da instalacao\n\
-         \x20   bilro purge <alvo>     apaga dado guardado (--sim confirma)\n\
-         \x20   bilro mcp              servidor MCP por stdio\n"
+         \x20   bilro filter <cmd>     runs a command and returns only what it reports\n\
+         \x20   bilro read <file>      reads a compressed file (--outline for structure only)\n\
+         \x20   bilro grep <pattern>   grouped search by file, no repetition\n\
+         \x20   bilro hook shadow      silent observer, for PostToolUse\n\
+         \x20   bilro ready            can rtk, caveman and context-mode be retired yet?\n\
+         \x20   bilro bill             fixed context cost per request\n\
+         \x20   bilro verify [--run]   checks memories that claim a dated fact\n\
+         \x20   bilro lint             broken link, orphaned memory, most referenced\n\
+         \x20   bilro propose          memories worth writing\n\
+         \x20   bilro sessions         agents dispatched per session\n\
+         \x20   bilro run <cmd>        runs and indexes; only the requested chunk comes back\n\
+         \x20   bilro find <term>      searches what has already been indexed\n\
+         \x20   bilro style [level]    session writing rules\n\
+         \x20   bilro install          registers the hooks and puts the binary on PATH\n\
+         \x20   bilro exec <lang>      runs a code snippet (stdin), only the printed output comes back\n\
+         \x20   bilro serve [port]     local dashboard of what passes through bilro\n\
+         \x20   bilro stats            what it keeps and how much it saves\n\
+         \x20   bilro doctor           installation diagnosis\n\
+         \x20   bilro purge <target>   erases stored data (--confirm to actually erase)\n\
+         \x20   bilro mcp              MCP server over stdio\n"
     );
 }
 
@@ -875,7 +875,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn so_comando_verboso_e_de_leitura_e_reescrito() {
+    fn only_verbose_read_only_commands_get_rewritten() {
         for c in [
             "git log --oneline -40",
             "git status",
@@ -885,12 +885,12 @@ mod tests {
             "kubectl get pods",
             "cd /tmp && git log",
         ] {
-            assert!(wrappable(c), "deveria filtrar: {c}");
+            assert!(wrappable(c), "should be filtered: {c}");
         }
     }
 
     #[test]
-    fn comando_que_muta_ou_e_composto_passa_intacto() {
+    fn mutating_or_compound_commands_pass_through_untouched() {
         for c in [
             "git commit -m x",
             "git push origin main",
@@ -904,28 +904,28 @@ mod tests {
             "git log > /tmp/out.txt",
             "git status && git push",
             "cat file | head -5",
-            "echo oi",
+            "echo hi",
             "make deploy",
         ] {
-            assert!(!wrappable(c), "nao deveria filtrar: {c}");
+            assert!(!wrappable(c), "should not be filtered: {c}");
         }
     }
 
     #[test]
-    fn saida_vazia_nunca_sai_calada() {
-        let aviso = suppressed_notice("alpha\nbeta\ngamma", "").expect("deveria avisar");
-        assert!(aviso.contains("3 linhas suprimidas"));
-        assert!(!aviso.contains("nenhuma delas relatando falha"), "nao pode afirmar ausencia de falha");
-        assert!(aviso.contains("so reconhece as que sabe nomear"));
+    fn empty_output_is_never_silent() {
+        let notice = suppressed_notice("alpha\nbeta\ngamma", "").expect("should warn");
+        assert!(notice.contains("3 lines suppressed"));
+        assert!(!notice.contains("none of them reporting a failure"), "must not claim absence of failure");
+        assert!(notice.contains("only recognises the ones it can name"));
     }
 
     #[test]
-    fn saida_com_conteudo_nao_gera_aviso() {
+    fn output_with_content_does_not_warn() {
         assert!(suppressed_notice("alpha\nbeta", "alpha").is_none());
     }
 
     #[test]
-    fn comando_que_nao_imprimiu_nada_nao_inventa_aviso() {
+    fn command_that_printed_nothing_does_not_invent_a_warning() {
         assert!(suppressed_notice("", "").is_none());
         assert!(suppressed_notice("   \n  ", "").is_none());
     }

@@ -115,7 +115,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
 
     let text = out.join("\n");
     let note = if dropped > 0 {
-        format!("{dropped} linha(s) de caso passando cortada(s) ({collapsed_blocks} bloco(s) de sucesso resumido(s))")
+        format!("{dropped} passing case line(s) cut ({collapsed_blocks} success block(s) summarized)")
     } else {
         String::new()
     };
@@ -142,107 +142,107 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "test-report");
     }
 
     #[test]
-    fn jest_com_falha_real_preserva_toda_linha_severa() {
+    fn jest_with_a_real_failure_preserves_every_severe_line() {
         let raw = fixture("jest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         for line in severe_lines(&lines) {
-            assert!(r.text.contains(line), "linha severa sumiu: {line}");
+            assert!(r.text.contains(line), "severe line disappeared: {line}");
         }
     }
 
     #[test]
-    fn vitest_com_falha_real_preserva_toda_linha_severa() {
+    fn vitest_with_a_real_failure_preserves_every_severe_line() {
         let raw = fixture("vitest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         for line in severe_lines(&lines) {
-            assert!(r.text.contains(line), "linha severa sumiu: {line}");
+            assert!(r.text.contains(line), "severe line disappeared: {line}");
         }
     }
 
     #[test]
-    fn detecta_jest_falho_como_test_report() {
+    fn detects_a_failing_jest_as_test_report() {
         let raw = fixture("jest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_jest_verde_mobile_como_test_report() {
+    fn detects_a_passing_mobile_jest_as_test_report() {
         let raw = fixture("jest-mobile-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_vitest_falho_como_test_report() {
+    fn detects_a_failing_vitest_as_test_report() {
         let raw = fixture("vitest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_vitest_verde_como_test_report() {
+    fn detects_a_passing_vitest_as_test_report() {
         let raw = fixture("vitest-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_pytest_como_test_report() {
+    fn detects_pytest_as_test_report() {
         let raw = fixture("pytest-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_saida_de_tsc_como_test_report() {
+    fn does_not_detect_tsc_output_as_test_report() {
         let raw = fixture("tsc-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_saida_de_ruff_como_test_report() {
+    fn does_not_detect_ruff_output_as_test_report() {
         let raw = fixture("ruff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_saida_de_eslint_como_test_report() {
+    fn does_not_detect_eslint_output_as_test_report() {
         let raw = fixture("eslint-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn suite_100_por_cento_verde_vira_quase_uma_linha() {
+    fn a_100_percent_green_suite_becomes_almost_one_line() {
         let raw = fixture("jest-mobile-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         let reduction = 1.0 - (r.text.len() as f64 / raw.len() as f64);
-        assert!(reduction > 0.9, "esperava corte real > 90%, obteve {:.1}%", reduction * 100.0);
+        assert!(reduction > 0.9, "expected a real cut > 90%, got {:.1}%", reduction * 100.0);
         assert!(r.text.contains("Test Suites: 230 passed, 230 total"));
     }
 
     #[test]
-    fn vitest_100_por_cento_verde_encolhe_bastante() {
+    fn a_100_percent_green_vitest_shrinks_a_lot() {
         let raw = fixture("vitest-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         let reduction = 1.0 - (r.text.len() as f64 / raw.len() as f64);
-        assert!(reduction > 0.8, "esperava corte real > 80%, obteve {:.1}%", reduction * 100.0);
+        assert!(reduction > 0.8, "expected a real cut > 80%, got {:.1}%", reduction * 100.0);
     }
 
     #[test]
-    fn falha_do_jest_preserva_stack_e_assert_diff() {
+    fn a_jest_failure_preserves_the_stack_and_the_assert_diff() {
         let raw = fixture("jest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -253,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn falha_do_vitest_preserva_diff_e_localizacao() {
+    fn a_vitest_failure_preserves_the_diff_and_the_location() {
         let raw = fixture("vitest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn ordem_das_linhas_sobreviventes_nunca_e_alterada() {
+    fn order_of_surviving_lines_is_never_changed() {
         let raw = fixture("vitest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -272,13 +272,13 @@ mod tests {
                 continue;
             }
             let found = lines.iter().skip(prev_idx).position(|l| *l == out_line);
-            assert!(found.is_some(), "linha fora de ordem: {out_line}");
+            assert!(found.is_some(), "line out of order: {out_line}");
             prev_idx += found.unwrap();
         }
     }
 
     #[test]
-    fn compress_devolve_entrada_intacta_quando_nao_ha_o_que_cortar() {
+    fn compress_returns_input_untouched_when_there_is_nothing_to_cut() {
         let lines = ["FAIL src/x.test.ts", "  at foo (x.ts:1:1)", "Tests: 1 failed, 1 total"];
         let r = compress(&lines);
         assert_eq!(r.text, lines.join("\n"));
@@ -287,7 +287,7 @@ mod tests {
     }
 
     #[test]
-    fn texto_sem_marca_de_caso_nao_e_test_report() {
-        assert_eq!(detect(&["algum texto qualquer", "outra linha solta"]), 0.0);
+    fn text_with_no_case_marker_is_not_test_report() {
+        assert_eq!(detect(&["some random text", "another loose line"]), 0.0);
     }
 }

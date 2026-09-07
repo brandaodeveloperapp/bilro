@@ -53,7 +53,7 @@ fn run_one(command: &Command, cwd: Option<&Path>, timeout_ms: u64) -> (CommandOu
                 }
                 text.push_str(&err);
             }
-            text.push_str(&format!("\n[bilro: interrompido em {}ms]", timeout_ms));
+            text.push_str(&format!("\n[bilro: interrupted after {}ms]", timeout_ms));
             (true, true, text)
         }
         Ok(o) => {
@@ -144,7 +144,7 @@ pub fn run(commands: &[Command], queries: &[String], concurrency: usize, cwd: Op
 pub fn mcp_tool_schema() -> serde_json::Value {
     serde_json::json!({
         "name": "bilro_batch",
-        "description": "Roda comandos em paralelo (concorrencia limitada), indexa a saida de cada um sob seu rotulo e devolve so os trechos que casam com as queries, em vez do texto bruto inteiro.",
+        "description": "Runs commands in parallel (bounded concurrency), indexes each one's output under its label, and returns only the chunks matching the queries instead of the entire raw text.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -153,8 +153,8 @@ pub fn mcp_tool_schema() -> serde_json::Value {
                     "items": {
                         "type": "object",
                         "properties": {
-                            "label": { "type": "string", "description": "titulo do trecho no indice; rotulo descritivo melhora a busca" },
-                            "command": { "type": "string", "description": "comando de shell a rodar" }
+                            "label": { "type": "string", "description": "chunk title in the index; a descriptive label improves search" },
+                            "command": { "type": "string", "description": "shell command to run" }
                         },
                         "required": ["label", "command"]
                     }
@@ -162,15 +162,15 @@ pub fn mcp_tool_schema() -> serde_json::Value {
                 "find": {
                     "type": "array",
                     "items": { "type": "string" },
-                    "description": "termos buscados no indice depois que todos os comandos rodarem"
+                    "description": "terms searched in the index once every command has run"
                 },
                 "concurrency": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 8,
-                    "description": "quantos comandos em voo ao mesmo tempo; padrao 1"
+                    "description": "how many commands in flight at once; default 1"
                 },
-                "cwd": { "type": "string", "description": "diretorio de trabalho para todos os comandos" }
+                "cwd": { "type": "string", "description": "working directory for every command" }
             },
             "required": ["commands"]
         }
@@ -198,16 +198,16 @@ fn hit_to_json(h: &QueryHit) -> serde_json::Value {
 }
 
 fn parse_commands(value: &serde_json::Value) -> Result<Vec<Command>, String> {
-    let raw = value.as_array().ok_or("commands precisa ser uma lista")?;
+    let raw = value.as_array().ok_or("commands must be a list")?;
     if raw.is_empty() {
-        return Err("commands vazio".into());
+        return Err("commands is empty".into());
     }
     raw.iter()
         .map(|c| {
-            let label = c.get("label").and_then(|v| v.as_str()).ok_or("comando sem label")?.to_string();
-            let command = c.get("command").and_then(|v| v.as_str()).ok_or("comando sem command")?.to_string();
+            let label = c.get("label").and_then(|v| v.as_str()).ok_or("command missing label")?.to_string();
+            let command = c.get("command").and_then(|v| v.as_str()).ok_or("command missing command")?.to_string();
             if command.trim().is_empty() {
-                return Err("command vazio".into());
+                return Err("command is empty".into());
             }
             Ok(Command { label, command })
         })
@@ -217,7 +217,7 @@ fn parse_commands(value: &serde_json::Value) -> Result<Vec<Command>, String> {
 /// Executes `bilro_batch` from raw MCP tool arguments, returning a JSON
 /// string with per-command outcomes and query hits.
 pub fn mcp_call(args: &serde_json::Value) -> Result<String, String> {
-    let commands_value = args.get("commands").ok_or("commands obrigatorio")?;
+    let commands_value = args.get("commands").ok_or("commands is required")?;
     let commands = parse_commands(commands_value)?;
 
     let queries: Vec<String> = args
@@ -235,19 +235,19 @@ pub fn mcp_call(args: &serde_json::Value) -> Result<String, String> {
     let mut out = String::new();
     for o in &result.outcomes {
         out.push_str(&format!(
-            "{} {} — {} bytes em {} trecho(s){}\n",
-            if o.failed { "falhou" } else { "ok" },
+            "{} {} — {} bytes in {} chunk(s){}\n",
+            if o.failed { "failed" } else { "ok" },
             o.label,
             o.raw_bytes,
             o.chunks,
-            if o.timed_out { ", interrompido no timeout" } else { "" }
+            if o.timed_out { ", interrupted by timeout" } else { "" }
         ));
     }
     if result.hits.is_empty() {
         out.push_str(if queries.is_empty() {
-            "\nSaida indexada. Passe find para receber os trechos, ou use bilro_find depois."
+            "\nOutput indexed. Pass find to get the chunks, or use bilro_find afterward."
         } else {
-            "\nNenhum trecho casou com o que foi pedido. A saida esta indexada; tente outro termo com bilro_find."
+            "\nNo chunk matched what was asked for. The output is indexed; try another term with bilro_find."
         });
     } else {
         for h in &result.hits {
@@ -267,44 +267,44 @@ mod tests {
     }
 
     #[test]
-    fn quatro_comandos_rapidos_todos_rodam_em_ordem() {
+    fn four_fast_commands_all_run_in_order() {
         let commands = vec![
-            cmd("um", "echo 1"),
-            cmd("dois", "echo 2"),
-            cmd("tres", "echo 3"),
-            cmd("quatro", "echo 4"),
+            cmd("one", "echo 1"),
+            cmd("two", "echo 2"),
+            cmd("three", "echo 3"),
+            cmd("four", "echo 4"),
         ];
         let result = run(&commands, &[], 4, None);
         assert_eq!(result.outcomes.len(), 4);
         let labels: Vec<&str> = result.outcomes.iter().map(|o| o.label.as_str()).collect();
-        assert_eq!(labels, vec!["um", "dois", "tres", "quatro"]);
+        assert_eq!(labels, vec!["one", "two", "three", "four"]);
         assert!(result.outcomes.iter().all(|o| !o.failed));
     }
 
     #[test]
-    fn aceita_find_e_o_nome_antigo_queries() {
-        for chave in ["find", "queries"] {
+    fn accepts_find_and_the_old_name_queries() {
+        for key in ["find", "queries"] {
             let args = serde_json::json!({
-                "commands": [{"label": "eco", "command": "echo termo-raro-xilofone"}],
-                chave: ["xilofone"]
+                "commands": [{"label": "echo", "command": "echo rare-term-xylophone"}],
+                key: ["xylophone"]
             });
-            let saida = mcp_call(&args).expect("deveria rodar");
-            assert!(saida.contains("xilofone"), "chave {chave} nao trouxe o trecho: {saida}");
+            let output = mcp_call(&args).expect("should run");
+            assert!(output.contains("xylophone"), "key {key} did not bring the chunk: {output}");
         }
     }
 
     #[test]
-    fn sem_trecho_casando_diz_o_que_fazer_em_vez_de_calar() {
+    fn no_matching_chunk_says_what_to_do_instead_of_staying_silent() {
         let args = serde_json::json!({
-            "commands": [{"label": "eco", "command": "echo alguma coisa"}],
-            "find": ["termo-que-nao-existe-em-lugar-nenhum"]
+            "commands": [{"label": "echo", "command": "echo something"}],
+            "find": ["term-that-does-not-exist-anywhere"]
         });
-        let saida = mcp_call(&args).unwrap();
-        assert!(saida.contains("bilro_find"), "deveria dizer como continuar: {saida}");
+        let output = mcp_call(&args).unwrap();
+        assert!(output.contains("bilro_find"), "should say how to continue: {output}");
     }
 
     #[test]
-    fn paralelismo_real_e_bem_mais_rapido_que_serial() {
+    fn real_parallelism_is_much_faster_than_serial() {
         let commands = vec![
             cmd("a", "sleep 0.4"),
             cmd("b", "sleep 0.4"),
@@ -312,102 +312,102 @@ mod tests {
             cmd("d", "sleep 0.4"),
         ];
 
-        let inicio_serial = Instant::now();
+        let serial_start = Instant::now();
         let serial = run(&commands, &[], 1, None);
-        let tempo_serial = inicio_serial.elapsed();
+        let serial_time = serial_start.elapsed();
 
-        let inicio_paralelo = Instant::now();
-        let paralelo = run(&commands, &[], 4, None);
-        let tempo_paralelo = inicio_paralelo.elapsed();
+        let parallel_start = Instant::now();
+        let parallel = run(&commands, &[], 4, None);
+        let parallel_time = parallel_start.elapsed();
 
         assert_eq!(serial.outcomes.len(), 4);
-        assert_eq!(paralelo.outcomes.len(), 4);
+        assert_eq!(parallel.outcomes.len(), 4);
         assert!(
-            tempo_paralelo < tempo_serial / 2,
-            "paralelo ({:?}) deveria ser bem mais rapido que serial ({:?})",
-            tempo_paralelo,
-            tempo_serial
+            parallel_time < serial_time / 2,
+            "parallel ({:?}) should be much faster than serial ({:?})",
+            parallel_time,
+            serial_time
         );
     }
 
     #[test]
-    fn saida_gigante_nao_trava_e_nao_perde_linha() {
-        let commands = vec![cmd("gigante", "seq 1 200000")];
-        let inicio = Instant::now();
+    fn huge_output_does_not_hang_and_does_not_lose_a_line() {
+        let commands = vec![cmd("huge", "seq 1 200000")];
+        let start = Instant::now();
         let result = run(&commands, &[], 1, None);
-        assert!(!result.outcomes[0].failed, "nao deveria falhar nem travar ate o timeout");
-        assert!(result.outcomes[0].raw_bytes > 1_000_000, "saida veio truncada demais: {} bytes", result.outcomes[0].raw_bytes);
-        assert!(inicio.elapsed().as_secs() < 15, "demorou {}s", inicio.elapsed().as_secs());
+        assert!(!result.outcomes[0].failed, "should not fail or hang until the timeout");
+        assert!(result.outcomes[0].raw_bytes > 1_000_000, "output came back too truncated: {} bytes", result.outcomes[0].raw_bytes);
+        assert!(start.elapsed().as_secs() < 15, "took {}s", start.elapsed().as_secs());
     }
 
     #[test]
-    fn um_comando_falhando_nao_impede_os_outros() {
-        let commands = vec![cmd("ok-a", "echo a"), cmd("falha", "exit 7"), cmd("ok-b", "echo b")];
+    fn one_failing_command_does_not_block_the_others() {
+        let commands = vec![cmd("ok-a", "echo a"), cmd("failure", "exit 7"), cmd("ok-b", "echo b")];
         let result = run(&commands, &[], 3, None);
         assert_eq!(result.outcomes.len(), 3);
         assert!(!result.outcomes[0].failed);
-        assert!(result.outcomes[1].failed, "deveria marcar o comando que falhou");
+        assert!(result.outcomes[1].failed, "should mark the command that failed");
         assert!(!result.outcomes[2].failed);
     }
 
     #[test]
-    fn comando_pendurado_e_interrompido_pelo_timeout() {
-        let commands = vec![cmd("pendurado", "sleep 30")];
-        let inicio = Instant::now();
+    fn hung_command_is_interrupted_by_the_timeout() {
+        let commands = vec![cmd("hung", "sleep 30")];
+        let start = Instant::now();
         let result = run(&commands, &[], 1, None);
-        assert!(result.outcomes[0].timed_out, "deveria ter marcado timeout");
-        assert!(inicio.elapsed().as_secs() < 10, "lote nao terminou logo apos o timeout do comando");
+        assert!(result.outcomes[0].timed_out, "should have marked a timeout");
+        assert!(start.elapsed().as_secs() < 10, "batch did not finish shortly after the command's timeout");
     }
 
     #[test]
-    fn segredo_nao_aparece_no_indice_nem_no_resultado() {
-        let commands = vec![cmd("segredo", "echo 'DB=postgres://u:S3GR3DO@h:5432/d'")];
-        let result = run(&commands, &["S3GR3DO".to_string()], 1, None);
-        assert!(result.hits.is_empty(), "a busca pelo segredo em si nao deveria achar nada indexado");
+    fn secret_does_not_appear_in_the_index_or_the_result() {
+        let commands = vec![cmd("secret", "echo 'DB=postgres://u:S3CR3T@h:5432/d'")];
+        let result = run(&commands, &["S3CR3T".to_string()], 1, None);
+        assert!(result.hits.is_empty(), "searching for the secret itself should find nothing indexed");
 
         let conn = open_default().unwrap();
-        let achados = search(&conn, "postgres", 5).unwrap();
-        for h in &achados {
-            assert!(!h.body.contains("S3GR3DO"), "vazou no indice: {}", h.body);
+        let found = search(&conn, "postgres", 5).unwrap();
+        for h in &found {
+            assert!(!h.body.contains("S3CR3T"), "leaked into the index: {}", h.body);
         }
     }
 
     #[test]
-    fn query_devolve_trecho_do_comando_certo_pelo_rotulo() {
+    fn query_returns_the_chunk_of_the_right_command_by_label() {
         let commands = vec![
-            cmd("relatorio-alfa", "echo termo-raro-alfa-xyz"),
-            cmd("relatorio-beta", "echo outra-coisa-completamente-diferente"),
+            cmd("report-alpha", "echo rare-term-alpha-xyz"),
+            cmd("report-beta", "echo something-completely-different"),
         ];
-        let result = run(&commands, &["termo-raro-alfa-xyz".to_string()], 2, None);
-        assert!(!result.hits.is_empty(), "deveria ter achado o termo raro");
-        assert!(result.hits.iter().any(|h| h.hit.label == "relatorio-alfa"));
-        assert!(result.hits.iter().all(|h| h.hit.label != "relatorio-beta"));
+        let result = run(&commands, &["rare-term-alpha-xyz".to_string()], 2, None);
+        assert!(!result.hits.is_empty(), "should have found the rare term");
+        assert!(result.hits.iter().any(|h| h.hit.label == "report-alpha"));
+        assert!(result.hits.iter().all(|h| h.hit.label != "report-beta"));
     }
 
     #[test]
-    fn schema_mcp_declara_a_ferramenta_bilro_batch() {
+    fn mcp_schema_declares_the_bilro_batch_tool() {
         let schema = mcp_tool_schema();
         assert_eq!(schema["name"], "bilro_batch");
         assert!(schema["inputSchema"]["properties"]["commands"].is_object());
     }
 
     #[test]
-    fn mcp_call_relata_cada_comando_em_texto_legivel() {
+    fn mcp_call_reports_each_command_in_readable_text() {
         let args = serde_json::json!({
             "commands": [
-                {"label": "primeiro", "command": "echo um"},
-                {"label": "segundo", "command": "exit 3"}
+                {"label": "first", "command": "echo one"},
+                {"label": "second", "command": "exit 3"}
             ]
         });
-        let saida = mcp_call(&args).expect("deveria rodar");
-        assert!(saida.contains("primeiro"), "faltou o primeiro rotulo: {saida}");
-        assert!(saida.contains("segundo"), "faltou o segundo rotulo: {saida}");
-        assert!(saida.contains("falhou"), "deveria marcar o que falhou: {saida}");
-        assert!(saida.contains("ok"), "deveria marcar o que passou: {saida}");
+        let output = mcp_call(&args).expect("should run");
+        assert!(output.contains("first"), "missing the first label: {output}");
+        assert!(output.contains("second"), "missing the second label: {output}");
+        assert!(output.contains("failed"), "should mark what failed: {output}");
+        assert!(output.contains("ok"), "should mark what passed: {output}");
     }
 
     #[test]
-    fn mcp_call_sem_commands_e_erro_claro() {
+    fn mcp_call_without_commands_is_a_clear_error() {
         let err = mcp_call(&serde_json::json!({})).unwrap_err();
         assert!(err.contains("commands"));
     }

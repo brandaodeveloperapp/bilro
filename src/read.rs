@@ -62,7 +62,7 @@ pub fn outline(text: &str) -> String {
                 out.push((*line).to_string());
             }
         } else {
-            out.push(format!("      … {} linhas ({}-{})", n, start + 1, end + 1));
+            out.push(format!("      … {} lines ({}-{})", n, start + 1, end + 1));
         }
         *gap = None;
     };
@@ -106,7 +106,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn safe_nao_muda_significado_so_espaco() {
+    fn safe_does_not_change_meaning_only_whitespace() {
         let src = "const a = 1;   \n\n\n\nconst b = 2;\n";
         let out = safe(src);
         assert!(out.contains("const a = 1;"));
@@ -116,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn outline_preserva_toda_assinatura() {
+    fn outline_preserves_every_signature() {
         let src = [
             "export function alpha(x) {",
             "  const y = x + 1;",
@@ -124,7 +124,7 @@ mod tests {
             "  return z;",
             "}",
             "export class Beta {",
-            "  metodo() {",
+            "  method() {",
             "    return 1;",
             "  }",
             "}",
@@ -136,15 +136,15 @@ mod tests {
     }
 
     #[test]
-    fn outline_diz_a_faixa_exata_do_que_elidiu() {
-        let mut linhas = vec!["function f() {".to_string()];
+    fn outline_states_the_exact_range_of_what_it_elided() {
+        let mut lines = vec!["function f() {".to_string()];
         for i in 0..30 {
-            linhas.push(format!("  linha {i}"));
+            lines.push(format!("  line {i}"));
         }
-        linhas.push("}".to_string());
-        let src = linhas.join("\n");
+        lines.push("}".to_string());
+        let src = lines.join("\n");
         let out = outline(&src);
-        let marker = Regex::new(r"… \d+ linhas \(\d+-\d+\)").unwrap();
+        let marker = Regex::new(r"… \d+ lines \(\d+-\d+\)").unwrap();
         assert!(marker.is_match(&out));
         assert!(out.len() < src.len());
     }

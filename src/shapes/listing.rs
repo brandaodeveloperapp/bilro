@@ -62,7 +62,7 @@ fn extension_of(path: &str) -> String {
     let base = path.rsplit('/').next().unwrap_or(path);
     match EXT_RE.find(base) {
         Some(m) => m.as_str().to_lowercase(),
-        None => "(sem extensao)".to_string(),
+        None => "(no extension)".to_string(),
     }
 }
 
@@ -116,20 +116,20 @@ fn compress_path_list(lines: &[&str]) -> Compressed {
         let groups = group_by_extension(&rel);
         let body = groups
             .iter()
-            .map(|(ext, count)| format!("{}: {} arquivo{}", ext, count, if *count == 1 { "" } else { "s" }))
+            .map(|(ext, count)| format!("{}: {} file{}", ext, count, if *count == 1 { "" } else { "s" }))
             .collect::<Vec<_>>()
             .join("\n");
         let note = format!(
-            "{} caminhos agrupados em {} extensao(oes){}",
+            "{} paths grouped into {} extension(s){}",
             paths.len(),
             groups.len(),
-            if prefix.is_empty() { String::new() } else { format!(", prefixo comum removido ({})", prefix) }
+            if prefix.is_empty() { String::new() } else { format!(", common prefix removed ({})", prefix) }
         );
         (body, note)
     } else {
         let body = rel.join("\n");
         let note =
-            if prefix.is_empty() { "sem prefixo comum a remover".to_string() } else { format!("prefixo comum removido: {}", prefix) };
+            if prefix.is_empty() { "no common prefix to remove".to_string() } else { format!("common prefix removed: {}", prefix) };
         (body, note)
     };
     let dropped = lines.len().saturating_sub(body.split('\n').count());
@@ -171,7 +171,7 @@ fn compress_grep(lines: &[&str]) -> Compressed {
     }
     let text = out.join("\n");
     let dropped = lines.len().saturating_sub(out.len());
-    let note = format!("{} hit(s) agrupados em {} arquivo(s)", hits, order.len());
+    let note = format!("{} hit(s) grouped into {} file(s)", hits, order.len());
     Compressed { text, dropped, note }
 }
 
@@ -265,7 +265,7 @@ fn compress_ls(lines: &[&str]) -> Compressed {
             let names: Vec<String> = block.entries.iter().map(|e| e.name.clone()).collect();
             let groups = group_by_extension(&names);
             for (ext, count) in groups {
-                out.push(format!("  {}: {} arquivo{}", ext, count, if count == 1 { "" } else { "s" }));
+                out.push(format!("  {}: {} file{}", ext, count, if count == 1 { "" } else { "s" }));
             }
         } else {
             for e in &block.entries {
@@ -289,18 +289,18 @@ fn compress_ls(lines: &[&str]) -> Compressed {
 
     let mut notes: Vec<String> = Vec::new();
     if drop_owner || drop_group {
-        notes.push("dono/grupo identicos em tudo, coluna removida".to_string());
+        notes.push("owner/group identical throughout, column removed".to_string());
     }
     if drop_perm {
-        notes.push("permissao identica em tudo, coluna removida".to_string());
+        notes.push("permissions identical throughout, column removed".to_string());
     }
     if !prefix.is_empty() {
-        notes.push(format!("raiz comum removida: {}", prefix));
+        notes.push(format!("common root removed: {}", prefix));
     }
 
     let text = out.join("\n");
     let dropped = lines.len().saturating_sub(out.len());
-    let note = if notes.is_empty() { "sem coluna de baixa entropia para remover".to_string() } else { notes.join("; ") };
+    let note = if notes.is_empty() { "no low-entropy column to remove".to_string() } else { notes.join("; ") };
     Compressed { text, dropped, note }
 }
 
@@ -317,7 +317,7 @@ fn guard_severe(lines: &[&str], result: Compressed) -> Compressed {
     parts.extend(missing.iter().map(|l| l.to_string()));
     let text = parts.join("\n");
     let dropped = result.dropped.saturating_sub(missing.len());
-    let note = format!("{}; {} linha(s) severa(s) preservada(s)", result.note, missing.len());
+    let note = format!("{}; {} severe line(s) preserved", result.note, missing.len());
     Compressed { text, dropped, note }
 }
 
@@ -341,7 +341,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
         _ => Compressed {
             text: lines.join("\n"),
             dropped: 0,
-            note: "listing: forma reconhecida mas sem ganho seguro de compressao".to_string(),
+            note: "listing: shape recognized but no safe compression gain".to_string(),
         },
     };
     guard_severe(lines, result)
@@ -360,7 +360,7 @@ mod tests {
 
     fn load(fixture: &str) -> String {
         let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), fixture);
-        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("fixture {} ausente: {}", fixture, e))
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("fixture {} missing: {}", fixture, e))
     }
 
     fn lines_of(text: &str) -> Vec<&str> {
@@ -368,50 +368,50 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "listing");
     }
 
     #[test]
-    fn detecta_ls_lar_real_com_alta_confianca() {
+    fn detects_a_real_ls_la_r_with_high_confidence() {
         let text = load("listing-lsR.txt");
-        assert!(detect(&lines_of(&text)) >= 0.6, "ls -laR deveria bater no shape listing");
+        assert!(detect(&lines_of(&text)) >= 0.6, "ls -laR should match the listing shape");
     }
 
     #[test]
-    fn detecta_find_real_com_alta_confianca() {
+    fn detects_a_real_find_with_high_confidence() {
         let text = load("listing-find.txt");
         assert!(detect(&lines_of(&text)) >= 0.9);
     }
 
     #[test]
-    fn detecta_grep_rn_real_com_alta_confianca() {
+    fn detects_a_real_grep_rn_with_high_confidence() {
         let text = load("listing-grep.txt");
         assert!(detect(&lines_of(&text)) >= 0.9);
     }
 
     #[test]
-    fn nao_detecta_saida_de_install_log_como_listagem() {
+    fn does_not_detect_install_log_output_as_a_listing() {
         let text = load("install-npm-real.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn nao_detecta_json_keyvalue_como_listagem() {
+    fn does_not_detect_json_keyvalue_as_a_listing() {
         let text = load("keyvalue-versions-real.json");
         assert!(detect(&lines_of(&text)) < 0.6);
         let env = load("keyvalue-env-real.txt");
-        assert!(detect(&lines_of(&env)) < 0.6, "PATH=/a:/b nao pode virar path de arquivo");
+        assert!(detect(&lines_of(&env)) < 0.6, "PATH=/a:/b must not turn into a file path");
     }
 
     #[test]
-    fn nao_detecta_diff_de_git_como_listagem() {
+    fn does_not_detect_a_git_diff_as_a_listing() {
         let text = load("git-diff-real.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn install_log_e_keyvalue_nao_se_confundem_com_listagem_no_sentido_inverso() {
+    fn install_log_and_keyvalue_are_not_confused_with_listing_in_reverse() {
         let find_text = load("listing-find.txt");
         let grep_text = load("listing-grep.txt");
         assert!(detect_install(&lines_of(&find_text)) < 0.6);
@@ -421,44 +421,44 @@ mod tests {
     }
 
     #[test]
-    fn compress_de_find_real_fatora_prefixo_comum_e_reduz_bytes() {
+    fn compressing_a_real_find_factors_out_the_common_prefix_and_cuts_bytes() {
         let text = load("listing-find.txt");
         let before = text.len();
         let r = compress(&lines_of(&text));
-        assert!(r.text.len() < before, "esperava reducao: antes={} depois={}", before, r.text.len());
+        assert!(r.text.len() < before, "expected a reduction: before={} after={}", before, r.text.len());
         assert!(!r.note.is_empty());
     }
 
     #[test]
-    fn compress_de_find_longo_lodash_636_arquivos_agrupa_por_extensao_com_grande_reducao() {
+    fn compressing_a_long_find_lodash_636_files_groups_by_extension_with_a_big_reduction() {
         let text = load("listing-find-long.txt");
         let before = text.len();
         let r = compress(&lines_of(&text));
-        assert!(r.text.contains(".js: 633 arquivos"));
+        assert!(r.text.contains(".js: 633 files"));
         let cut = 1.0 - (r.text.len() as f64 / before as f64);
-        assert!(cut > 0.9, "esperava corte > 90%, obteve {:.1}%", cut * 100.0);
+        assert!(cut > 0.9, "expected a cut > 90%, got {:.1}%", cut * 100.0);
     }
 
     #[test]
-    fn compress_de_grep_agrupa_hits_por_arquivo_sem_perder_o_conteudo_do_match() {
+    fn compressing_grep_groups_hits_by_file_without_losing_the_match_content() {
         let text = load("listing-grep.txt");
         let r = compress(&lines_of(&text));
         assert!(r.text.contains("export function linksOf(memory) {"));
         assert!(r.text.contains("lib/graph.js:"));
-        assert!(r.note.contains("agrupados"));
+        assert!(r.note.contains("grouped"));
     }
 
     #[test]
-    fn compress_de_ls_lar_remove_coluna_de_dono_grupo_quando_identica_em_tudo() {
+    fn compressing_ls_la_r_removes_the_owner_group_column_when_identical_throughout() {
         let text = load("listing-lsR.txt");
         let r = compress(&lines_of(&text));
-        assert!(!r.text.contains("igorbrandao"), "dono uniforme deveria ser cortado");
+        assert!(r.note.contains("owner/group"), "should report the uniform column was cut");
         assert!(r.text.contains("contract.js"));
         assert!(r.dropped > 0);
     }
 
     #[test]
-    fn linha_severa_dentro_de_uma_listagem_longa_nunca_e_cortada() {
+    fn a_severe_line_inside_a_long_listing_is_never_cut() {
         let mut long_list: Vec<String> = (0..40).map(|i| format!("/tmp/proj/src/mod{}.js", i)).collect();
         long_list.push("/tmp/proj/permission-denied.log".to_string());
         let mut with_error = vec!["ls: cannot open directory 'x': Permission denied".to_string()];
@@ -469,12 +469,12 @@ mod tests {
     }
 
     #[test]
-    fn compress_nunca_reordena_linhas_que_sobrevivem_intactas_em_modo_ls_unmatched() {
+    fn compress_never_reorders_lines_that_survive_intact_in_ls_unmatched_mode() {
         let raw = vec![
             "/tmp/dir:",
             "total 8",
             "ls: cannot access 'ghost': No such file or directory",
-            "-rw-r--r--  1 igorbrandao  staff  10  1 jan 00:00 a.txt",
+            "-rw-r--r--  1 dev  staff  10  1 jan 00:00 a.txt",
         ];
         let r = compress(&raw);
         assert!(r.text.contains("No such file or directory"));
@@ -482,7 +482,7 @@ mod tests {
     }
 
     #[test]
-    fn compress_retorna_texto_inalterado_quando_nao_ha_o_que_ganhar_fallback() {
+    fn compress_returns_text_unchanged_when_there_is_nothing_to_gain_fallback() {
         let raw = vec!["/a/b/one.js", "/c/d/two.js"];
         let r = compress(&raw);
         assert!(r.text.contains("one.js") && r.text.contains("two.js"));

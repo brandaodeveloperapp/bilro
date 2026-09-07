@@ -241,7 +241,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
                 let group = &groups[entry.code.as_str()];
                 let last = &parsed.entries[group.last().unwrap()];
                 out.push(format!(
-                    "  … {} outra(s) ocorrencia(s) de {} (ex: {})",
+                    "  … {} other occurrence(s) of {} (e.g. {})",
                     group.len() - 1,
                     entry.code,
                     last.loc
@@ -260,7 +260,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
     let text = out.join("\n");
     let note = if dropped > 0 {
         format!(
-            "{dropped} linha(s) agrupada(s) em {repeated_groups} regra(s) repetida(s), {} regra(s) no total",
+            "{dropped} line(s) grouped into {repeated_groups} repeated rule(s), {} rule(s) in total",
             groups.len()
         )
     } else {
@@ -289,76 +289,76 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "diagnostics");
     }
 
     #[test]
-    fn tsc_com_falha_real_preserva_toda_linha_severa() {
+    fn tsc_with_a_real_failure_preserves_every_severe_line() {
         let raw = fixture("tsc-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         for line in severe_lines(&lines) {
-            assert!(r.text.contains(line), "linha severa sumiu: {line}");
+            assert!(r.text.contains(line), "severe line disappeared: {line}");
         }
     }
 
     #[test]
-    fn detecta_tsc_com_falha_como_diagnostics() {
+    fn detects_a_failing_tsc_as_diagnostics() {
         let raw = fixture("tsc-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_ruff_como_diagnostics() {
+    fn detects_ruff_as_diagnostics() {
         let raw = fixture("ruff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_eslint_como_diagnostics() {
+    fn detects_eslint_as_diagnostics() {
         let raw = fixture("eslint-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_jest_falho_como_diagnostics() {
+    fn does_not_detect_a_failing_jest_as_diagnostics() {
         let raw = fixture("jest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_jest_verde_como_diagnostics() {
+    fn does_not_detect_a_passing_jest_as_diagnostics() {
         let raw = fixture("jest-mobile-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_vitest_falho_como_diagnostics() {
+    fn does_not_detect_a_failing_vitest_as_diagnostics() {
         let raw = fixture("vitest-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_pytest_como_diagnostics() {
+    fn does_not_detect_pytest_as_diagnostics() {
         let raw = fixture("pytest-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn arquivo_vazio_de_compilacao_limpa_nao_e_diagnostics() {
+    fn empty_output_from_a_clean_build_is_not_diagnostics() {
         assert_eq!(detect(&[""]), 0.0);
     }
 
     #[test]
-    fn ruff_agrupa_por_codigo_e_mantem_exemplo_de_cada_regra() {
+    fn ruff_groups_by_code_and_keeps_an_example_of_each_rule() {
         let raw = fixture("ruff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -366,22 +366,22 @@ mod tests {
         assert!(r.text.contains("E402"));
         assert!(r.dropped > 0);
         assert!(r.text.contains("app/api/v1/payments.py:10:5"));
-        assert!(r.text.contains("outra(s) ocorrencia(s)"));
+        assert!(r.text.contains("other occurrence(s)"));
         assert!(r.text.contains("Found 5 errors."));
     }
 
     #[test]
-    fn ruff_nunca_esconde_a_existencia_de_um_grupo() {
+    fn ruff_never_hides_the_existence_of_a_group() {
         let raw = fixture("ruff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         let e402_count_in = lines.iter().filter(|l| l.contains("E402")).count();
         assert!(e402_count_in > 1);
-        assert!(r.text.contains(&format!("{} outra(s) ocorrencia(s) de E402", e402_count_in - 1)));
+        assert!(r.text.contains(&format!("{} other occurrence(s) of E402", e402_count_in - 1)));
     }
 
     #[test]
-    fn eslint_agrupa_por_regra_e_preserva_caminho_do_header() {
+    fn eslint_groups_by_rule_and_preserves_the_header_path() {
         let raw = fixture("eslint-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -389,23 +389,23 @@ mod tests {
         assert!(r.text.contains("react-hooks/exhaustive-deps"));
         assert!(r.text.contains("CuttingHistoryView.tsx"));
         let reduction = 1.0 - (r.text.len() as f64 / raw.len() as f64);
-        assert!(reduction > 0.3, "esperava corte real > 30%, obteve {:.1}%", reduction * 100.0);
+        assert!(reduction > 0.3, "expected a real cut > 30%, got {:.1}%", reduction * 100.0);
     }
 
     #[test]
-    fn tsc_com_poucos_erros_unicos_nao_precisa_agrupar_mas_preserva_tudo() {
+    fn tsc_with_few_unique_errors_does_not_need_grouping_but_preserves_everything() {
         let raw = fixture("tsc-fail-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         for line in &lines {
             if !line.trim().is_empty() {
-                assert!(r.text.contains(line), "erro unico sumiu: {line}");
+                assert!(r.text.contains(line), "unique error disappeared: {line}");
             }
         }
     }
 
     #[test]
-    fn ordem_das_linhas_sobreviventes_nunca_e_alterada() {
+    fn order_of_surviving_lines_is_never_changed() {
         let raw = fixture("eslint-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -415,14 +415,14 @@ mod tests {
                 continue;
             }
             let found = lines.iter().skip(prev_idx).position(|l| *l == out_line);
-            assert!(found.is_some(), "linha fora de ordem: {out_line}");
+            assert!(found.is_some(), "line out of order: {out_line}");
             prev_idx += found.unwrap();
         }
     }
 
     #[test]
-    fn compress_devolve_entrada_intacta_quando_nao_ha_diagnostico() {
-        let lines = ["so texto solto", "sem formato de diagnostico"];
+    fn compress_returns_input_untouched_when_there_is_no_diagnostic() {
+        let lines = ["just loose text", "no diagnostic format"];
         let r = compress(&lines);
         assert_eq!(r.text, lines.join("\n"));
         assert_eq!(r.dropped, 0);
@@ -430,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn linha_severa_dentro_de_grupo_repetido_sobrevive_mesmo_nao_sendo_a_primeira() {
+    fn severe_line_inside_a_repeated_group_survives_even_when_not_first() {
         let lines = [
             "a.py:1:1: F401 x imported but unused",
             "b.py:2:1: F401 y imported but unused",

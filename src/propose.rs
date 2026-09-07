@@ -4,7 +4,7 @@ use rusqlite::{params, Connection};
 use std::collections::HashSet;
 
 static FAILURE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(error|erro|failed|falhou|fatal|exception|traceback|refused|denied|not found|cannot|timeout)\b")
+    Regex::new(r"(?i)\b(error|failed|fatal|exception|traceback|refused|denied|not found|cannot|timeout)\b")
         .unwrap()
 });
 
@@ -86,10 +86,10 @@ pub fn proposals(db: &Connection, opts: &ProposalOptions) -> rusqlite::Result<Ve
         for row in rows {
             let (sig, n) = row?;
             out.push(Proposal {
-                kind: "receita",
+                kind: "recipe",
                 subject: sig,
                 seen: n,
-                why: format!("rodado {n} vezes — vale virar receita com `verify:`"),
+                why: format!("run {n} times — worth turning into a recipe with `verify:`"),
             });
         }
     }
@@ -125,10 +125,10 @@ pub fn proposals(db: &Connection, opts: &ProposalOptions) -> rusqlite::Result<Ve
         let subject: String = hit.trim().chars().take(120).collect();
         let sig_short: String = sig.chars().take(40).collect();
         out.push(Proposal {
-            kind: "armadilha",
+            kind: "trap",
             subject,
             seen: df,
-            why: format!("apareceu em {df} execucoes de `{sig_short}`"),
+            why: format!("appeared in {df} runs of `{sig_short}`"),
         });
         trap_count += 1;
         if trap_count >= 6 {
@@ -142,14 +142,14 @@ pub fn proposals(db: &Connection, opts: &ProposalOptions) -> rusqlite::Result<Ve
 /// Turns a proposal into a ready-to-edit memory file.
 pub fn draft(proposal: &Proposal) -> Draft {
     let slug = slugify(&proposal.subject);
-    let body = if proposal.kind == "receita" {
+    let body = if proposal.kind == "recipe" {
         format!(
-            "Comando rodado {} vezes:\n\n    {}\n\nEscreva aqui o que ele resolve e o que quebra quando falha.",
+            "Command run {} times:\n\n    {}\n\nWrite here what it solves and what breaks when it fails.",
             proposal.seen, proposal.subject
         )
     } else {
         format!(
-            "Falha vista em {} execucoes:\n\n    {}\n\nEscreva aqui a causa e o conserto, para nao redescobrir.",
+            "Failure seen in {} runs:\n\n    {}\n\nWrite here the cause and the fix, so it is not rediscovered.",
             proposal.seen, proposal.subject
         )
     };
@@ -180,48 +180,48 @@ mod tests {
     }
 
     #[test]
-    fn comando_pouco_usado_nao_vira_proposta() {
+    fn rarely_used_command_does_not_become_a_proposal() {
         let mut d = db();
-        observe(&mut d, "npx jest a", "tudo ok").unwrap();
+        observe(&mut d, "npx jest a", "all ok").unwrap();
         assert_eq!(proposals(&d, &ProposalOptions::default()).unwrap().len(), 0);
     }
 
     #[test]
-    fn comando_repetido_vira_receita() {
+    fn repeated_command_becomes_a_recipe() {
         let mut d = db();
         for _ in 0..6 {
-            observe(&mut d, "npx jest a", "tudo ok").unwrap();
+            observe(&mut d, "npx jest a", "all ok").unwrap();
         }
         let r = proposals(&d, &ProposalOptions::default()).unwrap();
-        assert_eq!(r[0].kind, "receita");
+        assert_eq!(r[0].kind, "recipe");
         assert_eq!(r[0].seen, 6);
     }
 
     #[test]
-    fn linha_de_falha_recorrente_vira_armadilha() {
+    fn recurring_failure_line_becomes_a_trap() {
         let mut d = db();
         for _ in 0..3 {
-            observe(&mut d, "deploy prod", "subindo\nError: connection refused pelo cluster remoto").unwrap();
+            observe(&mut d, "deploy prod", "deploying\nError: connection refused by the remote cluster").unwrap();
         }
         let r = proposals(&d, &ProposalOptions::default()).unwrap();
-        assert!(r.iter().any(|p| p.kind == "armadilha" && p.subject.contains("connection refused")));
+        assert!(r.iter().any(|p| p.kind == "trap" && p.subject.contains("connection refused")));
     }
 
     #[test]
-    fn saida_saudavel_nao_vira_armadilha() {
+    fn healthy_output_does_not_become_a_trap() {
         let mut d = db();
         for _ in 0..6 {
-            observe(&mut d, "build ok", "compilado com sucesso\ntudo certo por aqui").unwrap();
+            observe(&mut d, "build ok", "compiled successfully\nall good here").unwrap();
         }
         let r = proposals(&d, &ProposalOptions::default()).unwrap();
-        assert_eq!(r.iter().filter(|p| p.kind == "armadilha").count(), 0);
+        assert_eq!(r.iter().filter(|p| p.kind == "trap").count(), 0);
     }
 
     #[test]
-    fn rascunho_sai_com_frontmatter_valido_e_slug_utilizavel() {
+    fn draft_comes_out_with_valid_frontmatter_and_a_usable_slug() {
         let d = draft(&Proposal {
-            kind: "armadilha",
-            subject: "Erro: conexão RECUSADA no cluster".to_string(),
+            kind: "trap",
+            subject: "Error: connection REFUSED on the cluster".to_string(),
             seen: 3,
             why: "x".to_string(),
         });

@@ -172,7 +172,9 @@ mod tests {
     use std::io::Write;
 
     fn tempdir(label: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("bilro-weigh-{label}-{}", uniq()));
+        let dir = std::env::temp_dir()
+            .join(format!("bilro-weigh-{label}-{}-{}", std::process::id(), uniq()));
+        let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -190,14 +192,14 @@ mod tests {
     }
 
     #[test]
-    fn tokens_of_arredonda_bytes_sobre_quatro() {
+    fn tokens_of_rounds_bytes_over_four() {
         assert_eq!(tokens_of("12345678"), 2);
         assert_eq!(tokens_of("123456789"), 2);
         assert_eq!(tokens_of(""), 0);
     }
 
     #[test]
-    fn always_on_pega_so_arquivos_que_existem() {
+    fn always_on_only_picks_up_files_that_exist() {
         let dir = tempdir("always-on");
         write(&dir.join("CLAUDE.md"), "0123456789abcdef");
         let items = weigh_always_on(&dir);
@@ -207,13 +209,13 @@ mod tests {
     }
 
     #[test]
-    fn memory_conta_entradas_e_ignora_backup_e_o_proprio_indice() {
+    fn memory_counts_entries_and_ignores_backups_and_its_own_index() {
         let root = tempdir("memory");
-        let slug = "-Users-igorbrandao-Desktop-threadline";
-        write(&root.join(slug).join("memory").join("MEMORY.md"), "# Memoria\n- [a](a.md)\n- [b](b.md)\ntexto solto\n");
-        write(&root.join(slug).join("memory").join("a.md"), "conteudo a");
-        write(&root.join(slug).join("memory").join("b.md"), "conteudo b");
-        write(&root.join(slug).join("memory").join("a.bak-old.md"), "lixo");
+        let slug = "-home-dev-example";
+        write(&root.join(slug).join("memory").join("MEMORY.md"), "# Memory\n- [a](a.md)\n- [b](b.md)\nloose text\n");
+        write(&root.join(slug).join("memory").join("a.md"), "content a");
+        write(&root.join(slug).join("memory").join("b.md"), "content b");
+        write(&root.join(slug).join("memory").join("a.bak-old.md"), "junk");
 
         let out = weigh_memory(&root);
         assert_eq!(out.len(), 1);
@@ -223,30 +225,30 @@ mod tests {
     }
 
     #[test]
-    fn memory_ignora_projeto_sem_index() {
-        let root = tempdir("memory-sem-index");
-        write(&root.join("-outro-projeto").join("memory").join("nota.md"), "sem indice aqui");
+    fn memory_ignores_a_project_with_no_index() {
+        let root = tempdir("memory-no-index");
+        write(&root.join("-other-project").join("memory").join("note.md"), "no index here");
         assert!(weigh_memory(&root).is_empty());
     }
 
     #[test]
-    fn agents_marca_heranca_quando_falta_tools_e_deteta_context_mode() {
+    fn agents_flags_inheritance_when_tools_is_missing_and_detects_context_mode() {
         let dir = tempdir("agents");
-        write(&dir.join("com-tools.md"), "---\nname: com-tools\ndescription: usa ctx_execute\ntools: Read, Bash\n---\nusa ctx_execute pra tudo");
-        write(&dir.join("sem-tools.md"), "---\nname: sem-tools\ndescription: agente generico\n---\nfaz grep cru");
+        write(&dir.join("with-tools.md"), "---\nname: with-tools\ndescription: uses ctx_execute\ntools: Read, Bash\n---\nuses ctx_execute for everything");
+        write(&dir.join("without-tools.md"), "---\nname: without-tools\ndescription: generic agent\n---\ndoes raw grep");
 
         let agents = weigh_agents(&[dir]);
         assert_eq!(agents.len(), 2);
-        let com = agents.iter().find(|a| a.name == "com-tools").unwrap();
-        let sem = agents.iter().find(|a| a.name == "sem-tools").unwrap();
-        assert!(!com.inherits_everything);
-        assert!(com.has_context_mode);
-        assert!(sem.inherits_everything);
-        assert!(!sem.has_context_mode);
+        let with = agents.iter().find(|a| a.name == "with-tools").unwrap();
+        let without = agents.iter().find(|a| a.name == "without-tools").unwrap();
+        assert!(!with.inherits_everything);
+        assert!(with.has_context_mode);
+        assert!(without.inherits_everything);
+        assert!(!without.has_context_mode);
     }
 
     #[test]
-    fn mcp_le_servidores_dos_dois_arquivos() {
+    fn mcp_reads_servers_from_both_files() {
         let home = tempdir("mcp");
         write(&home.join(".claude.json"), r#"{"mcpServers":{"context-mode":{}}}"#);
         write(&home.join(".claude").join("settings.json"), r#"{"mcpServers":{"facebook-ads-library":{}}}"#);
@@ -257,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn plugins_le_chaves_do_installed_plugins() {
+    fn plugins_reads_keys_from_installed_plugins() {
         let root = tempdir("plugins");
         write(&root.join("installed_plugins.json"), r#"{"plugins":{"ruflo":{"version":"1"}}}"#);
         let out = weigh_plugins(&root);
@@ -265,32 +267,33 @@ mod tests {
     }
 
     #[test]
-    fn plugins_vazio_quando_arquivo_nao_existe() {
-        let root = tempdir("plugins-vazio");
+    fn plugins_is_empty_when_the_file_does_not_exist() {
+        let root = tempdir("plugins-empty");
         assert!(weigh_plugins(&root).is_empty());
     }
 
     #[test]
-    fn contra_arquivos_reais_claude_md_do_usuario() {
-        let home = PathBuf::from(std::env::var("HOME").unwrap());
-        let items = weigh_always_on(&home.join(".claude"));
-        let claude = items.iter().find(|i| i.name == "CLAUDE.md");
-        if let Some(c) = claude {
-            let real = read_or(&home.join(".claude").join("CLAUDE.md"), "");
-            assert_eq!(c.tokens, tokens_of(&real));
-            assert!(c.tokens > 0);
-        }
+    fn always_on_token_count_matches_an_independent_read_of_the_same_file() {
+        let dir = tempdir("always-on-consistency");
+        write(&dir.join("CLAUDE.md"), "some fixture content that is not a round number of chars");
+        let items = weigh_always_on(&dir);
+        let claude = items.iter().find(|i| i.name == "CLAUDE.md").unwrap();
+        let reread = read_or(&dir.join("CLAUDE.md"), "");
+        assert_eq!(claude.tokens, tokens_of(&reread));
+        assert!(claude.tokens > 0);
     }
 
     #[test]
-    fn contra_arquivos_reais_memoria_do_projeto_threadline() {
-        let root = PathBuf::from(std::env::var("HOME").unwrap()).join(".claude").join("projects");
+    fn memory_token_count_matches_an_independent_read_of_the_same_index() {
+        let root = tempdir("memory-consistency");
+        let slug = "-home-dev-example";
+        let index = root.join(slug).join("memory").join("MEMORY.md");
+        write(&index, "# Memory\n- [a](a.md)\n- [b](b.md)\n- [c](c.md)\nsome extra prose here too\n");
+
         let out = weigh_memory(&root);
-        let slug = "-Users-igorbrandao-Desktop-threadline";
-        if let Some(m) = out.iter().find(|m| m.project == slug) {
-            let real = read_or(&root.join(slug).join("memory").join("MEMORY.md"), "");
-            assert_eq!(m.tokens, tokens_of(&real));
-            assert!(m.entries > 0);
-        }
+        let m = out.iter().find(|m| m.project == slug).unwrap();
+        let reread = read_or(&index, "");
+        assert_eq!(m.tokens, tokens_of(&reread));
+        assert!(m.entries > 0);
     }
 }

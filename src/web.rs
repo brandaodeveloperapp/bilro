@@ -69,7 +69,7 @@ pub struct Page {
 /// keeps a TLS stack and a certificate store out of this binary.
 pub fn fetch(url: &str) -> Result<Page, String> {
     if !is_allowed_url(url) {
-        return Err(format!("so http e https sao aceitos: {url}"));
+        return Err(format!("only http and https are accepted: {url}"));
     }
     let out = Command::new("curl")
         .args([
@@ -83,11 +83,11 @@ pub fn fetch(url: &str) -> Result<Page, String> {
             url,
         ])
         .output()
-        .map_err(|e| format!("curl indisponivel: {e}"))?;
+        .map_err(|e| format!("curl unavailable: {e}"))?;
 
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
-        return Err(format!("busca falhou: {}", err.trim()));
+        return Err(format!("fetch failed: {}", err.trim()));
     }
     let body = String::from_utf8_lossy(&out.stdout).to_string();
     let bytes = body.len();
@@ -106,53 +106,53 @@ mod tests {
     use super::*;
 
     #[test]
-    fn recusa_esquema_que_nao_e_web() {
+    fn refuses_a_non_web_scheme() {
         for u in ["file:///etc/passwd", "gopher://x", "ftp://x", "javascript:alert(1)", "/etc/passwd", ""] {
-            assert!(!is_allowed_url(u), "deveria recusar: {u}");
+            assert!(!is_allowed_url(u), "should refuse: {u}");
         }
-        assert!(is_allowed_url("https://exemplo.com/a"));
+        assert!(is_allowed_url("https://example.com/a"));
         assert!(is_allowed_url("http://localhost:3000/x"));
     }
 
     #[test]
-    fn extrai_o_texto_e_descarta_a_marcacao() {
-        let html = "<html><head><title>Titulo</title><style>body{color:red}</style></head>\
-                    <body><h1>Cabecalho</h1><p>Primeiro paragrafo.</p>\
-                    <script>var x=1;</script><p>Segundo paragrafo.</p></body></html>";
+    fn extracts_the_text_and_discards_the_markup() {
+        let html = "<html><head><title>Title</title><style>body{color:red}</style></head>\
+                    <body><h1>Heading</h1><p>First paragraph.</p>\
+                    <script>var x=1;</script><p>Second paragraph.</p></body></html>";
         let t = to_text(html);
-        assert!(t.contains("Cabecalho"));
-        assert!(t.contains("Primeiro paragrafo."));
-        assert!(t.contains("Segundo paragrafo."));
-        assert!(!t.contains("color:red"), "sobrou css");
-        assert!(!t.contains("var x"), "sobrou script");
-        assert!(!t.contains('<'), "sobrou tag");
+        assert!(t.contains("Heading"));
+        assert!(t.contains("First paragraph."));
+        assert!(t.contains("Second paragraph."));
+        assert!(!t.contains("color:red"), "css survived");
+        assert!(!t.contains("var x"), "script survived");
+        assert!(!t.contains('<'), "a tag survived");
     }
 
     #[test]
-    fn titulo_e_lido_quando_existe() {
-        assert_eq!(title_of("<title> Guia do bilro </title>").as_deref(), Some("Guia do bilro"));
-        assert_eq!(title_of("<p>sem titulo</p>"), None);
+    fn title_is_read_when_present() {
+        assert_eq!(title_of("<title> bilro guide </title>").as_deref(), Some("bilro guide"));
+        assert_eq!(title_of("<p>no title</p>"), None);
     }
 
     #[test]
-    fn entidades_viram_caracteres() {
+    fn entities_become_characters() {
         assert_eq!(to_text("<p>a &amp; b &lt;c&gt; &quot;d&quot;</p>"), "a & b <c> \"d\"");
     }
 
     #[test]
-    fn corta_muito_e_ainda_assim_encolhe_de_verdade() {
+    fn cutting_a_lot_still_actually_shrinks() {
         let html = format!(
             "<html><body>{}</body></html>",
-            "<div class=\"muito longa classe utilitaria aqui\"><span>texto</span></div>".repeat(300)
+            "<div class=\"very long utility class here\"><span>text</span></div>".repeat(300)
         );
         let t = to_text(&html);
-        assert!(t.len() < html.len() / 4, "cortou pouco: {} -> {}", html.len(), t.len());
-        assert!(t.contains("texto"));
+        assert!(t.len() < html.len() / 4, "cut too little: {} -> {}", html.len(), t.len());
+        assert!(t.contains("text"));
     }
 
     #[test]
-    fn texto_puro_passa_sem_estrago() {
-        let plano = "linha um\nlinha dois\n\nlinha quatro";
-        assert_eq!(to_text(plano), plano);
+    fn plain_text_passes_through_undamaged() {
+        let plain = "line one\nline two\n\nline four";
+        assert_eq!(to_text(plain), plain);
     }
 }

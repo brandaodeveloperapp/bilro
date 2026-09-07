@@ -49,20 +49,20 @@ pub fn read_level() -> String {
 pub fn write_level(level: &str) -> std::io::Result<String> {
     let level = normalize(level).unwrap_or(level);
     if !LEVELS.contains(&level) {
-        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("nivel invalido: {level}")));
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("invalid level: {level}")));
     }
     std::fs::create_dir_all(home_dir().join(".claude").join("bilro"))?;
     std::fs::write(config_path(), level)?;
     Ok(level.to_string())
 }
 
-const LEAN: &str = "Escreva enxuto. Corte saudação, preâmbulo, \"vou fazer X\" antes de fazer, e o resumo do que acabou de ser lido. Uma frase por ideia. Tabela só quando compara três coisas ou mais.";
+const LEAN: &str = "Write lean. Cut the greeting, the preamble, \"I'll do X\" before doing it, and the recap of what was just read. One sentence per idea. Table only when comparing three things or more.";
 
-const TERSE_EXTRA: &str = "Corte também: artigo onde a frase sobrevive sem ele, advérbio de intensidade, hedge (\"talvez\", \"acho que\") quando você mediu, e a repetição do que o usuário acabou de dizer. Fragmento é aceitável. Termo técnico e mensagem de erro ficam literais.";
+const TERSE_EXTRA: &str = "Also cut: an article where the sentence survives without it, an intensity adverb, hedging (\"maybe\", \"I think\") when you measured it, and repeating what the user just said. A fragment is fine. Technical terms and error messages stay literal.";
 
-const ALWAYS: &str = "Escreva normal (sem cortes) em: código, mensagem de commit, corpo de PR, aviso de segurança, confirmação de ação irreversível, e passo a passo onde a ordem importa.";
+const ALWAYS: &str = "Write normally (no cuts) for: code, commit messages, PR bodies, security warnings, confirmation of an irreversible action, and step-by-step sequences where order matters.";
 
-const ANTIDRIFT: &str = "Esta regra vale para TODA resposta desta sessão, inclusive relatório de status e resultado de comando. Instrução dita uma vez decai em conversa longa — se estiver em dúvida, corte.";
+const ANTIDRIFT: &str = "This rule applies to EVERY response in this session, including status reports and command results. An instruction stated once decays over a long conversation — if in doubt, cut.";
 
 /// The rules re-emitted every session, since a rule stated once decays.
 pub fn ruleset(level: &str) -> String {
@@ -82,32 +82,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn off_nao_injeta_nada() {
+    fn off_injects_nothing() {
         assert_eq!(ruleset("off"), "");
     }
 
     #[test]
-    fn terse_carrega_tudo_que_lean_carrega() {
+    fn terse_carries_everything_lean_carries() {
         let lean = ruleset("lean");
         let terse = ruleset("terse");
-        let primeira = lean.split('\n').nth(1).unwrap();
-        assert!(terse.contains(primeira));
+        let first = lean.split('\n').nth(1).unwrap();
+        assert!(terse.contains(first));
         assert!(terse.len() > lean.len());
     }
 
     #[test]
-    fn todo_nivel_ligado_preserva_as_excecoes() {
+    fn every_level_on_preserves_the_exceptions() {
         for l in LEVELS.iter().filter(|l| **l != "off") {
             let r = ruleset(l).to_lowercase();
-            assert!(r.contains("aviso de seguranca") || r.contains("aviso de segurança") || r.contains("seguran"));
+            assert!(r.contains("security warning") || r.contains("security"));
             assert!(ruleset(l).contains("commit"));
         }
     }
 
     #[test]
-    fn todo_nivel_ligado_carrega_a_regra_anti_deriva() {
+    fn every_level_on_carries_the_antidrift_rule() {
         for l in LEVELS.iter().filter(|l| **l != "off") {
-            assert!(ruleset(l).contains("TODA resposta"));
+            assert!(ruleset(l).contains("EVERY response"));
         }
     }
 }
@@ -117,19 +117,19 @@ mod inherit_tests {
     use super::*;
 
     #[test]
-    fn entende_o_vocabulario_da_ferramenta_substituida() {
+    fn understands_the_vocabulary_of_the_replaced_tool() {
         assert_eq!(normalize("full"), Some("terse"));
         assert_eq!(normalize("ultra"), Some("terse"));
         assert_eq!(normalize("lite"), Some("lean"));
         assert_eq!(normalize("off"), Some("off"));
         assert_eq!(normalize(" full \n"), Some("terse"));
-        assert_eq!(normalize("inventado"), None);
+        assert_eq!(normalize("madeup"), None);
     }
 
     #[test]
-    fn nivel_herdado_carrega_as_regras_todas() {
+    fn inherited_level_carries_all_the_rules() {
         let rules = ruleset(normalize("full").unwrap());
-        assert!(rules.contains("Fragmento"), "nivel full deve carregar as regras de corte");
+        assert!(rules.contains("fragment"), "full level should carry the cutting rules");
         assert!(!ruleset("off").trim().is_empty() || ruleset("off").is_empty());
     }
 }
@@ -139,13 +139,13 @@ mod own_tests {
     use super::*;
 
     #[test]
-    fn nivel_proprio_e_diferente_de_nivel_herdado() {
-        let herdado = read_level();
-        assert!(!herdado.is_empty(), "sempre resolve algum nivel");
+    fn own_level_differs_from_inherited_level() {
+        let inherited = read_level();
+        assert!(!inherited.is_empty(), "always resolves to some level");
         if own_level().is_none() {
             assert!(
                 std::fs::read_to_string(config_path()).is_err(),
-                "sem escolha propria, o arquivo do bilro nao deve existir"
+                "with no own choice, bilro's file should not exist"
             );
         }
     }

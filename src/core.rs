@@ -38,7 +38,7 @@ pub fn squeeze(command: &str, output: &str) -> (String, String) {
             if !note.is_empty() {
                 note.push_str(" + ");
             }
-            note.push_str(&format!("{} linhas repetidas", d.dropped));
+            note.push_str(&format!("{} repeated lines", d.dropped));
             (d.text, note)
         }
         _ => (shaped.text, note),
@@ -55,7 +55,7 @@ pub fn suppressed_notice(raw: &str, text: &str) -> Option<String> {
     }
     let lines = raw.lines().filter(|l| !l.trim().is_empty()).count();
     Some(format!(
-        "identico ao que este comando ja imprimiu antes: {lines} linhas suprimidas. bilro nao viu falha entre elas, mas so reconhece as que sabe nomear — rode sem bilro se o resultado importa"
+        "identical to what this command already printed before: {lines} lines suppressed. bilro saw no failure among them, but it only recognises the ones it can name — run without bilro if the result matters"
     ))
 }
 

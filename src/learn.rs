@@ -15,7 +15,7 @@ static HEX_RUN: Lazy<Regex> = Lazy::new(|| Regex::new(r"[0-9a-f]{7,}").unwrap())
 static NUMERIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+(?:[.,]\d+)?").unwrap());
 
 static SEVERE_WORDS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(error|erro|errors|failed|failing|failure|fails|fail|falha|falham|falhou|fatal|panic|panicked|exception|traceback|stacktrace|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined|undeclared|unresolved|unmet|unexpected|invalid|illegal|missing|abort|aborted|killed|segmentation fault|core dumped|exit status|exit code|rejected|conflict|mismatch|FAIL|ERR)\b").unwrap()
+    Regex::new(r"(?i)\b(error|errors|failed|failing|failure|fails|fail|fatal|panic|panicked|exception|traceback|stacktrace|refused|denied|unauthorized|forbidden|timeout|timed out|cannot|could not|no such|not found|undefined|undeclared|unresolved|unmet|unexpected|invalid|illegal|missing|abort|aborted|killed|segmentation fault|core dumped|exit status|exit code|rejected|conflict|mismatch|FAIL|ERR)\b").unwrap()
 });
 static SEVERE_MARKS: Lazy<Regex> = Lazy::new(|| Regex::new("[✕✗✖❌×⨯]").unwrap());
 static DIAGNOSTIC: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\S+:\d+(:\d+)?:\s").unwrap());
@@ -63,8 +63,8 @@ pub fn line_hash(line: &str) -> String {
     digest(&t)
 }
 
-/// Exact identity, numbers included. Used to decide what is new: "modulo 3
-/// falhou" and "modulo 7 falhou" are different events sharing one shape.
+/// Exact identity, numbers included. Used to decide what is new: "module 3
+/// failed" and "module 7 failed" are different events sharing one shape.
 pub fn exact_hash(line: &str) -> String {
     digest(line.trim())
 }
@@ -282,25 +282,25 @@ mod tests {
     }
 
     #[test]
-    fn signature_colapsa_argumento_variavel() {
+    fn signature_collapses_variable_argument() {
         assert_eq!(signature("git show abc1234def5678"), signature("git show 9876543fedcba0"));
         assert_eq!(signature("kubectl logs pod-12"), signature("kubectl logs pod-99"));
         assert_ne!(signature("git status"), signature("git diff"));
     }
 
     #[test]
-    fn forma_colapsa_numero_mas_exato_nao() {
-        assert_eq!(line_hash("modulo 3 falhou"), line_hash("modulo 7 falhou"));
-        assert_ne!(exact_hash("modulo 3 falhou"), exact_hash("modulo 7 falhou"));
+    fn shape_collapses_number_but_exact_does_not() {
+        assert_eq!(line_hash("module 3 failed"), line_hash("module 7 failed"));
+        assert_ne!(exact_hash("module 3 failed"), exact_hash("module 7 failed"));
     }
 
     #[test]
-    fn duracao_com_sufixo_conta_como_numero() {
-        assert_eq!(line_hash("compilou em 150ms"), line_hash("compilou em 2300ms"));
+    fn duration_with_suffix_counts_as_a_number() {
+        assert_eq!(line_hash("compiled in 150ms"), line_hash("compiled in 2300ms"));
     }
 
     #[test]
-    fn linha_de_falha_nunca_e_cortada_por_mais_que_repita() {
+    fn failure_line_is_never_dropped_no_matter_how_much_it_repeats() {
         let mut d = db();
         let out = "Running suite\nFAIL src/auth.test.ts  token expiry\nDone";
         for _ in 0..50 {
@@ -311,19 +311,19 @@ mod tests {
     }
 
     #[test]
-    fn erro_com_pid_variavel_sobrevive_mesmo_com_forma_volatil() {
+    fn error_with_variable_pid_survives_even_with_a_volatile_shape() {
         let mut d = db();
         for i in 0..10 {
             let out = format!("ERROR: connection refused at 10.0.0.{}:5432 pid={}", i, 9000 + i);
             observe(&mut d, "connect.sh", &out).unwrap();
         }
-        let novo = "ERROR: connection refused at 10.0.0.999:5432 pid=12345";
-        let r = denoise(&d, "connect.sh", novo, 3, 0.8).unwrap();
+        let new_out = "ERROR: connection refused at 10.0.0.999:5432 pid=12345";
+        let r = denoise(&d, "connect.sh", new_out, 3, 0.8).unwrap();
         assert!(r.text.contains("connection refused"));
     }
 
     #[test]
-    fn ruido_benigno_continua_sendo_cortado() {
+    fn benign_noise_still_gets_dropped() {
         let mut d = db();
         for i in 0..10 {
             let out = format!("> build\nwebpack compiled in {}ms\nasset main.js 2.1 MiB", 100 + i);
@@ -334,9 +334,9 @@ mod tests {
     }
 
     #[test]
-    fn abaixo_de_min_runs_nao_julga() {
+    fn below_min_runs_does_not_judge() {
         let mut d = db();
-        let out = "linha comum\noutra linha";
+        let out = "common line\nanother line";
         observe(&mut d, "cmd", out).unwrap();
         observe(&mut d, "cmd", out).unwrap();
         let r = denoise(&d, "cmd", out, 3, 0.8).unwrap();
@@ -345,89 +345,89 @@ mod tests {
     }
 
     #[test]
-    fn linha_repetida_de_sempre_e_cortada() {
+    fn line_always_repeated_gets_dropped() {
         let mut d = db();
-        let rotina = "compilando\nmodulo 3 pronto\nfim";
+        let routine = "compiling\nmodule 3 ready\ndone";
         for _ in 0..5 {
-            observe(&mut d, "cmd", rotina).unwrap();
+            observe(&mut d, "cmd", routine).unwrap();
         }
-        assert_eq!(denoise(&d, "cmd", rotina, 3, 0.8).unwrap().text, "");
+        assert_eq!(denoise(&d, "cmd", routine, 3, 0.8).unwrap().text, "");
     }
 
     #[test]
-    fn falha_em_modulo_novo_sobrevive_com_forma_conhecida() {
+    fn failure_in_a_new_module_survives_with_a_known_shape() {
         let mut d = db();
-        let rotina = "compilando\nmodulo 3 pronto\nfim";
+        let routine = "compiling\nmodule 3 ready\ndone";
         for _ in 0..5 {
-            observe(&mut d, "cmd", rotina).unwrap();
+            observe(&mut d, "cmd", routine).unwrap();
         }
-        let r = denoise(&d, "cmd", "compilando\nmodulo 3 pronto\nmodulo 7 pronto\nfim", 3, 0.8).unwrap();
-        assert!(r.text.contains("modulo 7 pronto"));
+        let r = denoise(&d, "cmd", "compiling\nmodule 3 ready\nmodule 7 ready\ndone", 3, 0.8).unwrap();
+        assert!(r.text.contains("module 7 ready"));
     }
 
     #[test]
-    fn observe_conta_execucoes_e_detecta_saida_identica() {
+    fn observe_counts_runs_and_detects_identical_output() {
         let mut d = db();
-        let a = observe(&mut d, "cmd", "igual").unwrap();
+        let a = observe(&mut d, "cmd", "same").unwrap();
         assert_eq!(a.runs, 1);
         assert!(!a.unchanged);
-        let b = observe(&mut d, "cmd", "igual").unwrap();
+        let b = observe(&mut d, "cmd", "same").unwrap();
         assert_eq!(b.runs, 2);
         assert!(b.unchanged);
-        let c = observe(&mut d, "cmd", "diferente").unwrap();
+        let c = observe(&mut d, "cmd", "different").unwrap();
         assert!(!c.unchanged);
     }
 
     #[test]
-    fn similaridade_de_jaccard() {
+    fn jaccard_similarity() {
         assert_eq!(similarity("a\nb", "a\nb"), 1.0);
         assert_eq!(similarity("a\nb", "c\nd"), 0.0);
-        let meio = similarity("a\nb", "a\nc");
-        assert!(meio > 0.3 && meio < 0.4, "veio {meio}");
+        let mid = similarity("a\nb", "a\nc");
+        assert!(mid > 0.3 && mid < 0.4, "got {mid}");
     }
 
     #[test]
-    fn novidade_lista_so_o_que_nao_existia() {
+    fn novelty_lists_only_what_did_not_exist_before() {
         let n = novelty("a\nb", "a\nb\nc");
         assert_eq!(n, vec!["c".to_string()]);
     }
 
     #[test]
-    fn diagnostico_de_compilador_e_severo_em_qualquer_linguagem() {
+    fn compiler_diagnostic_is_severe_in_any_language() {
         for l in [
             "./main.go:10:2: undefined: fooBar",
             "src/lib.rs:42:9: expected semicolon",
             "app/models.py:8:1: E402 import not at top",
             "src/App.tsx:15:3: Type error",
         ] {
-            assert!(is_severe(l), "diagnostico deveria ser severo: {l}");
+            assert!(is_severe(l), "diagnostic should be severe: {l}");
         }
-        for l in ["compilando modulo", "asset main.js 2.1 MiB", "Done in 3s", "web-1 1/1 Running"] {
-            assert!(!is_severe(l), "nao deveria ser severa: {l}");
+        for l in ["compiling module", "asset main.js 2.1 MiB", "Done in 3s", "web-1 1/1 Running"] {
+            assert!(!is_severe(l), "should not be severe: {l}");
         }
     }
 
     #[test]
-    fn is_severe_pega_erro_que_nao_usa_a_palavra_erro() {
+    fn is_severe_catches_an_error_that_does_not_use_the_word_error() {
         for l in ["npm ERR! code ELIFECYCLE", "Killed", "exit status 1", "Segmentation fault (core dumped)", "ld: undefined reference to foo"] {
-            assert!(is_severe(l), "deveria ser severa: {l}");
+            assert!(is_severe(l), "should be severe: {l}");
         }
     }
 
     #[test]
-    fn is_severe_pega_conjugacao_de_falha() {
-        for l in ["connection fails", "test fails intermittently", "o modulo falha", "dois testes falham", "build fail"] {
-            assert!(is_severe(l), "deveria ser severa: {l}");
+    fn is_severe_catches_failure_conjugations() {
+        for l in ["connection fails", "test fails intermittently", "the module fails", "two tests fail", "build fail"] {
+            assert!(is_severe(l), "should be severe: {l}");
         }
     }
 
     #[test]
-    fn is_severe_reconhece_falha_em_dois_idiomas() {
-        for l in ["ERROR: x", "modulo falhou", "Traceback (most recent call last)", "connection refused", "FAIL auth", "✗ teste"] {
-            assert!(is_severe(l), "deveria ser severa: {l}");
+    fn is_severe_recognizes_failure_across_phrasings_and_symbols() {
+        for l in ["ERROR: x", "module failed", "Traceback (most recent call last)", "connection refused", "FAIL auth", "✗ test"] {
+            assert!(is_severe(l), "should be severe: {l}");
         }
-        for l in ["compilando", "asset main.js 2.1 MiB", "ok"] {
-            assert!(!is_severe(l), "nao deveria ser severa: {l}");
+        for l in ["compiling", "asset main.js 2.1 MiB", "ok"] {
+            assert!(!is_severe(l), "should not be severe: {l}");
         }
     }
 }

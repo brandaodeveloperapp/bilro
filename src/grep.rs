@@ -98,7 +98,7 @@ pub fn compress_with(text: &str, per_file: usize) -> CompressResult {
             out.push(format!("  {}{}: {}", e.lines.join(","), extra, body));
         }
         if entries.len() > per_file {
-            out.push(format!("  … {} outros trechos neste arquivo", entries.len() - per_file));
+            out.push(format!("  … {} other matches in this file", entries.len() - per_file));
         }
     }
 
@@ -113,7 +113,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn conteudo_do_match_nunca_e_cortado() {
+    fn match_content_is_never_truncated() {
         let raw = "a.ts:1:const token = process.env.SECRET\nb.ts:9:const token = process.env.SECRET";
         let r = compress(raw);
         assert!(r.text.contains("const token = process.env.SECRET"));
@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn match_identico_em_varias_linhas_vira_uma_linha_com_contagem() {
+    fn identical_match_across_many_lines_becomes_one_line_with_a_count() {
         let raw = (0..20).map(|i| format!("a.ts:{}:import x", i + 1)).collect::<Vec<_>>().join("\n");
         let r = compress(&raw);
         assert_eq!(r.hits, 20);
@@ -130,16 +130,16 @@ mod tests {
     }
 
     #[test]
-    fn arquivo_com_muitos_trechos_distintos_diz_quantos_ficaram_de_fora() {
+    fn file_with_many_distinct_matches_says_how_many_were_left_out() {
         let raw =
-            (0..40).map(|i| format!("a.ts:{}:linha unica {}", i + 1, i)).collect::<Vec<_>>().join("\n");
+            (0..40).map(|i| format!("a.ts:{}:unique line {}", i + 1, i)).collect::<Vec<_>>().join("\n");
         let r = compress_with(&raw, 5);
-        assert!(r.text.contains("… 35 outros trechos"));
+        assert!(r.text.contains("… 35 other matches"));
     }
 
     #[test]
-    fn saida_que_nao_e_grep_passa_intacta() {
-        let raw = "isso nao tem formato de match\nnem isso";
+    fn output_that_is_not_grep_passes_through_untouched() {
+        let raw = "this has no match format\nneither does this";
         assert_eq!(compress(raw).text, raw);
     }
 }

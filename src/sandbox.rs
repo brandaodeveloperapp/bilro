@@ -200,53 +200,53 @@ mod tests {
     }
 
     #[test]
-    fn quebra_por_linha_em_branco_e_mantem_o_bloco_inteiro() {
-        assert_eq!(chunk("um\ndois\n\ntres", 60), vec!["um\ndois", "tres"]);
+    fn splits_on_blank_line_and_keeps_the_whole_block() {
+        assert_eq!(chunk("one\ntwo\n\nthree", 60), vec!["one\ntwo", "three"]);
     }
 
     #[test]
-    fn bloco_gigante_e_cortado_para_nao_virar_um_chunk_so() {
-        let grande = (0..130).map(|i| format!("l{i}")).collect::<Vec<_>>().join("\n");
-        assert_eq!(chunk(&grande, 60).len(), 3);
+    fn huge_block_is_cut_so_it_does_not_become_a_single_chunk() {
+        let big = (0..130).map(|i| format!("l{i}")).collect::<Vec<_>>().join("\n");
+        assert_eq!(chunk(&big, 60).len(), 3);
     }
 
     #[test]
-    fn pontuacao_de_caminho_nao_quebra_o_fts5() {
+    fn path_punctuation_does_not_break_fts5() {
         assert_eq!(to_match_query("features/references"), Some("\"features/references\"".into()));
         assert_eq!(to_match_query("  "), None);
     }
 
     #[test]
-    fn aspas_do_usuario_nao_viram_injecao_de_sintaxe() {
+    fn user_quotes_do_not_become_syntax_injection() {
         assert_eq!(to_match_query(r#"a" OR "b"#), Some(r#""a" OR "OR" OR "b""#.into()));
     }
 
     #[test]
-    fn indexa_e_recupera_pelo_termo() {
+    fn indexes_and_retrieves_by_term() {
         let path = tmp_db();
         let conn = open(&path).unwrap();
         index(
             &conn,
             "l",
-            "spinner preso no query store\n\ncodigo de afiliado sem prazo",
+            "spinner stuck in the query store\n\naffiliate code with no deadline",
             "s",
         )
         .unwrap();
-        assert_eq!(search(&conn, "afiliado", 5).unwrap().len(), 1);
-        assert_eq!(search(&conn, "inexistente", 5).unwrap().len(), 0);
+        assert_eq!(search(&conn, "affiliate", 5).unwrap().len(), 1);
+        assert_eq!(search(&conn, "nonexistent", 5).unwrap().len(), 0);
     }
 
     #[test]
-    fn run_devolve_o_tamanho_retido_nao_o_conteudo() {
-        let r = run("printf 'linha\\n%.0s' $(seq 1 200)", None, &[], None);
+    fn run_returns_the_withheld_size_not_the_content() {
+        let r = run("printf 'line\\n%.0s' $(seq 1 200)", None, &[], None);
         assert!(!r.failed);
         assert!(r.withheld_tokens > 100);
         assert!(r.chunks >= 1);
     }
 
     #[test]
-    fn comando_que_falha_nao_explode_e_ainda_indexa_a_saida() {
-        let r = run("echo antes; exit 3", None, &[], None);
+    fn failing_command_does_not_blow_up_and_still_indexes_the_output() {
+        let r = run("echo before; exit 3", None, &[], None);
         assert!(r.failed);
         assert!(r.withheld_tokens > 0);
     }
@@ -257,19 +257,19 @@ mod cap_tests {
     use super::*;
 
     #[test]
-    fn saida_gigante_nao_infla_o_indice_sem_limite() {
+    fn huge_output_does_not_inflate_the_index_without_limit() {
         let dir = std::env::temp_dir().join(format!("bilro-cap-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("i.db");
         let conn = open(&file).unwrap();
-        let enorme = "linha de log com algum conteudo\n".repeat(600_000);
-        assert!(enorme.len() > 16 * 1024 * 1024, "fixture precisa passar do cap");
-        index(&conn, "gigante", &enorme, "teste").unwrap();
+        let huge = "log line with some content\n".repeat(700_000);
+        assert!(huge.len() > 16 * 1024 * 1024, "fixture needs to exceed the cap");
+        index(&conn, "huge", &huge, "test").unwrap();
         drop(conn);
-        let tamanho = std::fs::metadata(&file).unwrap().len();
+        let size = std::fs::metadata(&file).unwrap().len();
         let _ = std::fs::remove_dir_all(&dir);
-        assert!(tamanho < 32 * 1024 * 1024, "indice ficou com {tamanho} bytes");
+        assert!(size < 32 * 1024 * 1024, "index ended up with {size} bytes");
     }
 }
 
@@ -293,33 +293,33 @@ mod reindex_tests {
     }
 
     #[test]
-    fn indexar_de_novo_substitui_em_vez_de_acumular() {
+    fn reindexing_replaces_instead_of_accumulating() {
         let (dir, conn) = temp_db();
-        let corpo = "primeira secao\n\nsegunda secao com termo raro xilofone";
+        let body = "first section\n\nsecond section with rare term xylophone";
         for _ in 0..3 {
-            index(&conn, "pagina", corpo, "web").unwrap();
+            index(&conn, "page", body, "web").unwrap();
         }
-        let hits = search(&conn, "xilofone", 10).unwrap();
-        assert_eq!(hits.len(), 1, "o mesmo trecho voltou {} vezes", hits.len());
+        let hits = search(&conn, "xylophone", 10).unwrap();
+        assert_eq!(hits.len(), 1, "the same chunk came back {} times", hits.len());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
-    fn rotulos_diferentes_convivem() {
+    fn different_labels_coexist() {
         let (dir, conn) = temp_db();
-        index(&conn, "pagina-a", "termo raro xilofone aqui", "web").unwrap();
-        index(&conn, "pagina-b", "termo raro xilofone ali", "web").unwrap();
-        assert_eq!(search(&conn, "xilofone", 10).unwrap().len(), 2);
+        index(&conn, "page-a", "rare term xylophone here", "web").unwrap();
+        index(&conn, "page-b", "rare term xylophone there", "web").unwrap();
+        assert_eq!(search(&conn, "xylophone", 10).unwrap().len(), 2);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
-    fn conteudo_novo_no_mesmo_rotulo_apaga_o_antigo() {
+    fn new_content_under_the_same_label_erases_the_old_one() {
         let (dir, conn) = temp_db();
-        index(&conn, "pagina", "conteudo velho zebra", "web").unwrap();
-        index(&conn, "pagina", "conteudo novo girafa", "web").unwrap();
-        assert!(search(&conn, "zebra", 5).unwrap().is_empty(), "sobrou o conteudo velho");
-        assert_eq!(search(&conn, "girafa", 5).unwrap().len(), 1);
+        index(&conn, "page", "old content zebra", "web").unwrap();
+        index(&conn, "page", "new content giraffe", "web").unwrap();
+        assert!(search(&conn, "zebra", 5).unwrap().is_empty(), "old content survived");
+        assert_eq!(search(&conn, "giraffe", 5).unwrap().len(), 1);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

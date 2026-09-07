@@ -72,17 +72,17 @@ pub fn install(home: &Path, binary: &Path, link_dir: Option<&Path>) -> std::io::
             .as_array_mut()
             .unwrap();
 
-        let mesmo_matcher = |g: &Value| {
+        let same_matcher = |g: &Value| {
             g.get("matcher").and_then(|m| m.as_str()) == *matcher
                 || (matcher.is_none() && g.get("matcher").is_none())
         };
-        let ja_registrado = groups.iter().filter(|g| mesmo_matcher(g)).any(|g| {
+        let already_registered = groups.iter().filter(|g| same_matcher(g)).any(|g| {
             g.get("hooks")
                 .and_then(|h| h.as_array())
                 .map(|arr| arr.iter().any(|h| h.get("command").and_then(|c| c.as_str()) == Some(command.as_str())))
                 .unwrap_or(false)
         });
-        if ja_registrado {
+        if already_registered {
             report.already.push(format!("{event}/{}", matcher.unwrap_or("*")));
             continue;
         }
@@ -147,9 +147,9 @@ fn register_mcp(home: &Path, binary: &Path) -> std::io::Result<Option<&'static s
         "env": {}
     });
     let outcome = match servers.get("bilro") {
-        Some(existing) if *existing == desired => Some("ja estava"),
-        Some(_) => Some("caminho atualizado"),
-        None => Some("registrado"),
+        Some(existing) if *existing == desired => Some("already there"),
+        Some(_) => Some("path updated"),
+        None => Some("registered"),
     };
     if servers.get("bilro") == Some(&desired) {
         return Ok(outcome);
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn registra_o_servidor_mcp() {
+    fn registers_the_mcp_server() {
         let home = temp();
         install(&home, Path::new("/opt/bilro"), None).unwrap();
         let s: Value = serde_json::from_str(&std::fs::read_to_string(home.join(".claude.json")).unwrap()).unwrap();
@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn nao_apaga_outros_servidores_mcp() {
+    fn does_not_erase_other_mcp_servers() {
         let home = temp();
         std::fs::write(
             home.join(".claude.json"),
@@ -202,39 +202,39 @@ mod tests {
     }
 
     #[test]
-    fn registra_os_quatro_hooks_num_ambiente_limpo() {
+    fn registers_all_hooks_on_a_clean_environment() {
         let home = temp();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
-        assert_eq!(r.added.len(), 7, "adicionados: {:?}", r.added);
+        assert_eq!(r.added.len(), 7, "added: {:?}", r.added);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         assert!(s["hooks"]["PreToolUse"].as_array().unwrap().len() >= 2);
         std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]
-    fn instalar_duas_vezes_nao_duplica_nada() {
+    fn installing_twice_does_not_duplicate_anything() {
         let home = temp();
         install(&home, Path::new("/opt/bilro"), None).unwrap();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
-        assert!(r.added.is_empty(), "nao pode adicionar de novo: {:?}", r.added);
+        assert!(r.added.is_empty(), "must not add again: {:?}", r.added);
         assert_eq!(r.already.len(), 7);
         std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]
-    fn caminho_antigo_do_binario_e_atualizado_nao_duplicado() {
+    fn old_binary_path_is_updated_not_duplicated() {
         let home = temp();
-        install(&home, Path::new("/caminho/antigo/bilro"), None).unwrap();
-        let r = install(&home, Path::new("/caminho/novo/bilro"), None).unwrap();
-        assert_eq!(r.replaced.len(), 7, "deveria substituir: {:?}", r.replaced);
+        install(&home, Path::new("/old/path/bilro"), None).unwrap();
+        let r = install(&home, Path::new("/new/path/bilro"), None).unwrap();
+        assert_eq!(r.replaced.len(), 7, "should replace: {:?}", r.replaced);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         let txt = s.to_string();
-        assert!(!txt.contains("/caminho/antigo/"), "sobrou o caminho antigo");
+        assert!(!txt.contains("/old/path/"), "old path survived");
         std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]
-    fn dois_hooks_com_o_mesmo_comando_em_matchers_diferentes_convivem() {
+    fn two_hooks_with_the_same_command_on_different_matchers_coexist() {
         let home = temp();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
@@ -246,54 +246,54 @@ mod tests {
             })
             .map(|g| g["matcher"].as_str().unwrap_or("*"))
             .collect();
-        assert!(outcome_matchers.contains(&"Task"), "faltou Task: {outcome_matchers:?} | added {:?}", r.added);
-        assert!(outcome_matchers.contains(&"Edit"), "faltou Edit: {outcome_matchers:?}");
+        assert!(outcome_matchers.contains(&"Task"), "missing Task: {outcome_matchers:?} | added {:?}", r.added);
+        assert!(outcome_matchers.contains(&"Edit"), "missing Edit: {outcome_matchers:?}");
         std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]
-    fn nao_duplica_quando_o_hook_vive_em_outro_grupo() {
+    fn does_not_duplicate_when_the_hook_lives_in_another_group() {
         let home = temp();
         std::fs::write(
             settings_path(&home),
             json!({"hooks":{"SessionStart":[
-                {"hooks":[{"type":"command","command":"outra coisa"}]},
+                {"hooks":[{"type":"command","command":"something else"}]},
                 {"hooks":[{"type":"command","command":"/opt/bilro hook session"}]}
             ]}})
             .to_string(),
         )
         .unwrap();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
-        assert!(r.already.contains(&"SessionStart/*".to_string()), "deveria ver que ja existe: {r:?}", r = r.added);
+        assert!(r.already.contains(&"SessionStart/*".to_string()), "should see it already exists: {r:?}", r = r.added);
         let s: Value = serde_json::from_str(&std::fs::read_to_string(settings_path(&home)).unwrap()).unwrap();
         let n = s["hooks"]["SessionStart"].as_array().unwrap().iter()
             .flat_map(|g| g["hooks"].as_array().unwrap())
             .filter(|h| h["command"].as_str() == Some("/opt/bilro hook session"))
             .count();
-        assert_eq!(n, 1, "registrou o mesmo hook duas vezes");
+        assert_eq!(n, 1, "registered the same hook twice");
         std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]
-    fn preserva_hook_de_outra_ferramenta() {
+    fn preserves_another_tool_s_hook() {
         let home = temp();
         std::fs::write(
             settings_path(&home),
-            json!({"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"outra-ferramenta rodar"}]}]}}).to_string(),
+            json!({"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"other-tool run"}]}]}}).to_string(),
         )
         .unwrap();
         install(&home, Path::new("/opt/bilro"), None).unwrap();
         let s = std::fs::read_to_string(settings_path(&home)).unwrap();
-        assert!(s.contains("outra-ferramenta rodar"), "apagou hook de terceiro");
+        assert!(s.contains("other-tool run"), "erased a third party's hook");
         std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]
-    fn guarda_copia_do_settings_que_alterou() {
+    fn keeps_a_copy_of_the_settings_it_changed() {
         let home = temp();
         std::fs::write(settings_path(&home), "{}").unwrap();
         let r = install(&home, Path::new("/opt/bilro"), None).unwrap();
-        assert!(r.backup.is_some_and(|b| b.exists()), "sem backup");
+        assert!(r.backup.is_some_and(|b| b.exists()), "no backup");
         std::fs::remove_dir_all(&home).ok();
     }
 }

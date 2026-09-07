@@ -154,13 +154,13 @@ pub fn stats() -> Stats {
 /// One diagnostic result. A failing check always says how to fix it.
 #[derive(Debug)]
 pub struct Check {
-    pub nome: String,
+    pub name: String,
     pub ok: bool,
-    pub detalhe: String,
+    pub detail: String,
 }
 
-fn check(nome: &str, ok: bool, detalhe: impl Into<String>) -> Check {
-    Check { nome: nome.to_string(), ok, detalhe: detalhe.into() }
+fn check(name: &str, ok: bool, detail: impl Into<String>) -> Check {
+    Check { name: name.to_string(), ok, detail: detail.into() }
 }
 
 fn which(program: &str) -> Option<PathBuf> {
@@ -175,30 +175,30 @@ fn which(program: &str) -> Option<PathBuf> {
 fn check_binary_on_path() -> Check {
     let Ok(current) = std::env::current_exe() else {
         return check(
-            "binario no PATH",
+            "binary on PATH",
             false,
-            "std::env::current_exe() falhou. Rode o binario pelo caminho absoluto para diagnosticar.",
+            "std::env::current_exe() failed. Run the binary by its absolute path to diagnose.",
         );
     };
     let Some(found) = which("bilro") else {
         return check(
-            "binario no PATH",
+            "binary on PATH",
             false,
             format!(
-                "`bilro` nao esta no PATH. Rode `{} install` ou crie um symlink num diretorio do PATH.",
+                "`bilro` is not on PATH. Run `{} install` or create a symlink in a directory on PATH.",
                 current.display()
             ),
         );
     };
     let same = std::fs::canonicalize(&found).ok() == std::fs::canonicalize(&current).ok();
     if same {
-        check("binario no PATH", true, format!("{} -> {}", found.display(), current.display()))
+        check("binary on PATH", true, format!("{} -> {}", found.display(), current.display()))
     } else {
         check(
-            "binario no PATH",
+            "binary on PATH",
             false,
             format!(
-                "`bilro` no PATH aponta para {}, mas o executavel atual e {}. Rode `bilro install` de novo para atualizar o symlink.",
+                "`bilro` on PATH points to {}, but the current executable is {}. Run `bilro install` again to update the symlink.",
                 found.display(),
                 current.display()
             ),
@@ -210,16 +210,16 @@ fn check_hooks(home: &Path) -> Check {
     let path = settings_path(home);
     let Ok(raw) = std::fs::read_to_string(&path) else {
         return check(
-            "hooks em settings.json",
+            "hooks in settings.json",
             false,
-            format!("nao achei {}. Rode `bilro install` para registrar os hooks.", path.display()),
+            format!("could not find {}. Run `bilro install` to register the hooks.", path.display()),
         );
     };
     let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else {
         return check(
-            "hooks em settings.json",
+            "hooks in settings.json",
             false,
-            format!("{} nao e JSON valido. Corrija-o ou apague e rode `bilro install` de novo.", path.display()),
+            format!("{} is not valid JSON. Fix it or delete it and run `bilro install` again.", path.display()),
         );
     };
     let is_bilro = |cmd: &str| -> bool {
@@ -246,26 +246,26 @@ fn check_hooks(home: &Path) -> Check {
 
     if commands.is_empty() {
         return check(
-            "hooks em settings.json",
+            "hooks in settings.json",
             false,
-            format!("nenhum hook do bilro registrado em {}. Rode `bilro install`.", path.display()),
+            format!("no bilro hook registered in {}. Run `bilro install`.", path.display()),
         );
     }
-    let faltando: Vec<&String> = commands
+    let missing: Vec<&String> = commands
         .iter()
         .filter(|cmd| {
             let bin = cmd.split_whitespace().next().unwrap_or("");
             bin.is_empty() || !Path::new(bin).exists()
         })
         .collect();
-    if faltando.is_empty() {
-        check("hooks em settings.json", true, format!("{} hook(s), todos com binario existente", commands.len()))
+    if missing.is_empty() {
+        check("hooks in settings.json", true, format!("{} hook(s), all pointing to an existing binary", commands.len()))
     } else {
         check(
-            "hooks em settings.json",
+            "hooks in settings.json",
             false,
             format!(
-                "hook(s) apontando para binario que sumiu: {faltando:?}. Rode `bilro install` de novo para corrigir o caminho."
+                "hook(s) pointing to a binary that is gone: {missing:?}. Run `bilro install` again to fix the path."
             ),
         )
     }
@@ -274,10 +274,10 @@ fn check_hooks(home: &Path) -> Check {
 fn check_mcp(home: &Path) -> Check {
     let path = claude_json_path(home);
     let Ok(raw) = std::fs::read_to_string(&path) else {
-        return check("servidor MCP em .claude.json", false, format!("nao achei {}. Rode `bilro install`.", path.display()));
+        return check("MCP server in .claude.json", false, format!("could not find {}. Run `bilro install`.", path.display()));
     };
     let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else {
-        return check("servidor MCP em .claude.json", false, format!("{} nao e JSON valido.", path.display()));
+        return check("MCP server in .claude.json", false, format!("{} is not valid JSON.", path.display()));
     };
     let Some(cmd) = value
         .get("mcpServers")
@@ -286,30 +286,30 @@ fn check_mcp(home: &Path) -> Check {
         .and_then(|c| c.as_str())
     else {
         return check(
-            "servidor MCP em .claude.json",
+            "MCP server in .claude.json",
             false,
-            "mcpServers.bilro nao registrado ou sem \"command\". Rode `bilro install`.",
+            "mcpServers.bilro is not registered or has no \"command\". Run `bilro install`.",
         );
     };
     if Path::new(cmd).exists() {
-        check("servidor MCP em .claude.json", true, format!("aponta para {cmd}"))
+        check("MCP server in .claude.json", true, format!("points to {cmd}"))
     } else {
         check(
-            "servidor MCP em .claude.json",
+            "MCP server in .claude.json",
             false,
-            format!("aponta para {cmd}, que nao existe mais. Rode `bilro install` de novo."),
+            format!("points to {cmd}, which no longer exists. Run `bilro install` again."),
         )
     }
 }
 
-fn check_db(nome: &str, path: &Path, opener: impl Fn(&Path) -> rusqlite::Result<Connection>) -> Check {
+fn check_db(name: &str, path: &Path, opener: impl Fn(&Path) -> rusqlite::Result<Connection>) -> Check {
     match opener(path) {
-        Ok(_) => check(nome, true, format!("abre em {}", path.display())),
+        Ok(_) => check(name, true, format!("opens at {}", path.display())),
         Err(e) => check(
-            nome,
+            name,
             false,
             format!(
-                "{} nao abre ({e}). Se o arquivo estiver corrompido, mova-o para outro nome e deixe o bilro recriar.",
+                "{} does not open ({e}). If the file is corrupted, rename it and let bilro recreate it.",
                 path.display()
             ),
         ),
@@ -319,45 +319,45 @@ fn check_db(nome: &str, path: &Path, opener: impl Fn(&Path) -> rusqlite::Result<
 fn check_fts5() -> Check {
     match Connection::open_in_memory() {
         Ok(conn) => match conn.execute_batch("CREATE VIRTUAL TABLE bilro_doctor_probe USING fts5(x);") {
-            Ok(()) => check("FTS5 disponivel", true, "CREATE VIRTUAL TABLE ... USING fts5 funcionou em memoria"),
+            Ok(()) => check("FTS5 available", true, "CREATE VIRTUAL TABLE ... USING fts5 worked in memory"),
             Err(e) => check(
-                "FTS5 disponivel",
+                "FTS5 available",
                 false,
                 format!(
-                    "sqlite sem FTS5 ({e}). Recompile com a feature \"bundled\" do rusqlite (ja e a default deste projeto)."
+                    "sqlite without FTS5 ({e}). Recompile with rusqlite's \"bundled\" feature (already the default for this project)."
                 ),
             ),
         },
-        Err(e) => check("FTS5 disponivel", false, format!("nao consegui abrir sqlite em memoria: {e}")),
+        Err(e) => check("FTS5 available", false, format!("could not open sqlite in memory: {e}")),
     }
 }
 
 fn check_scripts() -> Check {
-    let faltando: Vec<&'static str> = crate::script::languages()
+    let missing: Vec<&'static str> = crate::script::languages()
         .into_iter()
         .filter_map(crate::script::runtime_for)
         .filter(|rt| !crate::script::available(rt))
         .map(|rt| rt.program)
         .collect();
-    if faltando.is_empty() {
+    if missing.is_empty() {
         check(
-            "interpretadores do script",
+            "script interpreters",
             true,
-            format!("disponiveis: {}", crate::script::languages().join(", ")),
+            format!("available: {}", crate::script::languages().join(", ")),
         )
     } else {
         check(
-            "interpretadores do script",
+            "script interpreters",
             false,
-            format!("faltam: {}. Instale-os para essas linguagens funcionarem em `bilro run`.", faltando.join(", ")),
+            format!("missing: {}. Install them for these languages to work in `bilro run`.", missing.join(", ")),
         )
     }
 }
 
 fn check_curl() -> Check {
     match which("curl") {
-        Some(p) => check("curl presente", true, format!("{}", p.display())),
-        None => check("curl presente", false, "curl nao esta no PATH. Instale curl, usado pelo fetch."),
+        Some(p) => check("curl present", true, format!("{}", p.display())),
+        None => check("curl present", false, "curl is not on PATH. Install curl, used by fetch."),
     }
 }
 
@@ -368,10 +368,10 @@ fn check_disk_usage(home: &Path) -> Check {
     let sessions = total_bytes(&session_files(&sessions_dir_path(home)));
     let total = learn + index + journal + sessions;
     check(
-        "espaco em disco dos bancos",
+        "database disk usage",
         true,
         format!(
-            "total {total} bytes (learn.db: {learn}, index.db: {index}, journal.db: {journal}, sessions: {sessions}). Acima de dezenas de MB, rode `bilro purge`."
+            "total {total} bytes (learn.db: {learn}, index.db: {index}, journal.db: {journal}, sessions: {sessions}). Above tens of MB, run `bilro purge`."
         ),
     )
 }
@@ -381,9 +381,9 @@ fn doctor_at(home: &Path) -> Vec<Check> {
         check_binary_on_path(),
         check_hooks(home),
         check_mcp(home),
-        check_db("banco learn.db abre", &learn_db_path(home), crate::learn::open),
-        check_db("banco index.db abre", &index_db_path(home), crate::sandbox::open),
-        check_db("banco journal.db abre", &journal_db_path(home), crate::journal::open),
+        check_db("learn.db opens", &learn_db_path(home), crate::learn::open),
+        check_db("index.db opens", &index_db_path(home), crate::sandbox::open),
+        check_db("journal.db opens", &journal_db_path(home), crate::journal::open),
         check_fts5(),
         check_scripts(),
         check_curl(),
@@ -515,7 +515,7 @@ mod tests {
     }
 
     #[test]
-    fn stats_em_ambiente_vazio_nao_quebra_e_devolve_zeros() {
+    fn stats_in_empty_environment_does_not_break_and_returns_zeros() {
         let home = temp_home();
         let s = stats_at(&home);
         assert_eq!(s.learned_commands, 0);
@@ -529,23 +529,23 @@ mod tests {
     }
 
     #[test]
-    fn stats_conta_comandos_aprendidos_e_maduros() {
+    fn stats_counts_learned_and_mature_commands() {
         let home = temp_home();
         let mut db = crate::learn::open(&learn_db_path(&home)).unwrap();
         for _ in 0..5 {
-            crate::learn::observe(&mut db, "npm test", "linha 1\nlinha 2").unwrap();
+            crate::learn::observe(&mut db, "npm test", "line 1\nline 2").unwrap();
         }
-        crate::learn::observe(&mut db, "npm run build", "outra saida").unwrap();
+        crate::learn::observe(&mut db, "npm run build", "other output").unwrap();
         drop(db);
 
         let s = stats_at(&home);
-        assert_eq!(s.learned_commands, 2, "esperava 2 assinaturas distintas");
-        assert_eq!(s.learned_mature, 1, "so npm test passou de 3 execucoes");
+        assert_eq!(s.learned_commands, 2, "expected 2 distinct signatures");
+        assert_eq!(s.learned_mature, 1, "only npm test passed 3 runs");
         let _ = std::fs::remove_dir_all(&home);
     }
 
     #[test]
-    fn check_hooks_ignora_hook_de_outra_ferramenta_e_reprova_so_o_do_bilro() {
+    fn check_hooks_ignores_hook_from_another_tool_and_fails_only_bilros() {
         let home = temp_home();
         std::fs::create_dir_all(home.join(".claude")).unwrap();
         std::fs::write(
@@ -553,8 +553,8 @@ mod tests {
             serde_json::json!({
                 "hooks": {
                     "PreToolUse": [
-                        { "hooks": [{ "type": "command", "command": "node \"/nao/existe/outra-ferramenta.mjs\"" }] },
-                        { "hooks": [{ "type": "command", "command": "/nao/existe/bilro hook bash" }] }
+                        { "hooks": [{ "type": "command", "command": "node \"/does/not/exist/other-tool.mjs\"" }] },
+                        { "hooks": [{ "type": "command", "command": "/does/not/exist/bilro hook bash" }] }
                     ]
                 }
             })
@@ -563,76 +563,76 @@ mod tests {
         .unwrap();
 
         let c = check_hooks(&home);
-        assert!(!c.ok, "deveria reprovar por causa do bilro ausente, nao por causa da outra ferramenta");
-        assert!(c.detalhe.contains("bilro"), "detalhe: {}", c.detalhe);
-        assert!(!c.detalhe.contains("outra-ferramenta"), "vazou hook de outra ferramenta: {}", c.detalhe);
+        assert!(!c.ok, "should fail because bilro is missing, not because of the other tool");
+        assert!(c.detail.contains("bilro"), "detail: {}", c.detail);
+        assert!(!c.detail.contains("other-tool"), "leaked a hook from another tool: {}", c.detail);
         let _ = std::fs::remove_dir_all(&home);
     }
 
     #[test]
-    fn doctor_devolve_um_check_por_item_e_falha_tem_detalhe() {
+    fn doctor_returns_one_check_per_item_and_failures_have_detail() {
         let home = temp_home();
         let checks = doctor_at(&home);
         assert_eq!(checks.len(), 10);
 
-        let falhando: Vec<&Check> = checks.iter().filter(|c| !c.ok).collect();
-        assert!(!falhando.is_empty(), "home vazio deveria reprovar pelo menos um check");
-        for c in &falhando {
-            assert!(!c.detalhe.is_empty(), "check {} falhou sem dizer como consertar", c.nome);
+        let failing: Vec<&Check> = checks.iter().filter(|c| !c.ok).collect();
+        assert!(!failing.is_empty(), "empty home should fail at least one check");
+        for c in &failing {
+            assert!(!c.detail.is_empty(), "check {} failed without saying how to fix it", c.name);
         }
         let _ = std::fs::remove_dir_all(&home);
     }
 
     #[test]
-    fn purge_sem_confirmed_nao_apaga_mas_relata() {
+    fn purge_without_confirmed_does_not_delete_but_reports() {
         let home = temp_home();
         let mut db = crate::learn::open(&learn_db_path(&home)).unwrap();
-        crate::learn::observe(&mut db, "cmd", "linha").unwrap();
+        crate::learn::observe(&mut db, "cmd", "line").unwrap();
         drop(db);
 
         let r = purge_at(&home, Purge::Learn, false);
         assert!(!r.confirmed);
         assert!(!r.targets[0].purged);
-        assert!(r.targets[0].rows > 0, "deveria reportar o que apagaria");
+        assert!(r.targets[0].rows > 0, "should report what it would delete");
 
         let db2 = crate::learn::open(&learn_db_path(&home)).unwrap();
-        assert_eq!(count_table(&db2, "runs"), 1, "purge sem confirmed apagou mesmo assim");
+        assert_eq!(count_table(&db2, "runs"), 1, "purge without confirmed deleted anyway");
         let _ = std::fs::remove_dir_all(&home);
     }
 
     #[test]
-    fn purge_com_confirmed_apaga_so_o_alvo_pedido() {
+    fn purge_with_confirmed_deletes_only_the_requested_target() {
         let home = temp_home();
         let mut learn_db = crate::learn::open(&learn_db_path(&home)).unwrap();
-        crate::learn::observe(&mut learn_db, "cmd", "linha").unwrap();
+        crate::learn::observe(&mut learn_db, "cmd", "line").unwrap();
         drop(learn_db);
         let idx = crate::sandbox::open(&index_db_path(&home)).unwrap();
-        crate::sandbox::index(&idx, "l", "corpo indexado", "fonte").unwrap();
+        crate::sandbox::index(&idx, "l", "indexed body", "source").unwrap();
         drop(idx);
 
         let r = purge_at(&home, Purge::Learn, true);
         assert!(r.targets[0].purged);
 
         let learn_db2 = crate::learn::open(&learn_db_path(&home)).unwrap();
-        assert_eq!(count_table(&learn_db2, "runs"), 0, "learn nao foi limpo");
+        assert_eq!(count_table(&learn_db2, "runs"), 0, "learn was not cleared");
         drop(learn_db2);
 
         let idx2 = crate::sandbox::open(&index_db_path(&home)).unwrap();
-        assert_eq!(count_table(&idx2, "chunks"), 1, "index foi apagado sem ter sido pedido");
+        assert_eq!(count_table(&idx2, "chunks"), 1, "index was deleted without being requested");
         let _ = std::fs::remove_dir_all(&home);
     }
 
     #[test]
-    fn purge_all_zera_tudo_e_stats_depois_nao_quebra() {
+    fn purge_all_clears_everything_and_stats_afterward_does_not_break() {
         let home = temp_home();
         let mut learn_db = crate::learn::open(&learn_db_path(&home)).unwrap();
-        crate::learn::observe(&mut learn_db, "cmd", "linha").unwrap();
+        crate::learn::observe(&mut learn_db, "cmd", "line").unwrap();
         drop(learn_db);
         let idx = crate::sandbox::open(&index_db_path(&home)).unwrap();
-        crate::sandbox::index(&idx, "l", "corpo", "fonte").unwrap();
+        crate::sandbox::index(&idx, "l", "body", "source").unwrap();
         drop(idx);
         let jr = crate::journal::open(&journal_db_path(&home)).unwrap();
-        crate::journal::record(&jr, "prompt", "assunto", "corpo", "s1", "proj").unwrap();
+        crate::journal::record(&jr, "prompt", "subject", "body", "s1", "project").unwrap();
         drop(jr);
         std::fs::create_dir_all(sessions_dir_path(&home)).unwrap();
         std::fs::write(sessions_dir_path(&home).join("s1.json"), "{}").unwrap();
@@ -650,11 +650,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "diagnostico manual: roda contra a maquina real, nao contra um home isolado"]
-    fn diagnostico_real_da_maquina() {
+    #[ignore = "manual diagnostic: runs against the real machine, not an isolated home"]
+    fn real_machine_diagnostics() {
         println!("{:#?}", stats());
         for c in doctor() {
-            println!("[{}] {} - {}", if c.ok { "ok" } else { "FALHA" }, c.nome, c.detalhe);
+            println!("[{}] {} - {}", if c.ok { "ok" } else { "FAIL" }, c.name, c.detail);
         }
     }
 }

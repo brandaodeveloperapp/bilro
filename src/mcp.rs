@@ -61,11 +61,11 @@ fn tools() -> Value {
         },
         {
             "name": "bilro_remember",
-            "description": "Files something decided, rejected or discovered so a later session does not have to rediscover it. Call it the moment it happens — when the user settles a question, vetoes an approach, or a constraint of this machine or project comes to light. A hook cannot infer any of these from a tool call. Use kind: decisao for what was settled, descartado for an approach ruled out (say why), restricao for a fact about the environment that will bite again.",
+            "description": "Files something decided, rejected or discovered so a later session does not have to rediscover it. Call it the moment it happens — when the user settles a question, vetoes an approach, or a constraint of this machine or project comes to light. A hook cannot infer any of these from a tool call. Use kind: decision for what was settled, rejected for an approach ruled out (say why), constraint for a fact about the environment that will bite again.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "kind": { "type": "string", "enum": ["decisao", "descartado", "restricao"] },
+                    "kind": { "type": "string", "enum": ["decision", "rejected", "constraint"] },
                     "subject": { "type": "string", "description": "One line, the thing itself" },
                     "body": { "type": "string", "description": "Why, and what it means for later" },
                     "cwd": { "type": "string" }
@@ -125,7 +125,7 @@ const RETURN_WHOLE_UNDER: usize = 4096;
 /// conversation gets the passages asked for instead of every byte. This is the
 /// whole reason to run a snippet through bilro rather than a plain shell.
 fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) -> String {
-    let head = if failed { "falhou\n" } else { "" };
+    let head = if failed { "failed\n" } else { "" };
     if output.len() <= RETURN_WHOLE_UNDER {
         return format!("{head}{output}");
     }
@@ -134,7 +134,7 @@ fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) ->
     };
     let chunks = crate::sandbox::index(&conn, label, output, "script").unwrap_or(0);
     let mut out = format!(
-        "{head}{} linhas de saida guardadas no indice em {chunks} trechos, fora do contexto.\n",
+        "{head}{} lines of output held in the index across {chunks} chunks, out of context.\n",
         output.lines().count()
     );
     for q in queries {
@@ -145,7 +145,7 @@ fn hold_if_large(label: &str, output: &str, queries: &[String], failed: bool) ->
         }
     }
     if queries.is_empty() {
-        out.push_str("\nUse bilro_find para buscar nela, ou passe find na proxima chamada.");
+        out.push_str("\nUse bilro_find to search it, or pass find on the next call.");
     }
     out
 }
@@ -178,8 +178,8 @@ fn call_tool(name: &str, args: &Value) -> Value {
             let dir = if cwd.is_empty() { None } else { Some(Path::new(cwd.as_str())) };
             let r = crate::sandbox::run(&command, None, &queries, dir);
             let mut out = format!(
-                "{} — {} trechos indexados, {} tokens ficaram fora do contexto\n",
-                if r.failed { "falhou" } else { "ok" },
+                "{} — {} chunks indexed, {} tokens stayed out of context\n",
+                if r.failed { "failed" } else { "ok" },
                 r.chunks,
                 r.withheld_tokens
             );
@@ -187,7 +187,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 out.push_str(&format!("\n## {}\n{}\n", h.query, crate::redact::redact(&h.hit.body)));
             }
             if r.hits.is_empty() && !queries.is_empty() {
-                out.push_str("\nnenhum trecho casou com o que foi pedido");
+                out.push_str("\nno chunk matched what was asked for");
             }
             text_result(out)
         }
@@ -214,7 +214,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
         }
         "bilro_recall" => {
             let Ok(db) = crate::journal::open_default() else {
-                return error_result("sem diario ainda".into());
+                return error_result("no journal yet".into());
             };
             let cwd = arg_str(args, "cwd");
             let dir = if cwd.is_empty() { std::env::current_dir().unwrap_or_default() } else { PathBuf::from(cwd) };
@@ -227,10 +227,10 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 crate::journal::search(&db, &query, Some(&project), limit)
             };
             match events {
-                Err(e) => error_result(format!("recall falhou: {e}")),
-                Ok(list) if list.is_empty() => text_result("nada registrado para este projeto ainda".into()),
+                Err(e) => error_result(format!("recall failed: {e}")),
+                Ok(list) if list.is_empty() => text_result("nothing recorded for this project yet".into()),
                 Ok(list) => {
-                    let mut out = format!("{} eventos\n", list.len());
+                    let mut out = format!("{} events\n", list.len());
                     for e in &list {
                         out.push_str(&format!("\n[{}] {}\n", e.kind, e.subject));
                         if !e.body.trim().is_empty() {
@@ -255,14 +255,14 @@ fn call_tool(name: &str, args: &Value) -> Value {
                         .map(|a| a.iter().filter_map(|q| q.as_str()).map(String::from).collect())
                         .unwrap_or_default();
                     let label = page.title.clone().unwrap_or_else(|| page.url.clone());
-                    let cabecalho = format!(
-                        "{}\n{} — {} bytes de pagina viraram {} de texto\n",
+                    let header = format!(
+                        "{}\n{} — {} bytes of page became {} of text\n",
                         label,
                         page.url,
                         page.bytes,
                         page.text.len()
                     );
-                    text_result(format!("{cabecalho}{}", hold_if_large(&label, &page.text, &queries, false)))
+                    text_result(format!("{header}{}", hold_if_large(&label, &page.text, &queries, false)))
                 }
             }
         }
@@ -274,24 +274,24 @@ fn call_tool(name: &str, args: &Value) -> Value {
             }
             if !crate::journal::is_known_kind(&kind) {
                 return error_result(format!(
-                    "kind desconhecido: {kind}. Use decisao, descartado ou restricao"
+                    "unknown kind: {kind}. Use decision, rejected or constraint"
                 ));
             }
             let cwd = arg_str(args, "cwd");
             let dir = if cwd.is_empty() { std::env::current_dir().unwrap_or_default() } else { PathBuf::from(cwd) };
             let Ok(db) = crate::journal::open_default() else {
-                return error_result("sem diario ainda".into());
+                return error_result("no journal yet".into());
             };
             match crate::journal::record(
                 &db,
                 &kind,
                 &subject,
                 &arg_str(args, "body"),
-                "deliberado",
+                "deliberate",
                 &crate::journal::project_of(&dir),
             ) {
-                Err(e) => error_result(format!("nao consegui gravar: {e}")),
-                Ok(()) => text_result(format!("guardado como {kind}: {subject}")),
+                Err(e) => error_result(format!("could not write: {e}")),
+                Ok(()) => text_result(format!("stored as {kind}: {subject}")),
             }
         }
         "bilro_batch" => match crate::batch::mcp_call(args) {
@@ -302,13 +302,13 @@ fn call_tool(name: &str, args: &Value) -> Value {
             let query = arg_str(args, "query");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(8) as usize;
             let Ok(conn) = crate::sandbox::open_default() else {
-                return error_result("sem indice ainda".into());
+                return error_result("no index yet".into());
             };
             match crate::sandbox::search(&conn, &query, limit) {
-                Err(e) => error_result(format!("busca falhou: {e}")),
-                Ok(hits) if hits.is_empty() => text_result(format!("nada indexado casa com {query}")),
+                Err(e) => error_result(format!("search failed: {e}")),
+                Ok(hits) if hits.is_empty() => text_result(format!("nothing indexed matches {query}")),
                 Ok(hits) => {
-                    let mut out = format!("{} trechos\n", hits.len());
+                    let mut out = format!("{} chunks\n", hits.len());
                     for h in &hits {
                         out.push_str(&format!("\n## {}\n{}\n", h.label, crate::redact::redact(&h.body)));
                     }
@@ -327,7 +327,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 Ok((text, note, saved)) => {
                     let mut out = text;
                     if saved > 0 {
-                        out.push_str(&format!("\n\n[bilro: {saved}% menor{}]", if note.is_empty() { String::new() } else { format!(", {note}") }));
+                        out.push_str(&format!("\n\n[bilro: {saved}% smaller{}]", if note.is_empty() { String::new() } else { format!(", {note}") }));
                     }
                     text_result(out)
                 }
@@ -342,7 +342,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 Ok(r) => {
                     let mut out = crate::redact::redact(&r.text);
                     if r.lossy {
-                        out.push_str("\n\n[bilro: esboco. Corpo de funcao elidido, faixa de linha marcada. Nao edite a partir daqui.]");
+                        out.push_str("\n\n[bilro: outline. Function bodies elided, line range marked. Do not edit from this.]");
                     }
                     text_result(out)
                 }
@@ -358,15 +358,15 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 argv.extend(paths.iter().filter_map(|p| p.as_str()).map(String::from));
             }
             let out = std::process::Command::new("grep").args(&argv).output();
-            let Ok(out) = out else { return error_result("grep indisponivel".into()) };
+            let Ok(out) = out else { return error_result("grep unavailable".into()) };
             let raw = String::from_utf8_lossy(&out.stdout).to_string();
             if raw.trim().is_empty() {
-                return text_result("sem resultado".into());
+                return text_result("no result".into());
             }
             let r = crate::grep::compress(&crate::redact::redact(&raw));
-            text_result(format!("{}\n\n[{} ocorrencias em {} arquivos]", r.text, r.hits, r.files))
+            text_result(format!("{}\n\n[{} matches in {} files]", r.text, r.hits, r.files))
         }
-        other => error_result(format!("ferramenta desconhecida: {other}")),
+        other => error_result(format!("unknown tool: {other}")),
     }
 }
 
@@ -394,7 +394,7 @@ pub fn handle(req: &Value) -> Option<Value> {
             return Some(json!({
                 "jsonrpc": "2.0",
                 "id": id,
-                "error": { "code": -32601, "message": format!("metodo nao suportado: {other}") }
+                "error": { "code": -32601, "message": format!("unsupported method: {other}") }
             }))
         }
     };
@@ -422,7 +422,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn initialize_anuncia_protocolo_e_nome() {
+    fn initialize_announces_protocol_and_name() {
         let r = handle(&json!({"jsonrpc":"2.0","id":1,"method":"initialize"})).unwrap();
         assert_eq!(r["result"]["protocolVersion"], PROTOCOL);
         assert_eq!(r["result"]["serverInfo"]["name"], "bilro");
@@ -430,12 +430,12 @@ mod tests {
     }
 
     #[test]
-    fn notificacao_nao_recebe_resposta() {
+    fn notification_gets_no_response() {
         assert!(handle(&json!({"jsonrpc":"2.0","method":"notifications/initialized"})).is_none());
     }
 
     #[test]
-    fn tools_list_traz_todas_com_schema_bem_formado() {
+    fn tools_list_brings_all_with_well_formed_schema() {
         let r = handle(&json!({"jsonrpc":"2.0","id":2,"method":"tools/list"})).unwrap();
         let t = r["result"]["tools"].as_array().unwrap();
         assert_eq!(t.len(), 10);
@@ -448,20 +448,20 @@ mod tests {
     }
 
     #[test]
-    fn metodo_desconhecido_devolve_erro_nao_panico() {
-        let r = handle(&json!({"jsonrpc":"2.0","id":3,"method":"inventado"})).unwrap();
+    fn unknown_method_returns_error_not_panic() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":3,"method":"madeup"})).unwrap();
         assert_eq!(r["error"]["code"], -32601);
     }
 
     #[test]
-    fn ferramenta_desconhecida_e_erro_de_conteudo_nao_de_protocolo() {
-        let r = handle(&json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"nao_existe","arguments":{}}})).unwrap();
+    fn unknown_tool_is_content_error_not_protocol_error() {
+        let r = handle(&json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"does_not_exist","arguments":{}}})).unwrap();
         assert_eq!(r["result"]["isError"], true);
         assert!(r.get("error").is_none());
     }
 
     #[test]
-    fn argumento_faltando_nao_derruba_o_servidor() {
+    fn missing_argument_does_not_bring_down_the_server() {
         for name in ["bilro_run", "bilro_filter", "bilro_grep"] {
             let r = handle(&json!({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":name,"arguments":{}}})).unwrap();
             assert_eq!(r["result"]["isError"], true, "{name}");
@@ -469,27 +469,27 @@ mod tests {
     }
 
     #[test]
-    fn read_devolve_conteudo_e_avisa_quando_e_esboco() {
+    fn read_returns_content_and_warns_when_it_is_an_outline() {
         let r = handle(&json!({"jsonrpc":"2.0","id":6,"method":"tools/call",
             "params":{"name":"bilro_read","arguments":{"path":"Cargo.toml"}}})).unwrap();
         let txt = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(txt.contains("bilro"));
-        assert!(!txt.contains("esboco"), "modo seguro nao deve avisar de esboco");
+        assert!(!txt.contains("outline"), "safe mode should not warn about an outline");
     }
 
     #[test]
-    fn script_deriva_resposta_sem_trazer_os_dados() {
+    fn script_derives_an_answer_without_bringing_the_data() {
         let r = handle(&json!({"jsonrpc":"2.0","id":8,"method":"tools/call","params":{
             "name":"bilro_script",
             "arguments":{"language":"shell","code":"seq 1 100000"}
         }})).unwrap();
         let txt = r["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(txt.contains("indice"), "saida grande deveria ir para o indice: {}", &txt[..80.min(txt.len())]);
-        assert!(txt.len() < 4000, "voltou grande demais: {} bytes", txt.len());
+        assert!(txt.contains("index"), "large output should go to the index: {}", &txt[..80.min(txt.len())]);
+        assert!(txt.len() < 4000, "came back too large: {} bytes", txt.len());
     }
 
     #[test]
-    fn script_curto_volta_inteiro() {
+    fn short_script_comes_back_whole() {
         let r = handle(&json!({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{
             "name":"bilro_script","arguments":{"language":"shell","code":"echo 42"}
         }})).unwrap();
@@ -497,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    fn script_sem_argumento_e_erro_de_conteudo() {
+    fn script_without_argument_is_a_content_error() {
         let r = handle(&json!({"jsonrpc":"2.0","id":10,"method":"tools/call","params":{
             "name":"bilro_script","arguments":{"language":"shell"}
         }})).unwrap();
@@ -505,46 +505,46 @@ mod tests {
     }
 
     #[test]
-    fn recall_sem_termo_nao_e_erro_mesmo_vazio() {
+    fn recall_without_a_term_is_not_an_error_even_when_empty() {
         let r = handle(&json!({"jsonrpc":"2.0","id":11,"method":"tools/call","params":{
-            "name":"bilro_recall","arguments":{"cwd":"/caminho/que/nao/existe/em/lugar/nenhum"}
+            "name":"bilro_recall","arguments":{"cwd":"/path/that/does/not/exist/anywhere"}
         }})).unwrap();
-        assert!(r["result"]["isError"].as_bool() != Some(true), "recall vazio nao deveria ser erro");
+        assert!(r["result"]["isError"].as_bool() != Some(true), "empty recall should not be an error");
     }
 
     #[test]
-    fn fetch_recusa_esquema_perigoso_sem_tentar_buscar() {
+    fn fetch_refuses_dangerous_scheme_without_trying_to_fetch() {
         let r = handle(&json!({"jsonrpc":"2.0","id":12,"method":"tools/call","params":{
             "name":"bilro_fetch","arguments":{"url":"file:///etc/passwd"}
         }})).unwrap();
         assert_eq!(r["result"]["isError"], true);
         let txt = r["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(txt.contains("http"), "deveria dizer o que aceita: {txt}");
+        assert!(txt.contains("http"), "should say what it accepts: {txt}");
     }
 
     #[test]
-    fn remember_recusa_kind_inventado_e_diz_os_validos() {
+    fn remember_refuses_a_made_up_kind_and_names_the_valid_ones() {
         let r = handle(&json!({"jsonrpc":"2.0","id":13,"method":"tools/call","params":{
-            "name":"bilro_remember","arguments":{"kind":"qualquer","subject":"x"}
+            "name":"bilro_remember","arguments":{"kind":"whatever","subject":"x"}
         }})).unwrap();
         assert_eq!(r["result"]["isError"], true);
         let txt = r["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(txt.contains("decisao") && txt.contains("restricao"), "veio: {txt}");
+        assert!(txt.contains("decision") && txt.contains("constraint"), "got: {txt}");
     }
 
     #[test]
-    fn remember_sem_assunto_e_recusado() {
+    fn remember_without_a_subject_is_refused() {
         let r = handle(&json!({"jsonrpc":"2.0","id":14,"method":"tools/call","params":{
-            "name":"bilro_remember","arguments":{"kind":"decisao","subject":"  "}
+            "name":"bilro_remember","arguments":{"kind":"decision","subject":"  "}
         }})).unwrap();
         assert_eq!(r["result"]["isError"], true);
     }
 
     #[test]
-    fn segredo_nao_atravessa_a_ferramenta() {
+    fn secret_does_not_cross_the_tool() {
         let r = handle(&json!({"jsonrpc":"2.0","id":7,"method":"tools/call",
-            "params":{"name":"bilro_filter","arguments":{"command":"echo 'URL=postgres://u:S3GR3DO@db:5432/x'"}}})).unwrap();
+            "params":{"name":"bilro_filter","arguments":{"command":"echo 'URL=postgres://u:S3CR3T@db:5432/x'"}}})).unwrap();
         let txt = r["result"]["content"][0]["text"].as_str().unwrap_or("");
-        assert!(!txt.contains("S3GR3DO"), "vazou segredo pela ferramenta MCP");
+        assert!(!txt.contains("S3CR3T"), "leaked secret through the MCP tool");
     }
 }

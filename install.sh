@@ -33,8 +33,8 @@ baixar() {
   tar -xzf "$tmp/bilro.tar.gz" -C "$tmp"
   mkdir -p "$DESTINO"
   mv "$tmp"/bilro "$DESTINO/bilro"
-  [ -f "$tmp/bilro-painel" ] && mv "$tmp/bilro-painel" "$DESTINO/bilro-painel"
-  chmod +x "$DESTINO/bilro" "$DESTINO/bilro-painel" 2>/dev/null || true
+  [ -f "$tmp/bilro-panel" ] && mv "$tmp/bilro-panel" "$DESTINO/bilro-panel"
+  chmod +x "$DESTINO/bilro" "$DESTINO/bilro-panel" 2>/dev/null || true
   rm -rf "$tmp"
   return 0
 }
@@ -48,7 +48,7 @@ compilar() {
   ( cd "$tmp/bilro" && cargo build --release --quiet )
   mkdir -p "$DESTINO"
   cp "$tmp/bilro/target/release/bilro" "$DESTINO/bilro"
-  cp "$tmp/bilro/target/release/bilro-painel" "$DESTINO/bilro-painel" 2>/dev/null || true
+  cp "$tmp/bilro/target/release/bilro-panel" "$DESTINO/bilro-panel" 2>/dev/null || true
   rm -rf "$tmp"
 }
 
@@ -69,4 +69,4 @@ esac
 passo "registrando hooks e servidor MCP"
 "$DESTINO/bilro" install
 
-printf '  pronto. Comece por:\n\n    bilro doctor      confere a instalacao\n    bilro stats       o que ele ja guarda\n    bilro-painel      abre o painel\n\n'
+printf '  pronto. Comece por:\n\n    bilro doctor      confere a instalacao\n    bilro stats       o que ele ja guarda\n    bilro-panel      abre o painel\n\n'

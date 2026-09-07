@@ -88,7 +88,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
     let text = kept.join("\n");
     let dropped = lines.len().saturating_sub(kept.len());
     let note = format!(
-        "install-log: {} linha(s) de progresso, {} de funding e {} em branco cortadas",
+        "install-log: {} progress line(s), {} funding and {} blank cut",
         dropped_progress, dropped_funding, dropped_blank
     );
     Compressed { text, dropped, note }
@@ -107,7 +107,7 @@ mod tests {
 
     fn load(fixture: &str) -> String {
         let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), fixture);
-        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("fixture {} ausente: {}", fixture, e))
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("fixture {} missing: {}", fixture, e))
     }
 
     fn lines_of(text: &str) -> Vec<&str> {
@@ -115,30 +115,30 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "install-log");
     }
 
     #[test]
-    fn detecta_npm_install_real_com_alta_confianca() {
+    fn detects_a_real_npm_install_with_high_confidence() {
         let text = load("install-npm-real.txt");
         assert!(detect(&lines_of(&text)) >= 0.6);
     }
 
     #[test]
-    fn detecta_pip_install_real_com_alta_confianca() {
+    fn detects_a_real_pip_install_with_high_confidence() {
         let text = load("install-pip-real.txt");
         assert!(detect(&lines_of(&text)) >= 0.6);
     }
 
     #[test]
-    fn detecta_uv_add_real_com_alta_confianca() {
+    fn detects_a_real_uv_add_with_high_confidence() {
         let text = load("install-uv-real.txt");
         assert!(detect(&lines_of(&text)) >= 0.6);
     }
 
     #[test]
-    fn nao_detecta_listagem_de_arquivo_como_install_log() {
+    fn does_not_detect_a_file_listing_as_an_install_log() {
         let text = load("listing-find.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
         let grep_text = load("listing-grep.txt");
@@ -146,53 +146,53 @@ mod tests {
     }
 
     #[test]
-    fn nao_detecta_json_keyvalue_como_install_log() {
+    fn does_not_detect_json_keyvalue_as_an_install_log() {
         let text = load("keyvalue-curl-real.json");
         assert!(detect(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn nao_detecta_diff_de_git_como_install_log() {
+    fn does_not_detect_a_git_diff_as_an_install_log() {
         let text = load("git-diff-real.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn listing_e_keyvalue_nao_se_confundem_com_install_log_no_sentido_inverso() {
+    fn listing_and_keyvalue_are_not_confused_with_install_log_in_reverse() {
         let text = load("install-npm-real.txt");
         assert!(detect_listing(&lines_of(&text)) < 0.6);
         assert!(detect_keyvalue(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn compress_de_npm_install_real_mantem_sumario_e_todo_warning_corta_progresso_e_funding() {
+    fn compressing_a_real_npm_install_keeps_summary_and_every_warning_cuts_progress_and_funding() {
         let text = load("install-npm-real.txt");
         let before = text.len();
         let r = compress(&lines_of(&text));
-        assert!(r.text.len() < before, "esperava reducao: antes={} depois={}", before, r.text.len());
+        assert!(r.text.len() < before, "expected a reduction: before={} after={}", before, r.text.len());
         assert!(r.text.contains("added 126 packages"));
         assert!(r.text.contains("found 0 vulnerabilities"));
         for dep in ["inflight@1.0.6", "rimraf@3.0.2", "glob@7.2.3"] {
-            assert!(r.text.contains(dep), "warning de {} nao pode ser cortado", dep);
+            assert!(r.text.contains(dep), "warning for {} must not be cut", dep);
         }
         assert!(!r.text.contains("looking for funding"));
         assert!(!r.text.contains("run `npm fund`"));
     }
 
     #[test]
-    fn compress_de_pip_install_real_mantem_successfully_installed_e_corta_collecting_downloading() {
+    fn compressing_a_real_pip_install_keeps_successfully_installed_and_cuts_collecting_downloading() {
         let text = load("install-pip-real.txt");
         let before = text.len();
         let r = compress(&lines_of(&text));
         let cut = 1.0 - (r.text.len() as f64 / before as f64);
-        assert!(cut > 0.3, "esperava corte razoavel, obteve {:.1}%", cut * 100.0);
+        assert!(cut > 0.3, "expected a reasonable cut, got {:.1}%", cut * 100.0);
         assert!(r.text.contains("Successfully installed"));
         assert!(!r.text.contains("Collecting requests"));
         assert!(!r.text.contains("Downloading requests"));
     }
 
     #[test]
-    fn compress_de_uv_add_real_mantem_contagem_de_pacotes_e_corta_lista_individual_resolvida() {
+    fn compressing_a_real_uv_add_keeps_the_package_count_and_cuts_the_resolved_list() {
         let text = load("install-uv-real.txt");
         let r = compress(&lines_of(&text));
         assert!(r.text.contains("Installed 12 packages in 9ms"));
@@ -201,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    fn barra_de_progresso_com_retorno_de_carro_nunca_sobrevive_como_lixo() {
+    fn a_progress_bar_with_carriage_returns_never_survives_as_garbage() {
         let lines = vec![
             "Collecting bigpkg",
             "Downloading bigpkg-1.0.0.whl (900 MB)\r 10%|#         | 90/900 MB\r 55%|#####     | 495/900 MB\r 100%|##########| 900/900 MB",
@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn falha_de_peer_dependency_e_de_audit_nunca_sao_cortadas_mesmo_em_meio_a_enxurrada() {
+    fn peer_dependency_and_audit_failures_are_never_cut_even_amid_a_flood() {
         let flood: Vec<String> = (0..40).map(|i| format!("npm verbose fetch manifest pkg{}@1.0.0", i)).collect();
         let mut owned: Vec<String> = flood;
         owned.push("npm error ERESOLVE unable to resolve dependency tree".to_string());
@@ -229,10 +229,10 @@ mod tests {
     }
 
     #[test]
-    fn compress_retorna_string_mesmo_sem_nenhum_sumario_reconhecido_fallback_seguro() {
-        let lines = vec!["algo qualquer", "outra linha qualquer"];
+    fn compress_returns_a_string_even_with_no_recognized_summary_safe_fallback() {
+        let lines = vec!["something or other", "another random line"];
         let r = compress(&lines);
-        assert!(r.text.contains("algo qualquer"));
+        assert!(r.text.contains("something or other"));
     }
 }
 

@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use serde_json::Value;
 
-const MASK: &str = "***MASCARADO***";
+const MASK: &str = "***REDACTED***";
 const STRING_TRUNC: usize = 120;
 const ARRAY_COLLAPSE_THRESHOLD: usize = 3;
 
@@ -13,7 +13,7 @@ static KV_LINE_RE: Lazy<Regex> =
 
 static SECRET_KEY_RE: Lazy<Regex> = Lazy::new(|| {
     RegexBuilder::new(
-        r"token|secret|password|passwd|senha|credential|authorization|bearer|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|^KEY$|_KEY$",
+        r"token|secret|password|passwd|credential|authorization|bearer|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|^KEY$|_KEY$",
     )
     .case_insensitive(true)
     .build()
@@ -68,7 +68,7 @@ fn truncate_string(value: &str, stats: &mut Stats) -> String {
     }
     stats.truncated += 1;
     let head: String = value.chars().take(STRING_TRUNC).collect();
-    format!("{}...(cortado, {} chars originais)", head, char_count)
+    format!("{}...(truncated, {} original chars)", head, char_count)
 }
 
 fn shrink_value(value: &Value, stats: &mut Stats) -> Value {
@@ -81,10 +81,10 @@ fn shrink_value(value: &Value, stats: &mut Stats) -> Value {
                     stats.collapsed += arr.len() - 1;
                     let mut out = serde_json::Map::new();
                     out.insert(
-                        "(resumo)".to_string(),
-                        Value::String(format!("{} itens no mesmo formato, primeiro como esquema", arr.len())),
+                        "(summary)".to_string(),
+                        Value::String(format!("{} items in the same shape, first one as schema", arr.len())),
                     );
-                    out.insert("(exemplo)".to_string(), shrink_value(&arr[0], stats));
+                    out.insert("(example)".to_string(), shrink_value(&arr[0], stats));
                     return Value::Object(out);
                 }
             }
@@ -121,7 +121,7 @@ fn compress_json(parsed: &Value) -> (String, String) {
     let shrunk = shrink_value(parsed, &mut stats);
     let text = serde_json::to_string_pretty(&shrunk).unwrap();
     let note = format!(
-        "keyvalue(json): {} valor(es) mascarado(s), {} item(ns) de array colapsado(s), {} string(s) truncada(s)",
+        "keyvalue(json): {} value(s) masked, {} array item(s) collapsed, {} string(s) truncated",
         stats.masked, stats.collapsed, stats.truncated
     );
     (text, note)
@@ -151,7 +151,7 @@ fn compress_kv(lines: &[&str]) -> Compressed {
                 } else if raw_value.chars().count() > STRING_TRUNC && !is_severe(line) {
                     truncated += 1;
                     let head: String = raw_value.chars().take(STRING_TRUNC).collect();
-                    format!("{}...(cortado, {} chars originais)", head, raw_value.chars().count())
+                    format!("{}...(truncated, {} original chars)", head, raw_value.chars().count())
                 } else {
                     raw_value.to_string()
                 }
@@ -160,7 +160,7 @@ fn compress_kv(lines: &[&str]) -> Compressed {
         })
         .collect();
     let text = out.join("\n");
-    let note = format!("keyvalue: {} valor(es) mascarado(s), {} truncado(s)", masked, truncated);
+    let note = format!("keyvalue: {} value(s) masked, {} truncated", masked, truncated);
     Compressed { text, dropped: 0, note }
 }
 
@@ -206,7 +206,7 @@ mod tests {
 
     fn load(fixture: &str) -> String {
         let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), fixture);
-        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("fixture {} ausente: {}", fixture, e))
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("fixture {} missing: {}", fixture, e))
     }
 
     fn lines_of(text: &str) -> Vec<&str> {
@@ -214,30 +214,30 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "keyvalue");
     }
 
     #[test]
-    fn detecta_json_real_curl_github_releases_com_confianca_maxima() {
+    fn detects_a_real_curl_github_releases_json_with_maximum_confidence() {
         let text = load("keyvalue-curl-real.json");
         assert_eq!(detect(&lines_of(&text)), 1.0);
     }
 
     #[test]
-    fn detecta_json_real_node_process_versions_com_confianca_maxima() {
+    fn detects_a_real_node_process_versions_json_with_maximum_confidence() {
         let text = load("keyvalue-versions-real.json");
         assert_eq!(detect(&lines_of(&text)), 1.0);
     }
 
     #[test]
-    fn detecta_env_real_key_value_com_alta_confianca() {
+    fn detects_a_real_env_key_value_dump_with_high_confidence() {
         let text = load("keyvalue-env-real.txt");
         assert!(detect(&lines_of(&text)) >= 0.6);
     }
 
     #[test]
-    fn nao_detecta_listagem_de_arquivo_como_keyvalue() {
+    fn does_not_detect_a_file_listing_as_keyvalue() {
         let text = load("listing-find.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
         let grep_text = load("listing-grep.txt");
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn nao_detecta_install_log_como_keyvalue() {
+    fn does_not_detect_an_install_log_as_keyvalue() {
         let text = load("install-npm-real.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
         let pip_text = load("install-pip-real.txt");
@@ -253,34 +253,34 @@ mod tests {
     }
 
     #[test]
-    fn nao_detecta_diff_de_git_como_keyvalue() {
+    fn does_not_detect_a_git_diff_as_keyvalue() {
         let text = load("git-diff-real.txt");
         assert!(detect(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn listing_e_install_log_nao_se_confundem_com_keyvalue_no_sentido_inverso() {
+    fn listing_and_install_log_are_not_confused_with_keyvalue_in_reverse() {
         let text = load("keyvalue-versions-real.json");
         assert!(detect_listing(&lines_of(&text)) < 0.6);
         assert!(detect_install(&lines_of(&text)) < 0.6);
     }
 
     #[test]
-    fn compress_de_json_real_colapsa_array_homogeneo_longo_e_trunca_string_longa_reduzindo_muito_os_bytes() {
+    fn compressing_real_json_collapses_a_long_homogeneous_array_and_truncates_a_long_string_cutting_bytes_a_lot() {
         let text = load("keyvalue-curl-real.json");
         let before = text.len();
         let r = compress(&lines_of(&text));
         let cut = 1.0 - (r.text.len() as f64 / before as f64);
-        assert!(cut > 0.9, "esperava corte > 90%, obteve {:.1}%", cut * 100.0);
+        assert!(cut > 0.9, "expected a cut > 90%, got {:.1}%", cut * 100.0);
         let parsed: Value = serde_json::from_str(&r.text).unwrap();
-        assert!(parsed["(resumo)"].as_str().unwrap().contains("5 itens"));
-        assert_eq!(parsed["(exemplo)"]["tag_name"], "v26.8.1");
-        assert!(parsed["(exemplo)"]["body"].as_str().unwrap().contains("cortado"));
-        assert!(r.note.contains("truncada"));
+        assert!(parsed["(summary)"].as_str().unwrap().contains("5 items"));
+        assert_eq!(parsed["(example)"]["tag_name"], "v26.8.1");
+        assert!(parsed["(example)"]["body"].as_str().unwrap().contains("truncated"));
+        assert!(r.note.contains("truncated"));
     }
 
     #[test]
-    fn compress_de_json_simples_process_versions_preserva_todas_as_chaves_sem_colapso_de_array() {
+    fn compressing_a_simple_process_versions_json_preserves_every_key_with_no_array_collapse() {
         let text = load("keyvalue-versions-real.json");
         let parsed_before: Value = serde_json::from_str(&text).unwrap();
         let r = compress(&lines_of(&text));
@@ -294,42 +294,42 @@ mod tests {
     }
 
     #[test]
-    fn compress_de_env_real_trunca_path_gigante_mas_preserva_todas_as_chaves() {
+    fn compressing_a_real_env_dump_truncates_a_huge_path_but_preserves_every_key() {
         let text = load("keyvalue-env-real.txt");
         let keys_before: Vec<&str> =
             lines_of(&text).into_iter().filter(|l| l.contains('=')).map(|l| l.split('=').next().unwrap()).collect();
         let r = compress(&lines_of(&text));
         for key in keys_before {
-            assert!(r.text.contains(&format!("{}=", key)), "chave {} sumiu", key);
+            assert!(r.text.contains(&format!("{}=", key)), "key {} disappeared", key);
         }
         assert!(r.text.len() < text.len());
     }
 
     #[test]
-    fn seguranca_chave_que_parece_segredo_tem_o_valor_mascarado_em_formato_key_value() {
+    fn security_a_key_that_looks_like_a_secret_has_its_value_masked_in_key_value_format() {
         let synthetic = [
             "DATABASE_URL=postgres://user:pass@host:5432/db",
             "API_KEY=sk_live_abcdefghijklmnopqrstuvwxyz123456",
             "AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.fake.sig",
             "PASSWORD=hunter2superSecret",
-            "SENHA=trocarDepois123",
+            "SECRET_PASSWORD=changeMeLater123",
             "AUTHORIZATION=Bearer abc.def.ghi",
-            "HOME=/Users/igorbrandao",
+            "HOME=/home/dev",
         ]
         .join("\n");
         let r = compress(&lines_of(&synthetic));
         assert!(!r.text.contains("sk_live_abcdefghijklmnopqrstuvwxyz123456"));
         assert!(!r.text.contains("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.fake.sig"));
         assert!(!r.text.contains("hunter2superSecret"));
-        assert!(!r.text.contains("trocarDepois123"));
+        assert!(!r.text.contains("changeMeLater123"));
         assert!(!r.text.contains("Bearer abc.def.ghi"));
-        assert!(r.text.contains("HOME=/Users/igorbrandao"), "chave nao-secreta deve sobreviver intacta");
-        assert!(r.text.contains("API_KEY=***MASCARADO***"));
-        assert!(r.note.contains("mascarado"));
+        assert!(r.text.contains("HOME=/home/dev"), "a non-secret key should survive intact");
+        assert!(r.text.contains("API_KEY=***REDACTED***"));
+        assert!(r.note.contains("masked"));
     }
 
     #[test]
-    fn seguranca_chave_que_parece_segredo_tem_o_valor_mascarado_em_json_aninhado() {
+    fn security_a_key_that_looks_like_a_secret_has_its_value_masked_in_nested_json() {
         let synthetic = serde_json::json!({
             "service": "billing",
             "config": {
@@ -344,46 +344,46 @@ mod tests {
         assert!(!r.text.contains("hunter2"));
         assert!(!r.text.contains("abc123xyz"));
         let parsed: Value = serde_json::from_str(&r.text).unwrap();
-        assert_eq!(parsed["config"]["apiKey"], "***MASCARADO***");
-        assert_eq!(parsed["config"]["nested"]["password"], "***MASCARADO***");
-        assert_eq!(parsed["config"]["nested"]["bearerToken"], "***MASCARADO***");
+        assert_eq!(parsed["config"]["apiKey"], "***REDACTED***");
+        assert_eq!(parsed["config"]["nested"]["password"], "***REDACTED***");
+        assert_eq!(parsed["config"]["nested"]["bearerToken"], "***REDACTED***");
         assert_eq!(parsed["port"], 8080);
         assert_eq!(parsed["service"], "billing");
     }
 
     #[test]
-    fn linha_severa_nao_tem_o_valor_truncado_so_mascarado_quando_aplicavel() {
+    fn a_severe_line_does_not_get_its_value_truncated_only_masked_when_applicable() {
         let big_error = "x".repeat(400);
         let line = format!("LAST_ERROR=failed to connect: {}", big_error);
         let r = compress(&lines_of(&line));
-        assert!(r.text.contains(&big_error), "erro grande nao deveria ser truncado");
+        assert!(r.text.contains(&big_error), "a big error should not be truncated");
     }
 
     #[test]
-    fn compress_retorna_string_valida_para_uma_unica_linha_key_value_simples() {
+    fn compress_returns_a_valid_string_for_a_single_simple_key_value_line() {
         let r = compress(&["FOO=bar"]);
         assert_eq!(r.text, "FOO=bar");
         assert_eq!(r.dropped, 0);
     }
 
     #[test]
-    fn senha_embutida_em_string_de_conexao_nunca_chega_ao_contexto() {
-        let linhas = vec![
-            "DATABASE_URL=postgres://user:s3nh4Sup3rS3cr3t@db:5432/prod",
+    fn a_password_embedded_in_a_connection_string_never_reaches_the_context() {
+        let lines = vec![
+            "DATABASE_URL=postgres://user:s3cr3tSup3rS3cr3t@db:5432/prod",
             "REDIS_URL=redis://:mypassword@cache:6379",
             "MONGO=mongodb://admin:Adm1nPass@mongo:27017/db",
             "AMQP=amqp://guest:guestpw@rabbit:5672",
         ];
-        let out = compress(&linhas).text;
-        for segredo in ["s3nh4Sup3rS3cr3t", "mypassword", "Adm1nPass", "guestpw"] {
-            assert!(!out.contains(segredo), "vazou {}", segredo);
+        let out = compress(&lines).text;
+        for secret in ["s3cr3tSup3rS3cr3t", "mypassword", "Adm1nPass", "guestpw"] {
+            assert!(!out.contains(secret), "leaked {}", secret);
         }
         assert!(out.contains("db:5432/prod"));
         assert!(out.contains("cache:6379"));
     }
 
     #[test]
-    fn chave_que_so_contem_a_palavra_key_por_acaso_nao_e_mascarada() {
+    fn a_key_that_only_happens_to_contain_the_word_key_is_not_masked() {
         let out = compress(&["primaryKey=id", "monkeyName=george", "keyboard_layout=abnt2", "publicKeyPath=/etc/x.pub"]).text;
         assert!(out.contains("primaryKey=id"));
         assert!(out.contains("monkeyName=george"));
@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    fn url_sem_credencial_passa_intacta() {
+    fn a_url_with_no_credential_passes_through_untouched() {
         let out = compress(&["OK=https://example.com/path", "GIT=git@github.com:user/repo.git"]).text;
         assert!(out.contains("https://example.com/path"));
         assert!(out.contains("git@github.com:user/repo.git"));

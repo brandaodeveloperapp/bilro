@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 
 const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 
-static VERSAO: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bv?\d+\.\d+\.\d+\b").unwrap());
+static VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bv?\d+\.\d+\.\d+\b").unwrap());
 static BUILD: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?i)\b(?:versionCode|build(?:Number)?)\s*:?\s*\d+").unwrap());
-static VALOR: Lazy<Regex> = Lazy::new(|| Regex::new(r"R\$\s?[\d.,]+").unwrap());
-static CONTAGEM: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b\d{2,}\s+(?:tenants?|usuarios?|referrals?|comiss[oõ]es|pods?)\b").unwrap()
+static MONEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$\s?[\d.,]+").unwrap());
+static COUNT: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?i)\b\d{2,}\s+(?:tenants?|users?|referrals?|commissions?|pods?)\b").unwrap()
 });
 
 /// One memory file: frontmatter fields plus the body below it.
@@ -136,10 +136,10 @@ fn collect_claims(kind: &'static str, re: &Regex, body: &str, out: &mut Vec<Clai
 /// Claims found in a memory's body: version, build, money, count patterns.
 pub fn claims_in(memory: &Memory) -> Vec<Claim> {
     let mut out = Vec::new();
-    collect_claims("versao", &VERSAO, &memory.body, &mut out);
+    collect_claims("version", &VERSION, &memory.body, &mut out);
     collect_claims("build", &BUILD, &memory.body, &mut out);
-    collect_claims("valor", &VALOR, &memory.body, &mut out);
-    collect_claims("contagem", &CONTAGEM, &memory.body, &mut out);
+    collect_claims("money", &MONEY, &memory.body, &mut out);
+    collect_claims("count", &COUNT, &memory.body, &mut out);
     out
 }
 
@@ -213,11 +213,11 @@ pub fn audit(memories: &[Memory], opts: AuditOptions) -> Vec<AuditRow<'_>> {
         let claims = claims_in(m);
         let age = age_in_days(m, opts.now_ms);
         if m.verify.is_some() {
-            out.push(AuditRow { memory: m, status: "verificavel", claims, age });
+            out.push(AuditRow { memory: m, status: "verifiable", claims, age });
         } else if !claims.is_empty() && age.map(|a| a >= opts.stale_after_days).unwrap_or(false) {
-            out.push(AuditRow { memory: m, status: "suspeita", claims, age });
+            out.push(AuditRow { memory: m, status: "suspect", claims, age });
         } else if !claims.is_empty() {
-            out.push(AuditRow { memory: m, status: "afirma", claims, age });
+            out.push(AuditRow { memory: m, status: "asserts", claims, age });
         }
     }
     out
@@ -244,73 +244,73 @@ mod tests {
     }
 
     fn fm(extra: &str) -> String {
-        format!("---\nname: teste\ntype: project\nmodified: 2026-08-01T00:00:00.000Z\n{extra}---\n")
+        format!("---\nname: test\ntype: project\nmodified: 2026-08-01T00:00:00.000Z\n{extra}---\n")
     }
 
     #[test]
-    fn ignora_o_indice_e_os_backups() {
+    fn ignores_the_index_and_the_backups() {
         let dir = vault(&[
             ("MEMORY.md", "x"),
             ("a.md.bak-1", "y"),
-            ("boa.md", &format!("{}corpo", fm(""))),
+            ("good.md", &format!("{}body", fm(""))),
         ]);
         assert_eq!(load_memories(&dir).len(), 1);
     }
 
     #[test]
-    fn detecta_versao_dinheiro_e_contagem_como_afirmacao() {
+    fn detects_version_money_and_count_as_a_claim() {
         let dir = vault(&[(
             "a.md",
-            &format!("{}subiu 1.1.4 e custou R$750 com 36 referrals", fm("")),
+            &format!("{}shipped 1.1.4 and cost $750 with 36 referrals", fm("")),
         )]);
         let memories = load_memories(&dir);
         let mut kinds: Vec<&str> = claims_in(&memories[0]).iter().map(|c| c.kind).collect();
         kinds.sort_unstable();
-        assert_eq!(kinds, vec!["contagem", "valor", "versao"]);
+        assert_eq!(kinds, vec!["count", "money", "version"]);
     }
 
     #[test]
-    fn texto_sem_fato_que_envelhece_nao_vira_suspeita() {
+    fn text_with_no_aging_fact_does_not_become_suspect() {
         let dir = vault(&[(
             "a.md",
-            &format!("{}sempre rodar o teste antes de subir", fm("")),
+            &format!("{}always run the test before shipping", fm("")),
         )]);
         let memories = load_memories(&dir);
         assert_eq!(audit(&memories, AuditOptions::default()).len(), 0);
     }
 
     #[test]
-    fn memoria_com_verify_e_verificavel_nao_suspeita() {
+    fn memory_with_verify_is_verifiable_not_suspect() {
         let dir = vault(&[(
             "a.md",
-            &format!("{}versao 1.1.8", fm("verify: echo 1.1.8\nexpect: 1.1.8\n")),
+            &format!("{}version 1.1.8", fm("verify: echo 1.1.8\nexpect: 1.1.8\n")),
         )]);
         let memories = load_memories(&dir);
         let opts = AuditOptions { stale_after_days: 21, now_ms: parse_iso("2026-09-06T00:00:00Z").unwrap() };
         let rows = audit(&memories, opts);
-        assert_eq!(rows[0].status, "verificavel");
+        assert_eq!(rows[0].status, "verifiable");
     }
 
     #[test]
-    fn afirmacao_velha_sem_verify_vira_suspeita() {
-        let dir = vault(&[("a.md", &format!("{}a versao e 1.1.4", fm("")))]);
+    fn old_claim_without_verify_becomes_suspect() {
+        let dir = vault(&[("a.md", &format!("{}the version is 1.1.4", fm("")))]);
         let memories = load_memories(&dir);
         let opts = AuditOptions { stale_after_days: 21, now_ms: parse_iso("2026-09-06T00:00:00Z").unwrap() };
         let rows = audit(&memories, opts);
-        assert_eq!(rows[0].status, "suspeita");
+        assert_eq!(rows[0].status, "suspect");
     }
 
     #[test]
-    fn afirmacao_recente_ainda_nao_e_suspeita() {
-        let dir = vault(&[("a.md", &format!("{}a versao e 1.1.4", fm("")))]);
+    fn recent_claim_is_not_suspect_yet() {
+        let dir = vault(&[("a.md", &format!("{}the version is 1.1.4", fm("")))]);
         let memories = load_memories(&dir);
         let opts = AuditOptions { stale_after_days: 21, now_ms: parse_iso("2026-08-03T00:00:00Z").unwrap() };
         let rows = audit(&memories, opts);
-        assert_eq!(rows[0].status, "afirma");
+        assert_eq!(rows[0].status, "asserts");
     }
 
     #[test]
-    fn idade_em_dias_sai_do_frontmatter() {
+    fn age_in_days_comes_from_frontmatter() {
         let dir = vault(&[("a.md", &format!("{}1.0.0", fm("")))]);
         let memories = load_memories(&dir);
         let now = parse_iso("2026-08-11T00:00:00Z").unwrap();

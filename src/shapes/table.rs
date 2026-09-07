@@ -192,7 +192,7 @@ pub fn compress(lines: &[&str]) -> Compressed {
 
     let out_header = {
         let head = surviving_cols.iter().map(|&c| tokens[c].as_str()).collect::<Vec<_>>().join(" ");
-        if constant_note.is_empty() { head } else { format!("{head}   [iguais em todas: {constant_note}]") }
+        if constant_note.is_empty() { head } else { format!("{head}   [same in every row: {constant_note}]") }
     };
 
     let reduce = |chars: &[char]| -> String {
@@ -252,10 +252,10 @@ pub fn compress(lines: &[&str]) -> Compressed {
     }
 
     let note = if dropped_cols.is_empty() {
-        "padding colapsado".to_string()
+        "padding collapsed".to_string()
     } else {
         format!(
-            "colunas sem variacao removidas ({}); padding colapsado",
+            "columns with no variation removed ({}); padding collapsed",
             dropped_cols.iter().map(|&c| format_note_item(c)).collect::<Vec<_>>().join(", ")
         )
     };
@@ -279,65 +279,65 @@ mod tests {
     }
 
     #[test]
-    fn nome_estavel() {
+    fn stable_name() {
         assert_eq!(name(), "table");
     }
 
     #[test]
-    fn detecta_docker_ps_real_como_tabela() {
+    fn detects_a_real_docker_ps_as_a_table() {
         let raw = fixture("docker-ps.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_docker_ps_com_container_up_e_exited_misturados() {
+    fn detects_docker_ps_with_up_and_exited_containers_mixed() {
         let raw = fixture("docker-ps-mixed.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn detecta_docker_images_real_ignorando_linha_de_warning_antes_do_header() {
+    fn detects_real_docker_images_ignoring_a_warning_line_before_the_header() {
         let raw = fixture("docker-images.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) >= MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_diff_unificado_como_tabela() {
+    fn does_not_detect_a_unified_diff_as_a_table() {
         let raw = fixture("git-diff-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_git_status_como_tabela() {
+    fn does_not_detect_git_status_as_a_table() {
         let raw = fixture("git-status-real.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn nao_detecta_git_log_oneline_como_tabela() {
+    fn does_not_detect_git_log_oneline_as_a_table() {
         let raw = fixture("git-log.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         assert!(detect(&lines) < MIN_CONFIDENCE);
     }
 
     #[test]
-    fn texto_sem_header_nao_e_tabela() {
-        assert_eq!(detect(&["algum texto qualquer", "outra linha solta"]), 0.0);
+    fn text_with_no_header_is_not_a_table() {
+        assert_eq!(detect(&["some random text", "another loose line"]), 0.0);
     }
 
     #[test]
-    fn comprime_docker_images_real_remove_coluna_extra_constante_e_colapsa_padding() {
+    fn compressing_real_docker_images_removes_the_constant_extra_column_and_collapses_padding() {
         let raw = fixture("docker-images.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
         assert!(r.text.len() < raw.len());
         let reduction = 1.0 - (r.text.len() as f64 / raw.len() as f64);
-        assert!(reduction > 0.3, "esperava corte real > 30%, obteve {:.1}%", reduction * 100.0);
+        assert!(reduction > 0.3, "expected a real cut > 30%, got {:.1}%", reduction * 100.0);
         assert!(r.note.contains("EXTRA=U"));
         let extra_word = Regex::new(r"\bEXTRA\b").unwrap();
         assert_eq!(extra_word.find_iter(&r.text).count(), 1);
@@ -347,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn comprime_docker_ps_misturado_linha_up_encolhe_linhas_exited_sobrevivem_inteiras() {
+    fn compressing_mixed_docker_ps_shrinks_the_up_line_exited_lines_survive_whole() {
         let raw = fixture("docker-ps-mixed.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
@@ -355,17 +355,17 @@ mod tests {
 
         let exited_lines: Vec<&str> = lines.iter().copied().filter(|l| l.contains("Exited")).collect();
         for original in exited_lines {
-            assert!(r.text.contains(original), "linha unhealthy foi alterada: {original}");
+            assert!(r.text.contains(original), "unhealthy line was altered: {original}");
         }
 
         let up_line_out = r.text.split('\n').find(|l| l.contains("bilro-fixture-tmp"));
-        assert!(up_line_out.is_some(), "linha do container saudavel sumiu");
+        assert!(up_line_out.is_some(), "healthy container line disappeared");
         let up_line_in = lines.iter().find(|l| l.contains("bilro-fixture-tmp")).unwrap();
-        assert!(up_line_out.unwrap().len() < up_line_in.len(), "linha saudavel deveria ter encolhido");
+        assert!(up_line_out.unwrap().len() < up_line_in.len(), "healthy line should have shrunk");
     }
 
     #[test]
-    fn linha_is_severe_sobrevive_mesmo_sem_coluna_de_status_reconhecida() {
+    fn an_is_severe_line_survives_even_with_no_recognized_status_column() {
         let lines = ["NAME  VALUE", "a     ok", "b     connection refused", "c     ok"];
         let r = compress(&lines);
         assert!(r.text.contains("connection refused"));
@@ -373,15 +373,15 @@ mod tests {
     }
 
     #[test]
-    fn linha_com_status_nao_saudavel_sobrevive_inteira_mesmo_sem_is_severe() {
+    fn a_line_with_unhealthy_status_survives_whole_even_without_is_severe() {
         let lines = ["NAME  STATUS", "pod-a Running", "pod-b CrashLoopBackOff", "pod-c Running"];
         let r = compress(&lines);
         assert!(r.text.split('\n').any(|l| l == "pod-b CrashLoopBackOff"));
     }
 
     #[test]
-    fn sem_header_reconhecivel_compress_devolve_entrada_intacta() {
-        let lines = ["so texto", "mais texto", "linha final"];
+    fn with_no_recognizable_header_compress_returns_input_untouched() {
+        let lines = ["just text", "more text", "final line"];
         let r = compress(&lines);
         assert_eq!(r.text, lines.join("\n"));
         assert_eq!(r.dropped, 0);
@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn ordem_das_linhas_sobreviventes_nunca_e_alterada() {
+    fn order_of_surviving_lines_is_never_changed() {
         let raw = fixture("docker-ps-mixed.txt");
         let lines: Vec<&str> = raw.split('\n').collect();
         let r = compress(&lines);
