@@ -7,6 +7,7 @@ mod learn;
 mod memory;
 mod propose;
 mod read;
+mod redact;
 mod ready;
 mod sandbox;
 mod shapes;
@@ -79,7 +80,15 @@ fn hook_shadow() {
     if command.is_empty() || output.trim().is_empty() {
         return;
     }
-    let clipped = if output.len() > MAX_OBSERVED { &output[..MAX_OBSERVED] } else { output };
+    let safe = redact::redact(output);
+    let clipped: &str = if safe.len() > MAX_OBSERVED {
+        match safe.char_indices().nth(MAX_OBSERVED) {
+            Some((i, _)) => &safe[..i],
+            None => &safe,
+        }
+    } else {
+        &safe
+    };
     if let Ok(mut db) = learn::open(&learn_db()) {
         let _ = learn::observe(&mut db, command, clipped);
     }
@@ -97,8 +106,9 @@ fn run_filtered(argv: &[String]) -> i32 {
         return 127;
     };
     let status = out.status.code().unwrap_or(1);
-    let mut raw = String::from_utf8_lossy(&out.stdout).to_string();
-    raw.push_str(&String::from_utf8_lossy(&out.stderr));
+    let mut captured = String::from_utf8_lossy(&out.stdout).to_string();
+    captured.push_str(&String::from_utf8_lossy(&out.stderr));
+    let raw = redact::redact(&captured);
 
     let before = raw.len();
     let (text, note) = squeeze(&command, &raw);
@@ -254,7 +264,7 @@ fn cmd_read(argv: &[String]) {
     };
     match read::read(Path::new(file), if outline { "outline" } else { "safe" }) {
         Ok(r) => {
-            println!("{}", r.text);
+            println!("{}", redact::redact(&r.text));
             if r.lossy {
                 eprintln!(
                     "\n  \x1b[33mesboco: corpo de funcao elidido, faixa de linha marcada. Nao use para editar.\x1b[0m \x1b[2m{}% menor\x1b[0m",
@@ -276,7 +286,7 @@ fn cmd_grep(argv: &[String]) {
     if raw.trim().is_empty() {
         return eprintln!("  \x1b[2msem resultado\x1b[0m");
     }
-    let r = grep::compress(&raw);
+    let r = grep::compress(&redact::redact(&raw));
     println!("{}", r.text);
     eprintln!("\n  \x1b[2m{} ocorrencias em {} arquivos\x1b[0m", r.hits, r.files);
 }
