@@ -353,7 +353,10 @@ fn call_tool(name: &str, args: &Value) -> Value {
             }
             let cwd = arg_str(args, "cwd");
             let full = if cwd.is_empty() { command.clone() } else { format!("cd {} && {command}", shell_quote(&cwd)) };
-            match crate::compress::pipeline::filtered(&full) {
+            match crate::compress::pipeline::filtered_within(
+                &full,
+                Some(crate::compress::pipeline::MCP_TIMEOUT_MS),
+            ) {
                 Ok((text, note, saved, code)) => {
                     let mut out = text;
                     if saved > 0 {

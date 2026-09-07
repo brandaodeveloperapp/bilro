@@ -72,12 +72,22 @@ pub fn suppressed_notice(raw: &str, text: &str) -> Option<String> {
 /// read a failed command's silence as success. A command that runs out of time
 /// still hands back everything it printed first: throwing that away to report
 /// only the timeout is the silent loss this whole tool exists to prevent.
-const FILTER_TIMEOUT_MS: u64 = 120_000;
+/// The deadline the MCP tool asks for. The command line does NOT get one: the
+/// Bash hook rewrites `npm ci`, `cargo build` and `pytest` into `bilro filter`,
+/// and a build that legitimately runs for four minutes must not be killed at
+/// two — least of all with SIGKILL on the whole process group, which leaves a
+/// half-written `node_modules` behind and reports exit 124 as the reason.
+pub const MCP_TIMEOUT_MS: u64 = 120_000;
 
 pub fn filtered(command: &str) -> Result<(String, String, usize, i32), String> {
+    filtered_within(command, None)
+}
+
+pub fn filtered_within(command: &str, timeout_ms: Option<u64>) -> Result<(String, String, usize, i32), String> {
     let mut sh = Command::new("sh");
     sh.arg("-c").arg(command);
-    let out = crate::proc::spawn_with_timeout(sh, FILTER_TIMEOUT_MS).map_err(|e| e.to_string())?;
+    let deadline = timeout_ms.unwrap_or(u64::MAX);
+    let out = crate::proc::spawn_with_timeout(sh, deadline).map_err(|e| e.to_string())?;
     let code = if out.timed_out { 124 } else { out.status.and_then(|s| s.code()).unwrap_or(1) };
     let mut captured = String::from_utf8_lossy(&out.stdout).to_string();
     if !captured.is_empty() && !captured.ends_with('\n') {
@@ -98,7 +108,7 @@ pub fn filtered(command: &str) -> Result<(String, String, usize, i32), String> {
     if out.timed_out {
         text.push_str(&format!(
             "\n[bilro: no answer after {}s, everything printed up to that point is above]",
-            FILTER_TIMEOUT_MS / 1000
+            deadline / 1000
         ));
     }
     Ok((text, note, saved, code))

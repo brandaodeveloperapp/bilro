@@ -24,6 +24,10 @@ pub struct SpawnOutcome {
 /// forever is what turned an instant command into a twenty-five second one.
 const PIPE_GRACE_MS: u64 = 300;
 
+/// A process that escaped the group can write forever. Reading it into memory
+/// without a ceiling took a 1.6 second command to a 2.8 GB buffer.
+const MAX_CAPTURED_BYTES: usize = 64 * 1024 * 1024;
+
 /// Killing the shell is not enough. `sh -c "sleep 30 &"` leaves a grandchild
 /// holding the same stdout pipe, and reading that pipe to the end then waits
 /// for the grandchild, not the child — which is how a deadline of one second
@@ -84,19 +88,25 @@ pub fn spawn_with_timeout(
         }
     };
 
-    let mut abandoned = false;
-    if !finished(&stdout_handle, &stderr_handle, PIPE_GRACE_MS) {
-        end_the_whole_group(pid);
-        abandoned = !finished(&stdout_handle, &stderr_handle, PIPE_GRACE_MS);
-    }
-    let mut stdout_buf = out_buf.lock().map(|b| b.clone()).unwrap_or_default();
-    let stderr_buf = err_buf.lock().map(|b| b.clone()).unwrap_or_default();
-    if abandoned {
+    let still_writing = !finished(&stdout_handle, &stderr_handle, PIPE_GRACE_MS);
+    let mut stdout_buf = take_buffer(&out_buf);
+    let stderr_buf = take_buffer(&err_buf);
+    if still_writing {
         stdout_buf.extend_from_slice(
-            b"\n[bilro: the command finished but something it started still held the output; read stopped here]\n",
+            b"\n[bilro: the command finished but something it started is still writing;               output stops here and that process was left alone]\n",
         );
     }
     Ok(SpawnOutcome { status, stdout: stdout_buf, stderr: stderr_buf, timed_out })
+}
+
+/// The buffer as it stands, without copying it and without losing it to a
+/// poisoned lock: a reader thread that panicked still read something, and
+/// answering `Vec::new()` there would drop a command's whole output silently.
+fn take_buffer(sink: &Arc<Mutex<Vec<u8>>>) -> Vec<u8> {
+    match sink.lock() {
+        Ok(mut b) => std::mem::take(&mut b),
+        Err(poisoned) => std::mem::take(&mut poisoned.into_inner()),
+    }
 }
 
 /// Whether both readers are done, waiting at most `grace_ms` for them.
@@ -115,12 +125,24 @@ fn finished(a: &thread::JoinHandle<()>, b: &thread::JoinHandle<()>, grace_ms: u6
 /// managed to print is readable even when the reader has to be abandoned.
 fn drain_into<R: Read>(pipe: &mut R, sink: &Arc<Mutex<Vec<u8>>>) {
     let mut chunk = [0u8; 8192];
+    let mut kept = 0usize;
     loop {
         match pipe.read(&mut chunk) {
             Ok(0) | Err(_) => break,
             Ok(n) => {
+                if kept >= MAX_CAPTURED_BYTES {
+                    continue;
+                }
                 if let Ok(mut b) = sink.lock() {
-                    b.extend_from_slice(&chunk[..n]);
+                    let room = MAX_CAPTURED_BYTES - kept;
+                    let take = n.min(room);
+                    b.extend_from_slice(&chunk[..take]);
+                    kept += take;
+                    if kept >= MAX_CAPTURED_BYTES {
+                        b.extend_from_slice(
+                            b"\n[bilro: output passed the capture ceiling; the rest was not read]\n",
+                        );
+                    }
                 }
             }
         }
