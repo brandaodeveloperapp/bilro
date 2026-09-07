@@ -1,70 +1,70 @@
-/Users/igorbrandao/tools/bilro/bin:
+/home/dev/bilro/bin:
 total 40
-drwxr-xr-x@  3 igorbrandao  staff     96  6 set 18:16 .
-drwxr-xr-x@ 12 igorbrandao  staff    384  6 set 18:18 ..
--rwxr-xr-x@  1 igorbrandao  staff  18011  6 set 18:58 bilro
+drwxr-xr-x@  3 dev  staff     96  6 set 18:16 .
+drwxr-xr-x@ 12 dev  staff    384  6 set 18:18 ..
+-rwxr-xr-x@  1 dev  staff  18011  6 set 18:58 bilro
 
-/Users/igorbrandao/tools/bilro/hooks:
+/home/dev/bilro/hooks:
 total 16
-drwxr-xr-x@  4 igorbrandao  staff   128  6 set 18:59 .
-drwxr-xr-x@ 12 igorbrandao  staff   384  6 set 18:18 ..
--rwxr-xr-x@  1 igorbrandao  staff  2986  6 set 18:30 preflight.js
--rwxr-xr-x@  1 igorbrandao  staff   772  6 set 18:59 shadow.js
+drwxr-xr-x@  4 dev  staff   128  6 set 18:59 .
+drwxr-xr-x@ 12 dev  staff   384  6 set 18:18 ..
+-rwxr-xr-x@  1 dev  staff  2986  6 set 18:30 preflight.js
+-rwxr-xr-x@  1 dev  staff   772  6 set 18:59 shadow.js
 
-/Users/igorbrandao/tools/bilro/lib:
+/home/dev/bilro/lib:
 total 96
-drwxr-xr-x@ 14 igorbrandao  staff   448  6 set 19:01 .
-drwxr-xr-x@ 12 igorbrandao  staff   384  6 set 18:18 ..
--rw-r--r--@  1 igorbrandao  staff  1169  6 set 18:50 exec.js
--rw-r--r--@  1 igorbrandao  staff  2561  6 set 18:29 filters.js
--rw-r--r--@  1 igorbrandao  staff  1403  6 set 18:47 graph.js
--rw-r--r--@  1 igorbrandao  staff  7378  6 set 18:53 learn.js
--rw-r--r--@  1 igorbrandao  staff  2183  6 set 18:54 ledger.js
--rw-r--r--@  1 igorbrandao  staff  2453  6 set 18:21 memory.js
--rw-r--r--@  1 igorbrandao  staff  2299  6 set 18:41 propose.js
--rw-r--r--@  1 igorbrandao  staff  2926  6 set 18:57 ready.js
--rw-r--r--@  1 igorbrandao  staff  2789  6 set 18:54 sandbox.js
-drwxr-xr-x@  3 igorbrandao  staff    96  6 set 19:01 shapes
--rw-r--r--@  1 igorbrandao  staff  1812  6 set 18:25 style.js
--rw-r--r--@  1 igorbrandao  staff  3349  6 set 18:16 weigh.js
+drwxr-xr-x@ 14 dev  staff   448  6 set 19:01 .
+drwxr-xr-x@ 12 dev  staff   384  6 set 18:18 ..
+-rw-r--r--@  1 dev  staff  1169  6 set 18:50 exec.js
+-rw-r--r--@  1 dev  staff  2561  6 set 18:29 filters.js
+-rw-r--r--@  1 dev  staff  1403  6 set 18:47 graph.js
+-rw-r--r--@  1 dev  staff  7378  6 set 18:53 learn.js
+-rw-r--r--@  1 dev  staff  2183  6 set 18:54 ledger.js
+-rw-r--r--@  1 dev  staff  2453  6 set 18:21 memory.js
+-rw-r--r--@  1 dev  staff  2299  6 set 18:41 propose.js
+-rw-r--r--@  1 dev  staff  2926  6 set 18:57 ready.js
+-rw-r--r--@  1 dev  staff  2789  6 set 18:54 sandbox.js
+drwxr-xr-x@  3 dev  staff    96  6 set 19:01 shapes
+-rw-r--r--@  1 dev  staff  1812  6 set 18:25 style.js
+-rw-r--r--@  1 dev  staff  3349  6 set 18:16 weigh.js
 
-/Users/igorbrandao/tools/bilro/lib/shapes:
+/home/dev/bilro/lib/shapes:
 total 8
-drwxr-xr-x@  3 igorbrandao  staff    96  6 set 19:01 .
-drwxr-xr-x@ 14 igorbrandao  staff   448  6 set 19:01 ..
--rw-r--r--@  1 igorbrandao  staff  1231  6 set 19:01 contract.js
+drwxr-xr-x@  3 dev  staff    96  6 set 19:01 .
+drwxr-xr-x@ 14 dev  staff   448  6 set 19:01 ..
+-rw-r--r--@  1 dev  staff  1231  6 set 19:01 contract.js
 
-/Users/igorbrandao/tools/bilro/tests:
+/home/dev/bilro/tests:
 total 104
-drwxr-xr-x@ 15 igorbrandao  staff   480  6 set 19:03 .
-drwxr-xr-x@ 12 igorbrandao  staff   384  6 set 18:18 ..
--rw-r--r--@  1 igorbrandao  staff   961  6 set 18:54 exec.test.js
--rw-r--r--@  1 igorbrandao  staff  1161  6 set 18:30 filters.test.js
-drwxr-xr-x@ 14 igorbrandao  staff   448  6 set 19:03 fixtures
--rw-r--r--@  1 igorbrandao  staff  1648  6 set 18:48 graph.test.js
--rw-r--r--@  1 igorbrandao  staff  5293  6 set 18:54 learn.test.js
--rw-r--r--@  1 igorbrandao  staff   999  6 set 18:30 ledger.test.js
--rw-r--r--@  1 igorbrandao  staff  2226  6 set 18:22 memory.test.js
--rw-r--r--@  1 igorbrandao  staff  2235  6 set 18:24 preflight.test.js
--rw-r--r--@  1 igorbrandao  staff  1625  6 set 18:42 propose.test.js
--rw-r--r--@  1 igorbrandao  staff  1133  6 set 18:58 ready.test.js
--rw-r--r--@  1 igorbrandao  staff  1733  6 set 18:27 sandbox.test.js
--rw-r--r--@  1 igorbrandao  staff  1155  6 set 18:59 shadow.test.js
--rw-r--r--@  1 igorbrandao  staff   839  6 set 18:25 style.test.js
+drwxr-xr-x@ 15 dev  staff   480  6 set 19:03 .
+drwxr-xr-x@ 12 dev  staff   384  6 set 18:18 ..
+-rw-r--r--@  1 dev  staff   961  6 set 18:54 exec.test.js
+-rw-r--r--@  1 dev  staff  1161  6 set 18:30 filters.test.js
+drwxr-xr-x@ 14 dev  staff   448  6 set 19:03 fixtures
+-rw-r--r--@  1 dev  staff  1648  6 set 18:48 graph.test.js
+-rw-r--r--@  1 dev  staff  5293  6 set 18:54 learn.test.js
+-rw-r--r--@  1 dev  staff   999  6 set 18:30 ledger.test.js
+-rw-r--r--@  1 dev  staff  2226  6 set 18:22 memory.test.js
+-rw-r--r--@  1 dev  staff  2235  6 set 18:24 preflight.test.js
+-rw-r--r--@  1 dev  staff  1625  6 set 18:42 propose.test.js
+-rw-r--r--@  1 dev  staff  1133  6 set 18:58 ready.test.js
+-rw-r--r--@  1 dev  staff  1733  6 set 18:27 sandbox.test.js
+-rw-r--r--@  1 dev  staff  1155  6 set 18:59 shadow.test.js
+-rw-r--r--@  1 dev  staff   839  6 set 18:25 style.test.js
 
-/Users/igorbrandao/tools/bilro/tests/fixtures:
+/home/dev/bilro/tests/fixtures:
 total 1280
-drwxr-xr-x@ 14 igorbrandao  staff     448  6 set 19:03 .
-drwxr-xr-x@ 15 igorbrandao  staff     480  6 set 19:03 ..
--rw-r--r--@  1 igorbrandao  staff    1930  6 set 19:03 docker-images.txt
--rw-r--r--@  1 igorbrandao  staff    3208  6 set 19:03 docker-ps-mixed.txt
--rw-r--r--@  1 igorbrandao  staff    3068  6 set 19:03 docker-ps.txt
--rw-r--r--@  1 igorbrandao  staff   40418  6 set 19:03 git-diff-real.txt
--rw-r--r--@  1 igorbrandao  staff     865  6 set 19:03 git-log.txt
--rw-r--r--@  1 igorbrandao  staff    2067  6 set 19:03 git-show-stat.txt
--rw-r--r--@  1 igorbrandao  staff    1273  6 set 19:03 git-status-real.txt
--rw-r--r--@  1 igorbrandao  staff     252  6 set 19:03 git-status.txt
--rw-r--r--@  1 igorbrandao  staff   14041  6 set 19:03 listing-find.txt
--rw-r--r--@  1 igorbrandao  staff    5002  6 set 19:03 listing-grep.txt
--rw-r--r--@  1 igorbrandao  staff       0  6 set 19:04 listing-lsR.txt
--rw-r--r--@  1 igorbrandao  staff  547323  6 set 19:03 pytest-real.txt
+drwxr-xr-x@ 14 dev  staff     448  6 set 19:03 .
+drwxr-xr-x@ 15 dev  staff     480  6 set 19:03 ..
+-rw-r--r--@  1 dev  staff    1930  6 set 19:03 docker-images.txt
+-rw-r--r--@  1 dev  staff    3208  6 set 19:03 docker-ps-mixed.txt
+-rw-r--r--@  1 dev  staff    3068  6 set 19:03 docker-ps.txt
+-rw-r--r--@  1 dev  staff   40418  6 set 19:03 git-diff-real.txt
+-rw-r--r--@  1 dev  staff     865  6 set 19:03 git-log.txt
+-rw-r--r--@  1 dev  staff    2067  6 set 19:03 git-show-stat.txt
+-rw-r--r--@  1 dev  staff    1273  6 set 19:03 git-status-real.txt
+-rw-r--r--@  1 dev  staff     252  6 set 19:03 git-status.txt
+-rw-r--r--@  1 dev  staff   14041  6 set 19:03 listing-find.txt
+-rw-r--r--@  1 dev  staff    5002  6 set 19:03 listing-grep.txt
+-rw-r--r--@  1 dev  staff       0  6 set 19:04 listing-lsR.txt
+-rw-r--r--@  1 dev  staff  547323  6 set 19:03 pytest-real.txt

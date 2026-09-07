@@ -1,54 +1,54 @@
-/Users/igorbrandao/tools/bilro/lib/graph.js:5:export function linksOf(memory) {
-/Users/igorbrandao/tools/bilro/lib/graph.js:12:export function build(dir) {
-/Users/igorbrandao/tools/bilro/lib/graph.js:28:export function lint(dir) {
-/Users/igorbrandao/tools/bilro/lib/exec.js:6:export function toArgv(line) {
-/Users/igorbrandao/tools/bilro/lib/exec.js:14:export function isSafe(line) {
-/Users/igorbrandao/tools/bilro/lib/exec.js:22:export function runDeclared(line, { timeout = 30000, cwd } = {}) {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:7:export function tokensOf(text) {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:30:export function weighAlwaysOn(root = join(homedir(), ".claude")) {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:40:export function weighMemory(root = join(homedir(), ".claude", "projects")) {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:74:export function weighAgents(dirs) {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:96:export function weighMcp() {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:107:export function weighPlugins(root = join(homedir(), ".claude", "plugins")) {
-/Users/igorbrandao/tools/bilro/lib/weigh.js:116:export function diskUsage(path) {
-/Users/igorbrandao/tools/bilro/lib/propose.js:10:export function proposals(db = open(), { minRuns = 5, minFailureRuns = 2 } = {}) {
-/Users/igorbrandao/tools/bilro/lib/propose.js:50:export function draft(proposal) {
-/Users/igorbrandao/tools/bilro/lib/style.js:9:export function readLevel() {
-/Users/igorbrandao/tools/bilro/lib/style.js:18:export function writeLevel(level) {
-/Users/igorbrandao/tools/bilro/lib/style.js:35:export function ruleset(level = readLevel()) {
-/Users/igorbrandao/tools/bilro/lib/memory.js:14:export function parseMemory(path) {
-/Users/igorbrandao/tools/bilro/lib/memory.js:33:export function loadMemories(dir) {
-/Users/igorbrandao/tools/bilro/lib/memory.js:43:export function claimsIn(memory) {
-/Users/igorbrandao/tools/bilro/lib/memory.js:52:export function ageInDays(memory, now = Date.now()) {
-/Users/igorbrandao/tools/bilro/lib/memory.js:62:export function audit(memories, { staleAfterDays = 21, now = Date.now() } = {}) {
-/Users/igorbrandao/tools/bilro/lib/sandbox.js:22:export function chunk(text, maxLines = 60) {
-/Users/igorbrandao/tools/bilro/lib/sandbox.js:35:export function index(db, { label, body, source }) {
-/Users/igorbrandao/tools/bilro/lib/sandbox.js:43:export function toMatchQuery(query) {
-/Users/igorbrandao/tools/bilro/lib/sandbox.js:52:export function search(db, query, limit = 5) {
-/Users/igorbrandao/tools/bilro/lib/sandbox.js:67:export function run({ command, label, queries = [], cwd = process.cwd() }) {
-/Users/igorbrandao/tools/bilro/lib/ledger.js:12:export function read(sessionId) {
-/Users/igorbrandao/tools/bilro/lib/ledger.js:21:export function write(sessionId, state) {
-/Users/igorbrandao/tools/bilro/lib/ledger.js:30:export function record(sessionId, kind, entry) {
-/Users/igorbrandao/tools/bilro/lib/ledger.js:37:export function sessions() {
-/Users/igorbrandao/tools/bilro/lib/ledger.js:49:export function summarize(sessionId) {
-/Users/igorbrandao/tools/bilro/lib/ledger.js:65:export function prune(olderThanDays = 14) {
-/Users/igorbrandao/tools/bilro/lib/ready.js:11:export function audits() {
-/Users/igorbrandao/tools/bilro/lib/ready.js:19:export function recordAudit(entry) {
-/Users/igorbrandao/tools/bilro/lib/ready.js:33:export function evaluate(db = open()) {
-/Users/igorbrandao/tools/bilro/lib/ready.js:69:export function verdicts(m) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:18:export function isSevere(line) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:23:export function signature(command) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:41:export function lineHash(line) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:50:export function exactHash(line) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:54:export function open(file = join(HOME, "learn.db")) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:67:export function runCount(db, sig) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:78:export function observe(db, command, output) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:119:export function denoise(db, command, output, { minRuns = 3, ceiling = 0.8 } = {}) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:156:export function similarity(previous, current) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:169:export function rankByInformation(db, command, output, keep = 80) {
-/Users/igorbrandao/tools/bilro/lib/learn.js:197:export function novelty(previous, current) {
-/Users/igorbrandao/tools/bilro/lib/filters.js:61:export function collapseRepeats(lines) {
-/Users/igorbrandao/tools/bilro/lib/filters.js:81:export function ruleFor(command) {
-/Users/igorbrandao/tools/bilro/lib/filters.js:85:export function filter(command, output, { keepTail = 40 } = {}) {
-/Users/igorbrandao/tools/bilro/lib/shapes/contract.js:18:export function pick(shapes, lines) {
-/Users/igorbrandao/tools/bilro/lib/shapes/contract.js:27:export function apply(shapes, text) {
+/home/dev/bilro/lib/graph.js:5:export function linksOf(memory) {
+/home/dev/bilro/lib/graph.js:12:export function build(dir) {
+/home/dev/bilro/lib/graph.js:28:export function lint(dir) {
+/home/dev/bilro/lib/exec.js:6:export function toArgv(line) {
+/home/dev/bilro/lib/exec.js:14:export function isSafe(line) {
+/home/dev/bilro/lib/exec.js:22:export function runDeclared(line, { timeout = 30000, cwd } = {}) {
+/home/dev/bilro/lib/weigh.js:7:export function tokensOf(text) {
+/home/dev/bilro/lib/weigh.js:30:export function weighAlwaysOn(root = join(homedir(), ".claude")) {
+/home/dev/bilro/lib/weigh.js:40:export function weighMemory(root = join(homedir(), ".claude", "projects")) {
+/home/dev/bilro/lib/weigh.js:74:export function weighAgents(dirs) {
+/home/dev/bilro/lib/weigh.js:96:export function weighMcp() {
+/home/dev/bilro/lib/weigh.js:107:export function weighPlugins(root = join(homedir(), ".claude", "plugins")) {
+/home/dev/bilro/lib/weigh.js:116:export function diskUsage(path) {
+/home/dev/bilro/lib/propose.js:10:export function proposals(db = open(), { minRuns = 5, minFailureRuns = 2 } = {}) {
+/home/dev/bilro/lib/propose.js:50:export function draft(proposal) {
+/home/dev/bilro/lib/style.js:9:export function readLevel() {
+/home/dev/bilro/lib/style.js:18:export function writeLevel(level) {
+/home/dev/bilro/lib/style.js:35:export function ruleset(level = readLevel()) {
+/home/dev/bilro/lib/memory.js:14:export function parseMemory(path) {
+/home/dev/bilro/lib/memory.js:33:export function loadMemories(dir) {
+/home/dev/bilro/lib/memory.js:43:export function claimsIn(memory) {
+/home/dev/bilro/lib/memory.js:52:export function ageInDays(memory, now = Date.now()) {
+/home/dev/bilro/lib/memory.js:62:export function audit(memories, { staleAfterDays = 21, now = Date.now() } = {}) {
+/home/dev/bilro/lib/sandbox.js:22:export function chunk(text, maxLines = 60) {
+/home/dev/bilro/lib/sandbox.js:35:export function index(db, { label, body, source }) {
+/home/dev/bilro/lib/sandbox.js:43:export function toMatchQuery(query) {
+/home/dev/bilro/lib/sandbox.js:52:export function search(db, query, limit = 5) {
+/home/dev/bilro/lib/sandbox.js:67:export function run({ command, label, queries = [], cwd = process.cwd() }) {
+/home/dev/bilro/lib/ledger.js:12:export function read(sessionId) {
+/home/dev/bilro/lib/ledger.js:21:export function write(sessionId, state) {
+/home/dev/bilro/lib/ledger.js:30:export function record(sessionId, kind, entry) {
+/home/dev/bilro/lib/ledger.js:37:export function sessions() {
+/home/dev/bilro/lib/ledger.js:49:export function summarize(sessionId) {
+/home/dev/bilro/lib/ledger.js:65:export function prune(olderThanDays = 14) {
+/home/dev/bilro/lib/ready.js:11:export function audits() {
+/home/dev/bilro/lib/ready.js:19:export function recordAudit(entry) {
+/home/dev/bilro/lib/ready.js:33:export function evaluate(db = open()) {
+/home/dev/bilro/lib/ready.js:69:export function verdicts(m) {
+/home/dev/bilro/lib/learn.js:18:export function isSevere(line) {
+/home/dev/bilro/lib/learn.js:23:export function signature(command) {
+/home/dev/bilro/lib/learn.js:41:export function lineHash(line) {
+/home/dev/bilro/lib/learn.js:50:export function exactHash(line) {
+/home/dev/bilro/lib/learn.js:54:export function open(file = join(HOME, "learn.db")) {
+/home/dev/bilro/lib/learn.js:67:export function runCount(db, sig) {
+/home/dev/bilro/lib/learn.js:78:export function observe(db, command, output) {
+/home/dev/bilro/lib/learn.js:119:export function denoise(db, command, output, { minRuns = 3, ceiling = 0.8 } = {}) {
+/home/dev/bilro/lib/learn.js:156:export function similarity(previous, current) {
+/home/dev/bilro/lib/learn.js:169:export function rankByInformation(db, command, output, keep = 80) {
+/home/dev/bilro/lib/learn.js:197:export function novelty(previous, current) {
+/home/dev/bilro/lib/filters.js:61:export function collapseRepeats(lines) {
+/home/dev/bilro/lib/filters.js:81:export function ruleFor(command) {
+/home/dev/bilro/lib/filters.js:85:export function filter(command, output, { keepTail = 40 } = {}) {
+/home/dev/bilro/lib/shapes/contract.js:18:export function pick(shapes, lines) {
+/home/dev/bilro/lib/shapes/contract.js:27:export function apply(shapes, text) {

@@ -71,7 +71,7 @@ pub fn record(
 /// The kinds worth filing. The first four are observed by hooks; the last three
 /// are judgements, which no hook can infer from a tool call — they are recorded
 /// deliberately, at the moment they are made.
-pub const KINDS: &[&str] = &["pedido", "falha", "erro-tool", "agente", "decisao", "descartado", "restricao"];
+pub const KINDS: &[&str] = &["request", "failure", "tool-error", "agent", "decision", "rejected", "constraint"];
 
 pub fn is_known_kind(kind: &str) -> bool {
     KINDS.contains(&kind)
@@ -162,83 +162,83 @@ mod tests {
     }
 
     #[test]
-    fn guarda_e_encontra_pelo_termo() {
+    fn stores_and_finds_by_term() {
         let d = db();
-        record(&d, "prompt", "corrigir o spinner preso", "usuario pediu", "s1", "proj").unwrap();
-        record(&d, "erro", "connection refused no redis", "porta 6379", "s1", "proj").unwrap();
+        record(&d, "prompt", "fix the stuck spinner", "user asked", "s1", "proj").unwrap();
+        record(&d, "error", "connection refused to redis", "port 6379", "s1", "proj").unwrap();
         let hits = search(&d, "spinner", Some("proj"), 5).unwrap();
         assert_eq!(hits.len(), 1);
         assert!(hits[0].subject.contains("spinner"));
     }
 
     #[test]
-    fn recall_e_por_projeto_nao_do_mundo_inteiro() {
+    fn recall_is_scoped_to_project_not_the_whole_world() {
         let d = db();
-        record(&d, "prompt", "assunto compartilhado aqui", "x", "s1", "projeto-a").unwrap();
-        record(&d, "prompt", "assunto compartilhado ali", "y", "s2", "projeto-b").unwrap();
-        assert_eq!(search(&d, "compartilhado", Some("projeto-a"), 9).unwrap().len(), 1);
-        assert_eq!(search(&d, "compartilhado", None, 9).unwrap().len(), 2);
+        record(&d, "prompt", "shared subject here", "x", "s1", "project-a").unwrap();
+        record(&d, "prompt", "shared subject there", "y", "s2", "project-b").unwrap();
+        assert_eq!(search(&d, "shared", Some("project-a"), 9).unwrap().len(), 1);
+        assert_eq!(search(&d, "shared", None, 9).unwrap().len(), 2);
     }
 
     #[test]
-    fn linha_do_tempo_vem_do_mais_novo_para_o_mais_velho() {
+    fn timeline_goes_from_newest_to_oldest() {
         let d = db();
         for i in 0..5 {
-            record(&d, "prompt", &format!("evento {i}"), "", "s1", "proj").unwrap();
+            record(&d, "prompt", &format!("event {i}"), "", "s1", "proj").unwrap();
             std::thread::sleep(std::time::Duration::from_millis(2));
         }
         let t = timeline(&d, Some("proj"), 3).unwrap();
         assert_eq!(t.len(), 3);
-        assert!(t[0].subject.contains("evento 4"), "veio: {}", t[0].subject);
+        assert!(t[0].subject.contains("event 4"), "got: {}", t[0].subject);
         assert!(t[0].at >= t[1].at);
     }
 
     #[test]
-    fn segredo_colado_num_prompt_nao_fica_gravado() {
+    fn secret_pasted_in_a_prompt_is_not_stored() {
         let d = db();
-        record(&d, "prompt", "usa esse banco", "DATABASE_URL=postgres://u:S3GR3DO@h:5432/d", "s1", "proj").unwrap();
+        record(&d, "prompt", "use this database", "DATABASE_URL=postgres://u:S3CR3T@h:5432/d", "s1", "proj").unwrap();
         let t = timeline(&d, Some("proj"), 1).unwrap();
-        assert!(!t[0].body.contains("S3GR3DO"), "gravou segredo: {}", t[0].body);
-        assert!(t[0].body.contains("h:5432"), "mascarou demais");
+        assert!(!t[0].body.contains("S3CR3T"), "stored the secret: {}", t[0].body);
+        assert!(t[0].body.contains("h:5432"), "redacted too much");
     }
 
     #[test]
-    fn evento_vazio_nao_e_gravado() {
+    fn empty_event_is_not_stored() {
         let d = db();
         record(&d, "prompt", "   ", "  ", "s1", "proj").unwrap();
         assert!(timeline(&d, Some("proj"), 5).unwrap().is_empty());
     }
 
     #[test]
-    fn corpo_gigante_e_cortado_antes_de_gravar() {
+    fn oversized_body_is_clipped_before_storing() {
         let d = db();
-        record(&d, "erro", "estouro", &"x".repeat(50_000), "s1", "proj").unwrap();
+        record(&d, "error", "overflow", &"x".repeat(50_000), "s1", "proj").unwrap();
         let t = timeline(&d, Some("proj"), 1).unwrap();
-        assert!(t[0].body.chars().count() <= MAX_BODY + 1, "gravou {} chars", t[0].body.chars().count());
+        assert!(t[0].body.chars().count() <= MAX_BODY + 1, "stored {} chars", t[0].body.chars().count());
     }
 
     #[test]
-    fn poda_remove_o_que_e_antigo_e_mantem_o_recente() {
+    fn pruning_drops_old_and_keeps_recent() {
         let d = db();
-        record(&d, "prompt", "recente", "", "s1", "proj").unwrap();
+        record(&d, "prompt", "recent", "", "s1", "proj").unwrap();
         d.execute(
-            "INSERT INTO events(kind, subject, body, session, project, at) VALUES ('prompt','antigo','','s0','proj',?1)",
+            "INSERT INTO events(kind, subject, body, session, project, at) VALUES ('prompt','old','','s0','proj',?1)",
             params![crate::ledger::now_ms() - 90 * 86_400_000i64],
         )
         .unwrap();
         assert_eq!(prune(&d, 60).unwrap(), 1);
         let t = timeline(&d, Some("proj"), 9).unwrap();
         assert_eq!(t.len(), 1);
-        assert!(t[0].subject.contains("recente"));
+        assert!(t[0].subject.contains("recent"));
     }
 
     #[test]
-    fn aspas_na_busca_nao_quebram_a_consulta() {
+    fn quotes_in_search_do_not_break_the_query() {
         let d = db();
-        record(&d, "erro", "falha no modulo auth", "", "s1", "proj").unwrap();
+        record(&d, "error", "failure in auth module", "", "s1", "proj").unwrap();
         for q in ["\"auth", "auth\" OR \"", "au*th", "'; DROP TABLE events; --"] {
             let _ = search(&d, q, Some("proj"), 5);
         }
-        assert_eq!(timeline(&d, Some("proj"), 9).unwrap().len(), 1, "a tabela sobreviveu");
+        assert_eq!(timeline(&d, Some("proj"), 9).unwrap().len(), 1, "table survived");
     }
 }

@@ -1,6 +1,6 @@
 [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 
- RUN  v2.1.9 /Users/igorbrandao/Desktop/threadline/threadline-web
+ RUN  v2.1.9 /home/dev/example-web
 
  ✓ lib/api.test.ts (30 tests) 201ms
  ✓ app/cadastro/_lib.test.ts (35 tests) 233ms
@@ -19,8 +19,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 Warning: An update to RefForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -31,8 +31,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 Warning: An update to RefForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -43,8 +43,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 
 stderr | app/(dashboard)/product-references/_components/RefForm.test.tsx > RefForm — the photo is uploaded, never typed > shows an empty frame until there is something to preview
 Warning: An update to RefForm inside a test was not wrapped in act(...).
@@ -57,8 +57,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 Warning: An update to RefForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -69,8 +69,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 Warning: An update to RefForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -81,8 +81,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 
  ✓ lib/pricing.test.ts (48 tests) 27ms
  ✓ app/assinatura/pagamento/_lib.test.ts (23 tests) 1095ms
@@ -97,8 +97,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 Warning: An update to RefForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -109,8 +109,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 Warning: An update to RefForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -121,8 +121,8 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at RefForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
-    at ConfirmProvider (/Users/igorbrandao/Desktop/threadline/threadline-web/components/ui/ConfirmProvider.tsx:13:28)
+    at RefForm (/home/dev/example-web/app/(dashboard)/product-references/_components/RefForm.tsx:34:20)
+    at ConfirmProvider (/home/dev/example-web/components/ui/ConfirmProvider.tsx:13:28)
 
  ✓ app/assinatura/_lib.test.ts (24 tests) 1261ms
  ✓ app/(dashboard)/product-references/_components/RefForm.test.tsx (25 tests) 1016ms
@@ -145,7 +145,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -156,7 +156,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -167,7 +167,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -178,7 +178,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -189,7 +189,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > replaces the code on screen before it can expire
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -202,7 +202,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -213,7 +213,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > keeps the current code on screen when a refresh fails
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -226,7 +226,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -237,7 +237,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -248,7 +248,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -259,7 +259,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -270,7 +270,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
  ✓ app/(dashboard)/orders/_components/OrderCard.test.tsx (14 tests) 272ms
  ✓ lib/format.test.ts (35 tests) 56ms
@@ -287,7 +287,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -298,7 +298,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -309,7 +309,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -320,7 +320,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -331,7 +331,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > stops promising the code still works once refreshes keep failing
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -344,7 +344,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > does not render a broken image when the code comes back empty
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -357,7 +357,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -368,7 +368,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -379,7 +379,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -390,7 +390,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -401,7 +401,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > closes to success when a refresh reports the phone already linked
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -414,7 +414,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -425,7 +425,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -436,7 +436,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -447,7 +447,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -458,7 +458,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > closes to success when a refresh reports the phone already linked
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -471,7 +471,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -482,7 +482,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -493,7 +493,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -504,7 +504,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -515,7 +515,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -526,7 +526,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -537,7 +537,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -548,7 +548,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -559,7 +559,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -570,7 +570,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -581,7 +581,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -592,7 +592,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
 stderr | app/(dashboard)/settings/_components/WhatsappConnect.test.tsx > WhatsappConnect — QR freshness > does not refresh while no QR is showing
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
@@ -605,7 +605,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -616,7 +616,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -627,7 +627,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -638,7 +638,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 Warning: An update to WhatsappConnect inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -649,7 +649,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at WhatsappConnect (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
+    at WhatsappConnect (/home/dev/example-web/app/(dashboard)/settings/_components/WhatsappConnect.tsx:41:75)
 
  ✓ app/(dashboard)/settings/_components/WhatsappConnect.test.tsx (8 tests) 556ms
  ✓ app/(dashboard)/product-references/_components/PricingPanel.test.tsx (19 tests) 84ms
@@ -674,7 +674,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at UserForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
+    at UserForm (/home/dev/example-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
 Warning: An update to UserForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -685,7 +685,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at UserForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
+    at UserForm (/home/dev/example-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
 Warning: An update to UserForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -696,7 +696,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at UserForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
+    at UserForm (/home/dev/example-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
 Warning: An update to UserForm inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -707,7 +707,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at UserForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
+    at UserForm (/home/dev/example-web/app/(dashboard)/users/_components/UserForm.tsx:31:21)
 
  ✓ app/seja-afiliado/_lib.test.ts (8 tests) 59ms
  ✓ lib/hooks/usePaywallGuard.test.tsx (7 tests) 23ms
@@ -735,7 +735,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at PaymentBrick (/Users/igorbrandao/Desktop/threadline/threadline-web/components/payment/PaymentBrick.tsx:14:3)
+    at PaymentBrick (/home/dev/example-web/components/payment/PaymentBrick.tsx:14:3)
 
  ✓ lib/auth.test.tsx (6 tests) 132ms
  ✓ app/(dashboard)/payments/_components/_lib.test.ts (15 tests) 2ms
@@ -750,7 +750,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at PaymentBrick (/Users/igorbrandao/Desktop/threadline/threadline-web/components/payment/PaymentBrick.tsx:14:3)
+    at PaymentBrick (/home/dev/example-web/components/payment/PaymentBrick.tsx:14:3)
 
  ✓ app/(dashboard)/orders/_components/OrderForm.test.tsx (10 tests) 144ms
  ✓ lib/security/csp.test.ts (11 tests) 4ms
@@ -790,7 +790,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -801,7 +801,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -812,7 +812,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -823,7 +823,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -834,7 +834,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -845,7 +845,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -856,7 +856,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -867,7 +867,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -878,7 +878,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -889,7 +889,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -900,7 +900,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -911,7 +911,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -922,7 +922,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -933,7 +933,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -944,7 +944,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 
  ✓ lib/hooks/useReportsOverview.test.tsx (4 tests) 137ms
  ✓ lib/hooks/useWorkshops.test.tsx (5 tests) 314ms
@@ -961,7 +961,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 
 stderr | lib/hooks/useDemoSession.test.ts > useDemoSession > self-clears to isDemo:false once the stored expiry passes
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
@@ -974,7 +974,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 
  ✓ lib/hooks/useDemoSession.test.ts (6 tests) 28ms
  ✓ app/(dashboard)/dashboard/_components/DashboardAttentionQueue.test.tsx (7 tests) 56ms
@@ -1017,7 +1017,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TrimMovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
+    at TrimMovementForm (/home/dev/example-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
 
  ✓ lib/hooks/usePayouts.test.tsx (3 tests) 199ms
 stderr | app/(dashboard)/trims/_components/TrimMovementForm.test.tsx > TrimMovementForm — six rolls of elastic > sends a purchase as a positive movement with the price paid
@@ -1031,7 +1031,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TrimMovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
+    at TrimMovementForm (/home/dev/example-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
 
  ✓ app/(dashboard)/orders/_components/OrderWorkshopAssign.test.tsx (4 tests) 43ms
  ✓ lib/hooks/useAffiliateDashboard.test.tsx (2 tests) 84ms
@@ -1046,7 +1046,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TrimMovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
+    at TrimMovementForm (/home/dev/example-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
 
 stderr | app/(dashboard)/trims/_components/TrimMovementForm.test.tsx > TrimMovementForm — six rolls of elastic > does not ask what a withdrawal cost — taking stock out is not a purchase
 Warning: An update to TrimMovementForm inside a test was not wrapped in act(...).
@@ -1059,7 +1059,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TrimMovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
+    at TrimMovementForm (/home/dev/example-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
 
 stderr | app/(dashboard)/trims/_components/TrimMovementForm.test.tsx > TrimMovementForm — six rolls of elastic > refuses a blank quantity instead of posting a zero
 Warning: An update to TrimMovementForm inside a test was not wrapped in act(...).
@@ -1072,7 +1072,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TrimMovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
+    at TrimMovementForm (/home/dev/example-web/app/(dashboard)/trims/_components/TrimMovementForm.tsx:25:3)
 
  ✓ app/(dashboard)/trims/_components/TrimMovementForm.test.tsx (5 tests) 288ms
  ✓ app/(dashboard)/crm/_components/LeadActions.test.tsx (5 tests) 128ms
@@ -1084,29 +1084,29 @@ This ensures that you're testing the behavior the user would see in the browser.
  ✓ app/(dashboard)/orders/_components/KanbanColumn.test.tsx (4 tests) 155ms
 stderr | app/afiliado/_components/AffiliateLessons.test.tsx > AffiliateLessons > shows a retry-worthy error state when the lessons fail to load
 affiliate portal: failed to load lessons Error: network down
-    at /Users/igorbrandao/Desktop/threadline/threadline-web/app/afiliado/_components/AffiliateLessons.test.tsx:63:35
-    at file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:146:14
-    at file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:533:11
-    at runWithTimeout (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:39:7)
-    at runTest (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1056:17)
-    at runSuite (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1205:15)
-    at runSuite (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1205:15)
-    at runFiles (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1262:5)
-    at startTests (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1271:3)
-    at file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+    at /home/dev/example-web/app/afiliado/_components/AffiliateLessons.test.tsx:63:35
+    at file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at runSuite (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/dev/example-web/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
 
 stderr | app/afiliado/_components/AffiliateLessons.test.tsx > AffiliateLessons > retries the fetch when the retry button is clicked
 affiliate portal: failed to load lessons Error: network down
-    at /Users/igorbrandao/Desktop/threadline/threadline-web/app/afiliado/_components/AffiliateLessons.test.tsx:74:39
-    at file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:146:14
-    at file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:533:11
-    at runWithTimeout (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:39:7)
-    at runTest (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at /home/dev/example-web/app/afiliado/_components/AffiliateLessons.test.tsx:74:39
+    at file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1056:17)
     at runNextTicks (node:internal/process/task_queues:65:5)
     at processTimers (node:internal/timers:538:9)
-    at runSuite (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1205:15)
-    at runSuite (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1205:15)
-    at runFiles (file:///Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at runSuite (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/dev/example-web/node_modules/@vitest/runner/dist/index.js:1262:5)
 
  ✓ app/afiliado/_components/AffiliateLessons.test.tsx (5 tests) 112ms
 stderr | app/(dashboard)/supplies/_components/MovementForm.test.tsx > MovementForm — what a purchase cost > sends the price paid on an inbound entry
@@ -1120,7 +1120,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at MovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
+    at MovementForm (/home/dev/example-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
 
 stderr | app/(dashboard)/supplies/_components/MovementForm.test.tsx > MovementForm — what a purchase cost > sends no price rather than a zero when the field is left blank
 Warning: An update to MovementForm inside a test was not wrapped in act(...).
@@ -1133,7 +1133,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at MovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
+    at MovementForm (/home/dev/example-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
 
 stderr | app/(dashboard)/supplies/_components/MovementForm.test.tsx > MovementForm — what a purchase cost > does not ask what a withdrawal cost — taking stock out is not a purchase
 Warning: An update to MovementForm inside a test was not wrapped in act(...).
@@ -1146,7 +1146,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at MovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
+    at MovementForm (/home/dev/example-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
 
 stderr | app/(dashboard)/supplies/_components/MovementForm.test.tsx > MovementForm — what a purchase cost > sends no price on a withdrawal even if one was typed before switching
 Warning: An update to MovementForm inside a test was not wrapped in act(...).
@@ -1159,7 +1159,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at MovementForm (/Users/igorbrandao/Desktop/threadline/threadline-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
+    at MovementForm (/home/dev/example-web/app/(dashboard)/supplies/_components/MovementForm.tsx:25:3)
 
  ✓ app/(dashboard)/supplies/_components/MovementForm.test.tsx (4 tests) 316ms
  ✓ app/(dashboard)/outreach/_components/InterestedTable.test.tsx (9 tests) 37ms
@@ -1207,7 +1207,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -1218,7 +1218,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -1229,7 +1229,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -1240,7 +1240,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -1251,7 +1251,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 Warning: An update to TestComponent inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -1262,7 +1262,7 @@ act(() => {
 /* assert on the output */
 
 This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-    at TestComponent (/Users/igorbrandao/Desktop/threadline/threadline-web/node_modules/@testing-library/react/dist/pure.js:328:5)
+    at TestComponent (/home/dev/example-web/node_modules/@testing-library/react/dist/pure.js:328:5)
 
  ✓ lib/hooks/useDashboardOverview.test.tsx (3 tests) 126ms
  ✓ lib/auth.cache-reset.test.tsx (2 tests) 31ms

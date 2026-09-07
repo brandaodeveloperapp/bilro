@@ -1,5 +1,5 @@
 commit de4c78411a917b80f4ec5e60015c4f350ac0be9f
-Author: Igor Brandao <brandaodeveloperapp@gmail.com>
+Author: A Developer <dev@example.com>
 Date:   Sun Sep 6 18:54:57 2026 -0300
 
     security: kill RCE from data file, stop denoise eating real errors

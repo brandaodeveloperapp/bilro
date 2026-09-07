@@ -15,6 +15,6 @@ postgres:16-alpine                             cf78e76683b9        411MB        
 prom/prometheus:v2.55.1                        2659f4c2ebb7        396MB          108MB   U    
 rabbitmq:3.13-management                       e582c0bc7766        408MB          114MB   U    
 rabbitmq:3.13-management-alpine                606d8c0d6b3c        277MB         85.9MB   U    
-rainha-api:latest                              0ef76d625f45        591MB          133MB   U    
-rainha-worker:latest                           c177f4c36241        591MB          133MB   U    
+example-api:latest                              0ef76d625f45        591MB          133MB   U    
+example-worker:latest                           c177f4c36241        591MB          133MB   U    
 redis:7-alpine                                 ff02b58f971e       58.7MB         17.3MB   U    

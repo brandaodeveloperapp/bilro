@@ -1,12 +1,12 @@
 CONTAINER ID   IMAGE                                          COMMAND                   CREATED        STATUS                      PORTS     NAMES
 baca96337bec   alpine:latest                                  "sleep 60"                1 second ago   Up 1 second                           bilro-fixture-tmp
-20e2fc3e0fcc   rabbitmq:3.13-management-alpine                "docker-entrypoint.s…"    25 hours ago   Exited (137) 2 hours ago              rainha-rabbitmq-1
-32a40bdd3080   rainha-api                                     "sh -c 'mkdir -p \"$P…"   33 hours ago   Exited (137) 2 hours ago              rainha-api-1
-4bb195b98f43   node:20-alpine                                 "docker-entrypoint.s…"    2 days ago     Exited (0) 19 hours ago               rainha-web-1
-f95137f1256d   rainha-worker                                  "python -m app.worke…"    2 days ago     Exited (137) 25 hours ago             rainha-worker-1
-c3fb46c7b11d   postgres:16-alpine                             "docker-entrypoint.s…"    2 days ago     Exited (0) 2 hours ago                rainha-postgres-1
-5c611078768e   redis:7-alpine                                 "docker-entrypoint.s…"    2 days ago     Exited (0) 2 hours ago                rainha-redis-1
-7aeb82db9094   minio/minio:latest                             "/usr/bin/docker-ent…"    2 days ago     Exited (0) 2 hours ago                rainha-minio-1
+20e2fc3e0fcc   rabbitmq:3.13-management-alpine                "docker-entrypoint.s…"    25 hours ago   Exited (137) 2 hours ago              example-rabbitmq-1
+32a40bdd3080   example-api                                     "sh -c 'mkdir -p \"$P…"   33 hours ago   Exited (137) 2 hours ago              example-api-1
+4bb195b98f43   node:20-alpine                                 "docker-entrypoint.s…"    2 days ago     Exited (0) 19 hours ago               example-web-1
+f95137f1256d   example-worker                                  "python -m app.worke…"    2 days ago     Exited (137) 25 hours ago             example-worker-1
+c3fb46c7b11d   postgres:16-alpine                             "docker-entrypoint.s…"    2 days ago     Exited (0) 2 hours ago                example-postgres-1
+5c611078768e   redis:7-alpine                                 "docker-entrypoint.s…"    2 days ago     Exited (0) 2 hours ago                example-redis-1
+7aeb82db9094   minio/minio:latest                             "/usr/bin/docker-ent…"    2 days ago     Exited (0) 2 hours ago                example-minio-1
 8e3b81db96ef   moby/buildkit:buildx-stable-1                  "/usr/bin/buildkitd-…"    3 days ago     Exited (1) 25 hours ago               buildx_buildkit_jutixbuilder0
 5e43859660c2   easyfile-api                                   "dotnet ASBZ.EasyFil…"    3 days ago     Exited (0) 25 hours ago               easyfile-api-1
 27a27396dd37   easyfile-rotina                                "dotnet ASBZ.EasyFil…"    3 days ago     Exited (0) 25 hours ago               easyfile-rotina-1
