@@ -2,6 +2,7 @@ mod exec;
 mod filters;
 mod graph;
 mod grep;
+mod install;
 mod ledger;
 mod learn;
 mod memory;
@@ -584,6 +585,37 @@ fn hook_prompt() {
     }
 }
 
+fn cmd_install() {
+    let binary = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => return eprintln!("  nao achei o proprio binario: {e}"),
+    };
+    let link_dir = home().join(".local").join("bin");
+    match install::install(&home(), &binary, Some(&link_dir)) {
+        Err(e) => eprintln!("  falhou: {e}"),
+        Ok(r) => {
+            println!("\n  bilro instalado\n");
+            println!("  binario   {}", r.binary.display());
+            if let Some(l) = &r.linked {
+                println!("  no PATH   {}", l.display());
+            }
+            for a in &r.added {
+                println!("  {}+{} {a}", "\x1b[32m", OFF);
+            }
+            for a in &r.replaced {
+                println!("  {WARN}~{OFF} {a} {DIM}(caminho atualizado){OFF}");
+            }
+            for a in &r.already {
+                println!("  {DIM}= {a} (ja estava){OFF}");
+            }
+            if let Some(b) = &r.backup {
+                println!("\n  {DIM}settings anterior em {}{OFF}", b.display());
+            }
+            println!();
+        }
+    }
+}
+
 fn usage() {
     println!(
         "\n  bilro 0.2.0\n\n\
@@ -599,7 +631,8 @@ fn usage() {
          \x20   bilro sessions         agentes despachados por sessao\n\
          \x20   bilro run <cmd>        roda e indexa; so o trecho pedido volta\n\
          \x20   bilro find <termo>     busca no que ja foi indexado\n\
-         \x20   bilro style [nivel]    regras de escrita da sessao\n"
+         \x20   bilro style [nivel]    regras de escrita da sessao\n\
+         \x20   bilro install          registra os hooks e poe o binario no PATH\n"
     );
 }
 
@@ -624,6 +657,7 @@ fn main() {
         Some("propose") => cmd_propose(),
         Some("bill") => cmd_bill(&std::env::current_dir().unwrap_or_default()),
         Some("sessions") => cmd_sessions(),
+        Some("install") => cmd_install(),
         Some("run") => cmd_run(&rest),
         Some("find") => cmd_find(&rest),
         Some("style") => println!("{}", style::ruleset(&rest.first().cloned().unwrap_or_else(style::read_level))),
