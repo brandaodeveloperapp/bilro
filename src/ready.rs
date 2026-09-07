@@ -87,12 +87,15 @@ pub fn evaluate(db: &Connection) -> rusqlite::Result<Metrics> {
 
     for (sig, n, body) in &rows {
         let Some(body) = body else { continue };
+        if body.is_empty() {
+            continue;
+        }
         if *n >= 3 {
             learned += 1;
         }
         let denoised = denoise(db, sig, body, 3, 0.8)?;
-        raw_bytes += body.len();
-        kept_bytes += denoised.text.len();
+        raw_bytes += body.chars().count();
+        kept_bytes += denoised.text.chars().count();
         let severe_in: Vec<&str> = body.split('\n').filter(|l| is_severe(l)).collect();
         if !severe_in.is_empty() {
             let out = &denoised.text;

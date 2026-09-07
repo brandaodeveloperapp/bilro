@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert";
-import { toArgv, isSafe, runDeclared } from "../lib/exec.js";
+import { toArgv, isSafe, runDeclared, isAllowedProgram } from "../lib/exec.js";
 
 test("recusa sintaxe de shell vinda de arquivo de dado", () => {
   for (const evil of [
@@ -28,4 +28,22 @@ test("execucao real acontece sem shell", () => {
   const r = runDeclared("echo hello");
   assert.equal(r.ok, true);
   assert.match(r.output, /hello/);
+});
+
+test("interpretador como programa e recusado mesmo sem metacaractere", () => {
+  for (const linha of [
+    'sh -c "touch /tmp/x"',
+    'bash -c "touch /tmp/x"',
+    '/bin/sh -c "touch /tmp/x"',
+    'python3 -c "open(\'/tmp/x\',\'w\')"',
+    'node -e "require(\'fs\').writeFileSync(\'/tmp/x\',\'\')"',
+    "env touch /tmp/x",
+    "sudo rm -rf /",
+  ])
+    assert.equal(runDeclared(linha).refused, true, `deveria recusar: ${linha}`);
+});
+
+test("verificacao legitima continua permitida", () => {
+  for (const linha of ["git rev-parse HEAD", "cat package.json", "kubectl get pods"])
+    assert.equal(isAllowedProgram(linha), true, linha);
 });

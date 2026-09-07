@@ -1,6 +1,7 @@
 use crate::memory::{self, Memory};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -91,7 +92,7 @@ pub fn lint(dir: &Path) -> LintResult {
             hubs.push(Hub { name: m.name.clone(), incoming });
         }
     }
-    hubs.sort_by(|a, b| b.incoming.cmp(&a.incoming));
+    hubs.sort_by_key(|h| Reverse(h.incoming));
     hubs.truncate(5);
 
     LintResult { total: g.memories.len(), broken, orphans, hubs }

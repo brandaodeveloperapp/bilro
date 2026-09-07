@@ -23,6 +23,28 @@ pub fn to_argv(line: &str) -> Vec<String> {
 /// A line safe to run is one carrying no shell metacharacter: a value read
 /// from a data file cannot chain, redirect or substitute its way into
 /// something else if it never reaches a shell in the first place.
+/// Programs a declared check may run. Refusing shell syntax is not enough on
+/// its own: `sh -c "..."` carries no metacharacter and still hands the whole
+/// line to a shell, so the program itself has to be vouched for. Everything
+/// here reads state without changing it.
+const ALLOWED: &[&str] = &[
+    "git", "grep", "egrep", "fgrep", "rg", "cat", "head", "tail", "ls", "wc", "stat", "file",
+    "jq", "kubectl", "docker", "plutil", "uname", "sw_vers", "date", "echo", "test", "true",
+    "false", "dirname", "basename", "realpath", "readlink", "printenv", "which", "sort", "uniq",
+    "cut", "tr", "diff", "cmp", "md5", "shasum", "curl",
+];
+
+/// The program part of a declared command, without its directory.
+pub fn program_of(line: &str) -> Option<String> {
+    let argv = to_argv(line);
+    let first = argv.first()?;
+    Some(first.rsplit('/').next().unwrap_or(first).to_string())
+}
+
+pub fn is_allowed_program(line: &str) -> bool {
+    program_of(line).map(|p| ALLOWED.contains(&p.as_str())).unwrap_or(false)
+}
+
 pub fn is_safe(line: &str) -> bool {
     !SHELL_META.is_match(line)
 }
@@ -113,6 +135,16 @@ pub fn run_declared(line: &str) -> ExecResult {
 }
 
 pub fn run_declared_with(line: &str, opts: &RunOptions) -> ExecResult {
+    if !is_allowed_program(line) {
+        return ExecResult {
+            ok: false,
+            refused: true,
+            output: format!(
+                "programa nao permitido em verify: {}",
+                program_of(line).unwrap_or_else(|| "vazio".into())
+            ),
+        };
+    }
     if !is_safe(line) {
         return ExecResult { ok: false, refused: true, output: "usa sintaxe de shell".into() };
     }
@@ -191,30 +223,75 @@ mod tests {
         assert!(r.ok);
         assert!(r.output.contains("hello"));
     }
+}
+
+#[cfg(test)]
+mod adversarial {
+    use super::*;
 
     #[test]
-    fn prova_viva_do_rce_de_frontmatter_verify() {
-        let md_path = "/tmp/bilro_rce_probe.md";
-        let probe_path = "/tmp/bilro_rce_probe";
-        let _ = std::fs::remove_file(probe_path);
-        std::fs::write(
-            md_path,
-            "---\nverify: id > /tmp/bilro_rce_probe; echo PWNED\n---\n# nota maliciosa\n",
-        )
-        .unwrap();
+    fn nenhum_payload_hostil_executa() {
+        let marcador = "/tmp/bilro_adv_probe";
+        let _ = std::fs::remove_file(marcador);
+        let payloads = [
+            "id > /tmp/bilro_adv_probe; echo PWNED",
+            "echo ok && touch /tmp/bilro_adv_probe",
+            "echo ok || touch /tmp/bilro_adv_probe",
+            "echo $(touch /tmp/bilro_adv_probe)",
+            "echo `touch /tmp/bilro_adv_probe`",
+            "cat /etc/passwd | tee /tmp/bilro_adv_probe",
+            "echo ok\ntouch /tmp/bilro_adv_probe",
+            "echo ok\rtouch /tmp/bilro_adv_probe",
+            "sh -c \"touch /tmp/bilro_adv_probe\"",
+            "echo ok > /tmp/bilro_adv_probe",
+            "echo ok & touch /tmp/bilro_adv_probe",
+        ];
+        let mut executados = Vec::new();
+        for p in payloads {
+            let r = run_declared(p);
+            if !r.refused {
+                executados.push(p);
+            }
+        }
+        let vazou = std::path::Path::new(marcador).exists();
+        let _ = std::fs::remove_file(marcador);
+        assert!(executados.is_empty() && !vazou, "NAO RECUSOU: {executados:?} | criou arquivo: {vazou}");
+    }
 
-        let text = std::fs::read_to_string(md_path).unwrap();
-        let verify_cmd = text
-            .lines()
-            .find(|l| l.starts_with("verify:"))
-            .map(|l| l.trim_start_matches("verify:").trim().to_string())
-            .unwrap();
+    #[test]
+    fn interpretador_como_programa_e_recusado_mesmo_sem_metacaractere() {
+        for linha in [
+            "sh -c \"touch /tmp/x\"",
+            "bash -c \"touch /tmp/x\"",
+            "/bin/sh -c \"touch /tmp/x\"",
+            "zsh -c \"touch /tmp/x\"",
+            "python3 -c \"open('/tmp/x','w')\"",
+            "node -e \"require('fs').writeFileSync('/tmp/x','')\"",
+            "perl -e \"open F,'>','/tmp/x'\"",
+            "ruby -e \"File.write('/tmp/x','')\"",
+            "env touch /tmp/x",
+            "xargs touch",
+            "sudo rm -rf /",
+            "awk \"BEGIN{system(1)}\"",
+            "find . -exec touch /tmp/x ;",
+        ] {
+            let r = run_declared(linha);
+            assert!(r.refused, "deveria recusar: {linha}");
+        }
+    }
 
-        let r = run_declared(&verify_cmd);
-        assert!(r.refused, "deveria recusar o verify malicioso");
-        assert!(!std::path::Path::new(probe_path).exists(), "RCE executou e criou o arquivo prova");
+    #[test]
+    fn verificacao_legitima_continua_permitida() {
+        for linha in ["git rev-parse HEAD", "grep -c foo Cargo.toml", "cat Cargo.toml", "kubectl get pods"] {
+            assert!(is_allowed_program(linha), "deveria permitir: {linha}");
+        }
+    }
 
-        let _ = std::fs::remove_file(md_path);
-        let _ = std::fs::remove_file(probe_path);
+    #[test]
+    fn comando_legitimo_ainda_roda() {
+        let r = run_declared("echo bilro");
+        assert!(!r.refused);
+        assert!(r.ok);
+        assert!(r.output.contains("bilro"));
     }
 }
