@@ -323,7 +323,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
             }
             let cwd = arg_str(args, "cwd");
             let full = if cwd.is_empty() { command.clone() } else { format!("cd {cwd} && {command}") };
-            match crate::filtered(&full) {
+            match crate::core::filtered(&full) {
                 Ok((text, note, saved)) => {
                     let mut out = text;
                     if saved > 0 {
