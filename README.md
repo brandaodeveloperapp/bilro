@@ -206,7 +206,6 @@ question:
 A memory that is cited but was never written becomes a red node on a dashed
 line — a broken link is the interesting kind of link.
 
-<img src="docs/graph.svg" alt="The memory graph in four modes: global, local to one memory, clustered by type, and radial by how often each is cited." width="760">
 
 The browser panel listens on **loopback only**: it serves a record of your work,
 and has no business being reachable from another machine.
@@ -256,7 +255,6 @@ read-only programs may be invoked. `git` is allowed but must name a read-only
 subcommand, because an alias beginning with `!` runs through a shell and `-c`
 can define one inline.
 
-<img src="docs/declared-checks.svg" alt="A memory file carrying a malicious verify line is refused three ways: shell syntax, an interpreter as the program, and git configured to run a shell alias." width="760">
 
 ---
 

@@ -1,58 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="Five lines carrying secrets in different formats go in; the same five come out with only the credential replaced, host and parameters still readable.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 250" width="720" height="250" role="img" aria-label="Five lines carrying secrets in different formats; the credential in each is replaced in place while the host and parameters stay readable.">
 <style>
-  .bg { fill: #16151a; }
-  .chrome { fill: #1d1c22; }
-  .t { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .prompt { fill: #b98adf; }
-  .cmd { fill: #dcd9e3; }
-  .keep { fill: #837e91; }
-  .secret { fill: #e08b78; }
-  .mask { fill: #7bc496; }
-  .label { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #837e91; }
-  .head { font: 11px ui-sans-serif, system-ui, sans-serif; fill: #b98adf; }
-
-  .before { animation: showBefore 9s infinite; }
-  .after  { animation: showAfter 9s infinite; opacity: 0; }
-
-  @keyframes showBefore {
-    0%, 45% { opacity: 1; }
-    50%, 100% { opacity: 0; }
-  }
-  @keyframes showAfter {
-    0%, 45% { opacity: 0; }
-    50%, 95% { opacity: 1; }
-    100% { opacity: 0; }
-  }
+  .bg{fill:#16151a}.bar{fill:#1d1c22}
+  .t{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+  .k{fill:#6f6b7a}.s{fill:#e08b78}.m{fill:#7bc496}
+  .n{font:11px ui-sans-serif,system-ui,sans-serif;fill:#57535f}
+  .secret{animation:hide 8s infinite}
+  .mask{opacity:0;animation:show 8s infinite}
+  @keyframes hide{0%,40%{opacity:1}48%,100%{opacity:0}}
+  @keyframes show{0%,40%{opacity:0}48%,100%{opacity:1}}
+  .secret:nth-of-type(1){animation-delay:0s}
+  .secret:nth-of-type(2){animation-delay:.12s}
+  .secret:nth-of-type(3){animation-delay:.24s}
+  .secret:nth-of-type(4){animation-delay:.36s}
+  .secret:nth-of-type(5){animation-delay:.48s}
 </style>
+<rect class="bg" width="720" height="250" rx="10"/>
+<rect class="bar" width="720" height="32" rx="10"/><rect class="bar" y="22" width="720" height="10"/>
+<circle cx="20" cy="16" r="5" fill="#e08b78"/><circle cx="38" cy="16" r="5" fill="#dfc07a"/><circle cx="56" cy="16" r="5" fill="#7bc496"/>
 
-  <rect class="bg" width="760" height="300" rx="10"/>
-  <rect class="chrome" width="760" height="30" rx="10"/>
-  <rect class="chrome" y="20" width="760" height="10"/>
-  <text class="label" x="16" y="20">credentials never reach the conversation, and never reach the database</text>
+<text class="t k" x="20" y="66">DATABASE_URL=postgres://app:</text>
+<text class="t s secret" x="243" y="66">s3nh4Sup3rS3cr3t</text>
+<text class="t m mask" x="243" y="66">***REDACTED***</text>
+<text class="t k" x="374" y="66">@db:5432/prod</text>
 
-  <g class="before">
-    <text class="head" x="20" y="58">what the command printed</text>
-    <text class="t" x="20" y="84"><tspan class="keep">DATABASE_URL=postgres://app:</tspan><tspan class="secret">s3nh4Sup3rS3cr3t</tspan><tspan class="keep">@db:5432/prod</tspan></text>
-    <text class="t" x="20" y="106"><tspan class="keep">SERVICE=https://api.example.com/v1?apikey=</tspan><tspan class="secret">sk_live_9f2a71c4</tspan></text>
-    <text class="t" x="20" y="128"><tspan class="keep">Authorization: Bearer </tspan><tspan class="secret">eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig</tspan></text>
-    <text class="t" x="20" y="150"><tspan class="keep">BASIC=Basic </tspan><tspan class="secret">dXNlcjpwYXNz</tspan></text>
-    <text class="t" x="20" y="172"><tspan class="keep">psql --password=</tspan><tspan class="secret">S3nh4Outra</tspan><tspan class="keep"> --host=db.local</tspan></text>
+<text class="t k" x="20" y="94">SERVICE=https://api.example.com/v1?apikey=</text>
+<text class="t s secret" x="353" y="94">sk_live_9f2a71c4</text>
+<text class="t m mask" x="353" y="94">***REDACTED***</text>
 
-    <text class="label" x="20" y="216">Five formats. Not one of the field names admits to holding a secret —</text>
-    <text class="label" x="20" y="236">which is why masking by field name let every one of these through.</text>
-    <text class="label" x="20" y="268">What is inspected is the shape of the value.</text>
-  </g>
+<text class="t k" x="20" y="122">Authorization: Bearer</text>
+<text class="t s secret" x="187" y="122">eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0</text>
+<text class="t m mask" x="187" y="122">***REDACTED***</text>
 
-  <g class="after">
-    <text class="head" x="20" y="58">what bilro passed on</text>
-    <text class="t" x="20" y="84"><tspan class="keep">DATABASE_URL=postgres://app:</tspan><tspan class="mask">***REDACTED***</tspan><tspan class="keep">@db:5432/prod</tspan></text>
-    <text class="t" x="20" y="106"><tspan class="keep">SERVICE=https://api.example.com/v1?apikey=</tspan><tspan class="mask">***REDACTED***</tspan></text>
-    <text class="t" x="20" y="128"><tspan class="keep">Authorization: Bearer </tspan><tspan class="mask">***REDACTED***</tspan></text>
-    <text class="t" x="20" y="150"><tspan class="keep">BASIC=Basic </tspan><tspan class="mask">***REDACTED***</tspan></text>
-    <text class="t" x="20" y="172"><tspan class="keep">psql --password=</tspan><tspan class="mask">***REDACTED***</tspan><tspan class="keep"> --host=db.local</tspan></text>
+<text class="t k" x="20" y="150">BASIC=Basic</text>
+<text class="t s secret" x="108" y="150">dXNlcjpwYXNz</text>
+<text class="t m mask" x="108" y="150">***REDACTED***</text>
 
-    <text class="label" x="20" y="216">The host, the database, the query parameter beside the key,</text>
-    <text class="label" x="20" y="236">the word Bearer — all still readable. Only the credential is gone.</text>
-    <text class="label" x="20" y="268">Redacted before it is printed, and before it is written to disk.</text>
-  </g>
+<text class="t k" x="20" y="178">psql --password=</text>
+<text class="t s secret" x="147" y="178">S3nh4Outra</text>
+<text class="t m mask" x="147" y="178">***REDACTED***</text>
+<text class="t k" x="290" y="178">--host=db.local</text>
+
+<text class="n" x="20" y="220">not one of those field names admits to holding a secret</text>
 </svg>
