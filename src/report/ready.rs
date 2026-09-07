@@ -157,23 +157,23 @@ pub fn verdicts(m: &Metrics) -> Vec<Verdict> {
     vec![
         Verdict {
             tool: "caveman".to_string(),
-            risk: "texto feio".to_string(),
-            missing: why(&[("auditoria", audited)]),
+            risk: "ugly prose".to_string(),
+            missing: why(&[("audit", audited)]),
         },
         Verdict {
             tool: "context-mode".to_string(),
-            risk: "busca pior".to_string(),
-            missing: why(&[("auditoria", audited), ("historico", enough)]),
+            risk: "worse search".to_string(),
+            missing: why(&[("audit", audited), ("history", enough)]),
         },
         Verdict {
             tool: "rtk".to_string(),
-            risk: "output comido em silencio".to_string(),
+            risk: "output eaten in silence".to_string(),
             missing: why(&[
-                ("auditoria", audited),
-                ("historico", enough),
-                ("cobertura", covered),
-                ("economia", saving),
-                ("sinal", safe),
+                ("audit", audited),
+                ("history", enough),
+                ("coverage", covered),
+                ("savings", saving),
+                ("signal", safe),
             ]),
         },
     ]
@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn cobertura_conta_so_comando_com_3_mais_execucoes() {
+    fn coverage_counts_only_commands_with_three_or_more_runs() {
         let mut d = db();
         for i in 0..5 {
             observe(&mut d, "npm test", &format!("ok {i}\nsempre igual")).unwrap();
@@ -227,6 +227,6 @@ mod tests {
         }
         let m = evaluate(&d).unwrap();
         assert_eq!(m.lost.len(), 0);
-        assert!(!verdicts(&m).iter().find(|v| v.tool == "rtk").unwrap().missing.contains(&"sinal".to_string()));
+        assert!(!verdicts(&m).iter().find(|v| v.tool == "rtk").unwrap().missing.contains(&"signal".to_string()));
     }
 }
