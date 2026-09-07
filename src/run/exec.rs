@@ -1,11 +1,9 @@
-use crate::proc::{spawn_with_timeout, SpawnOutcome};
+use crate::proc::spawn_with_timeout;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::io::Read;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::process::Command;
 
 static SHELL_META: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"[;&|`$><\n\r\\]|\$\(|\|\||&&"#).unwrap());
