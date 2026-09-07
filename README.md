@@ -1,118 +1,269 @@
 # bilro
 
-Token economy for coding agents. Runs your command, keeps what informs, and
-learns what your tools always print so it stops repeating it back to you.
+Economia de contexto para agentes de código. Roda o teu comando, devolve só o
+que informa, e aprende o que as tuas ferramentas sempre imprimem para parar de
+repetir isso de volta pra ti.
 
-Named after the bobbins of Ceará lacework: many small threads, one pattern.
+O nome vem dos bilros da renda cearense: muitos fios finos, um desenho só.
 
-## Install
+```
+$ bilro filter git log --oneline -40
+2945d6b ops(monitoring): alert Igor on WhatsApp when prod health fails
+
+  98% menor (39 linhas repetidas)
+```
+
+De quarenta commits, sobrou a única linha que menciona uma falha. As outras
+trinta e nove tu já tinha visto nas execuções anteriores.
+
+---
+
+## Instalar
 
 ```sh
-cargo build --release
-./target/release/bilro install
+curl -fsSL https://raw.githubusercontent.com/brandaodeveloperapp/bilro/main/install.sh | sh
 ```
 
-`install` puts the binary on your PATH and registers four hooks with Claude
-Code, keeping a copy of the settings file it changes. Running it twice changes
-nothing.
+Baixa o binário da tua plataforma, ou compila se não houver um pronto, coloca no
+PATH e registra os hooks e o servidor MCP. Rodar duas vezes não duplica nada.
 
-## What it does
+Confere:
 
-```
-bilro filter <cmd>     runs the command and returns only what informs
-bilro read <file>      reads a file compressed (--outline for structure only)
-bilro grep <pattern>   search grouped by file, without the repetition
-bilro run <cmd>        runs and indexes; only the passage you ask for comes back
-bilro find <term>      searches what has already been indexed
-bilro ready            can the tools bilro replaces be retired yet?
-bilro bill             what context costs before you ask for anything
-bilro verify [--run]   checks memories that assert a dated fact
-bilro lint             broken links, orphaned memories, most-cited
-bilro propose          memories worth writing, from what you keep running
-bilro sessions         agents dispatched per session
-bilro exec <lang>      runs a snippet (code on stdin), only what it prints returns
-bilro recall [term]    what has already happened in this project
-bilro fetch <url>      fetches a page, indexes it, returns only what you asked for
-bilro install          registers the hooks and puts the binary on your PATH
-bilro mcp              MCP server over stdio
+```sh
+bilro doctor
 ```
 
-## As an MCP server
+Compilando do código, se preferires:
 
-`install` registers bilro as a stdio MCP server, so its tools appear in the
-model's own list rather than in documentation someone has to remember:
-`bilro_script`, `bilro_run`, `bilro_fetch`, `bilro_recall`, `bilro_find`,
-`bilro_filter`, `bilro_read`, `bilro_grep`. A capability that has to be
-remembered is a capability that goes unused.
+```sh
+git clone https://github.com/brandaodeveloperapp/bilro
+cd bilro && cargo build --release && ./target/release/bilro install
+```
 
-## How the compression works
+Precisa de Rust 1.75+ para compilar. Em execução o binário se basta — SQLite com
+FTS5 vai compilado dentro. Só o `bilro fetch` chama o `curl` do sistema, o que
+mantém uma pilha TLS e um armazém de certificados fora do binário.
 
-Two passes, and the order matters.
+---
 
-**Structure first.** Output has a shape — a columnar table, a diff, a test
-report, a file listing, a diagnostic list, an install log, a JSON dump — and a
-shape can be compressed on a command that has never been seen before. Seven
-shapes cover the output of dozens of tools, including tools nobody wrote a rule
-for, because the shape is what repeats across them, not the program name.
+## Os primeiros cinco minutos
 
-**History second.** Every run is recorded: how many times a command shape has
-been seen, and in how many of those runs each line appeared. A line present in
-nearly every run carries no information and is dropped. A line never seen
-before is always kept. Below three runs there is no history to judge with, so
-nothing is dropped at all.
+**1. Veja o que teu contexto custa antes de pedir qualquer coisa.**
 
-Numbers and hashes collapse when deciding what is noise, so a duration or a
-counter does not make every run look new — but they are kept when deciding what
-is *new*, because `module 3 failed` and `module 7 failed` are different events
-that happen to share a shape.
+```sh
+bilro bill
+```
 
-## The one rule that outranks compression
+Soma CLAUDE.md, MEMORY.md e o catálogo de agentes. Esse número é pago em toda
+requisição, uses ou não.
 
-**A line reporting a failure is never dropped.** Not when it repeats, not when
-it appears in every run, not when the output is trimmed to a budget. A build
-that breaks the same way every day is still the answer to what happened, and a
-tool that hides it is worse than no tool.
+**2. Rode um comando verboso duas ou três vezes.**
 
-Severity is recognised two ways: by the words and marks a line uses, and by the
-shape every compiler and linter prints — a path, a line, a column. The second
-matters because the first only knows the languages someone listed.
+```sh
+bilro filter npm test
+bilro filter npm test
+bilro filter npm test
+```
 
-Where nothing survives compression, bilro says how many lines were suppressed
-rather than printing an empty screen, and it does not claim none of them
-reported a failure. Absence of failure is not provable from a list of words.
+Na primeira, ele não corta nada — não tem com o que comparar. Da terceira em
+diante ele já sabe o que aquele comando sempre imprime, e devolve só o que mudou.
 
-## Credentials
+**3. Veja o que ele guardou.**
 
-Output is redacted before it is shown and before it is stored, because a secret
-written to the learning database once survives every later run. The value's
-shape is what is inspected, not the name of the field: connection strings,
-query parameters, Authorization headers, bare JWTs, password flags and private
-key blocks all carry secrets under innocent labels.
+```sh
+bilro stats
+bilro recall
+```
 
-## Declared checks
+**4. Abra o painel.**
 
-A memory may carry a `verify:` line asserting how to confirm a dated fact.
-Nothing runs without `--run`, no shell is involved, shell syntax is refused,
-and only a short list of read-only programs may be invoked at all. `git` is
-allowed but must name a read-only subcommand, because an alias beginning with
-`!` runs through a shell and `-c` can define one inline.
+```sh
+bilro-painel
+```
 
-## What it remembers
+---
 
-A journal records what was asked for and which commands reported a failure,
-filed per project and searchable both by term and as a plain timeline. It is
-what answers "where were we" when a session resumes, instead of asking someone
-to repeat themselves. Entries are redacted before they are written and dropped
-once they are old.
+## O que ele faz
 
-## Requirements
+```
+bilro filter <cmd>     roda o comando e devolve só o que informa
+bilro read <arq>       lê arquivo comprimido (--outline só a estrutura)
+bilro grep <padrão>    busca agrupada por arquivo, sem repetição
+bilro exec <ling>      roda trecho de código, só o impresso volta
+bilro run <cmd>        roda e indexa; só o trecho pedido volta
+bilro find <termo>     busca no que já foi indexado
+bilro fetch <url>      busca página, indexa, devolve só o pedido
+bilro recall [termo]   o que já aconteceu neste projeto
+bilro ready            já dá pra aposentar as ferramentas que ele substitui?
+bilro bill             custo fixo de contexto por requisição
+bilro verify [--run]   confere memórias que afirmam fato datado
+bilro lint             link quebrado, memória órfã, mais citada
+bilro propose          memórias que valeria escrever
+bilro stats            o que ele guarda e quanto poupa
+bilro doctor           diagnóstico da instalação
+bilro purge <alvo>     apaga dado guardado (--sim confirma)
+bilro serve [porta]    painel no navegador
+bilro install          registra hooks e servidor MCP
+bilro mcp              servidor MCP por stdio
+```
 
-Rust 1.75+ to build. At runtime the binary is self-contained — SQLite with FTS5
-is compiled in — except that `bilro fetch` shells out to `curl` for transport,
-which keeps a TLS stack and a certificate store out of the binary. Snippet
-languages beyond shell need their own interpreter installed; bilro says so
-rather than failing obscurely.
+---
 
-## Licence
+## Como a compressão funciona
+
+Duas passadas, e a ordem importa.
+
+**Primeiro a estrutura.** Saída tem forma — tabela em colunas, diff, relatório
+de teste, listagem de arquivo, lista de diagnóstico, log de instalação, despejo
+de JSON — e forma pode ser comprimida num comando que nunca foi visto antes.
+Sete formas cobrem a saída de dezenas de ferramentas, inclusive de ferramentas
+que ninguém escreveu regra para, porque o que se repete entre elas é a forma,
+não o nome do programa.
+
+**Depois o histórico.** Toda execução é registrada: quantas vezes aquela forma
+de comando já apareceu, e em quantas dessas execuções cada linha apareceu. Linha
+presente em quase toda execução não carrega informação e é descartada. Linha
+nunca vista é sempre mantida. Abaixo de três execuções não há histórico para
+julgar, e nada é descartado.
+
+Número e hash colapsam na hora de decidir o que é ruído — uma duração ou um
+contador não faz toda execução parecer nova. Mas são preservados na hora de
+decidir o que é **novo**, porque `modulo 3 falhou` e `modulo 7 falhou` são
+eventos diferentes que por acaso compartilham uma forma.
+
+---
+
+## A regra que vence a compressão
+
+**Linha que relata falha nunca é descartada.** Nem quando se repete, nem quando
+aparece em toda execução, nem quando a saída é cortada por orçamento. Um build
+que quebra do mesmo jeito todo dia continua sendo a resposta para o que
+aconteceu, e ferramenta que esconde isso é pior que ferramenta nenhuma.
+
+Severidade é reconhecida de duas maneiras: pelas palavras e marcas que a linha
+usa, e pela **forma** que todo compilador e linter do mundo imprime — caminho,
+linha, coluna. A segunda importa porque a primeira só conhece as linguagens que
+alguém listou.
+
+Quando nada sobrevive à compressão, o bilro diz quantas linhas suprimiu em vez
+de imprimir uma tela vazia. E não afirma que nenhuma delas relatava falha:
+ausência de falha não é demonstrável a partir de uma lista de palavras.
+
+---
+
+## Credenciais
+
+A saída é redigida antes de ser mostrada e antes de ser gravada, porque segredo
+escrito no banco uma vez sobrevive a toda execução seguinte. O que é inspecionado
+é a **forma do valor**, não o nome do campo: string de conexão, parâmetro de
+query, cabeçalho `Authorization`, JWT solto, flag de senha e bloco de chave
+privada carregam segredo sob rótulo inocente.
+
+O que não é segredo continua legível — o host e o banco de uma string de conexão,
+o parâmetro `page` ao lado da chave de API, a palavra `Bearer` sem o token.
+
+---
+
+## O painel
+
+```sh
+bilro-painel     # aplicação nativa
+bilro serve      # no navegador, em http://127.0.0.1:7777
+```
+
+Mostra o que a ferramenta **fez**, não o que estima: a economia vem de
+reprocessar o denoise sobre a última saída de cada comando aprendido.
+
+O grafo tem quatro modos, porque uma rede de memórias tem mais de uma pergunta:
+
+| modo | o que responde |
+|---|---|
+| **Global** | a rede inteira, posicionada pela atração dos links |
+| **Local** | só o que uma memória toca, na profundidade escolhida |
+| **Por tipo** | cada tipo puxado para o próprio agrupamento |
+| **Radial** | as mais citadas no centro, o resto em anéis |
+
+Memória citada que nunca foi escrita vira um nó vermelho ligado por linha
+tracejada — link quebrado é o tipo interessante de link.
+
+O painel no navegador escuta **só em loopback**: ele serve um registro do teu
+trabalho, e não tem por que ser alcançável de outra máquina.
+
+---
+
+## Como servidor MCP
+
+`bilro install` registra o bilro como servidor MCP por stdio, então as
+ferramentas aparecem na lista do próprio modelo em vez de numa documentação que
+alguém precisa lembrar de ler:
+
+`bilro_script` · `bilro_batch` · `bilro_run` · `bilro_fetch` · `bilro_recall` ·
+`bilro_remember` · `bilro_find` · `bilro_filter` · `bilro_read` · `bilro_grep`
+
+Capacidade que precisa ser lembrada é capacidade que não se usa.
+
+---
+
+## Memórias
+
+Uma memória é um markdown com frontmatter, em
+`~/.claude/projects/<projeto>/memory/`:
+
+```markdown
+---
+name: redis-porta-local
+description: backend local precisa de REDIS_PORT=6380
+metadata:
+  type: project
+verify: git rev-parse HEAD
+expect: ""
+---
+
+O compose publica 6380 e a config padrão é 6379. Relacionado a
+[[deploy-gate-red-team-and-local]].
+```
+
+`bilro lint` acha link quebrado e memória órfã. `bilro propose` sugere memórias
+a partir do que tu mais roda e do que mais falha. `bilro verify` confere as que
+afirmam fato datado.
+
+**Checagem declarada é restrita de propósito.** Nada roda sem `--run`, nenhum
+shell é envolvido, sintaxe de shell é recusada, e só uma lista curta de programas
+de leitura pode ser invocada. `git` é permitido mas precisa nomear um subcomando
+de leitura, porque um alias começando com `!` roda por shell e `-c` define um
+inline.
+
+---
+
+## Diário
+
+O bilro registra o que foi pedido, quais comandos falharam, o que os subagentes
+concluíram, e — através de `bilro_remember` — o que foi decidido, descartado ou
+descoberto como restrição. As três últimas nenhum hook deduz de uma chamada de
+ferramenta; são julgamentos, e são gravadas no momento em que acontecem.
+
+```sh
+bilro recall                    # linha do tempo
+bilro recall "redis"            # busca por termo
+```
+
+É o que responde "onde a gente estava" quando uma sessão recomeça, em vez de
+pedir para alguém repetir.
+
+---
+
+## Apagar
+
+```sh
+bilro purge index      # simula, não apaga
+bilro purge index --sim
+bilro purge all --sim
+```
+
+Sem `--sim` ele relata o que apagaria e não apaga nada.
+
+---
+
+## Licença
 
 MIT.
